@@ -157,7 +157,7 @@ const { useState, useEffect, useRef, useCallback } = React;
 //  3. Collez-les ci-dessous
 // ════════════════════════════════════════════════════════
 const SB_URL = 'https://kokwzdfbypjvvqduuovk.supabase.co';
-const SB_KEY = '';  // ← Collez ici votre clé anon (eyJ...)
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtva3d6ZGZieXBqdnZxZHV1b3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MDI1NTYsImV4cCI6MjA4NzQ3ODU1Nn0.fhPdFPa3Ap6SM6RK5bAs46bIBko3t-tBFm2w_fnKMn4';
 
 const CATS = ['Fiction','Science','Histoire','Biographie','Enfants','Religion','Technologie','Art','Cuisine','Autre'];
 const USE_SB = !!(SB_URL && SB_KEY && SB_KEY.startsWith('eyJ'));
@@ -181,7 +181,15 @@ async function sb(table, method='GET', body=null, qs=''){
 
 // ── Mappers ──────────────────────────────────────────────
 const toM = r=>({id:r.id,memberCode:r.member_code,name:r.name,email:r.email,phone:r.phone||'',address:r.address||'',dateOfBirth:r.date_of_birth||'',idNumber:r.id_number||'',photo:r.photo||'',joinDate:r.join_date});
-const fromM = m=>({member_code:m.memberCode,name:m.name,email:m.email,phone:m.phone||null,address:m.address||null,date_of_birth:m.dateOfBirth||null,id_number:m.idNumber||null,photo:m.photo||null});
+const fromM = m=>{
+  const o={member_code:m.memberCode,name:m.name,email:m.email};
+  if(m.phone!==undefined) o.phone=m.phone||null;
+  if(m.address!==undefined) o.address=m.address||null;
+  if(m.photo!==undefined) o.photo=m.photo||null;
+  if(m.dateOfBirth!==undefined) o.date_of_birth=m.dateOfBirth||null;
+  if(m.idNumber!==undefined) o.id_number=m.idNumber||null;
+  return o;
+};
 const toB = r=>({id:r.id,barcode:r.barcode,title:r.title,author:r.author,isbn:r.isbn||'',year:r.year||'',category:r.category||'Autre',publisher:r.publisher||'',shelf:r.shelf||'',copies:r.copies,available:r.available,description:r.description||'',addedDate:r.added_date});
 const fromB = b=>({barcode:b.barcode,title:b.title,author:b.author,isbn:b.isbn||null,year:b.year||null,category:b.category,publisher:b.publisher||null,shelf:b.shelf||null,copies:b.copies,available:b.available,description:b.description||null});
 const toL = r=>({id:r.id,bookId:r.book_id,memberId:r.member_id,loanDate:r.loan_date,dueDate:r.due_date,returnDate:r.return_date||null,daysLate:r.days_late||0,lateFee:r.late_fee||0});
