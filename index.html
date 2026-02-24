@@ -154,11 +154,138 @@ const { useState, useEffect, useRef } = React;
 
 const CATEGORIES = ['Fiction', 'Science', 'Histoire', 'Biographie', 'Enfants', 'Religion', 'Technologie', 'Art', 'Cuisine', 'Autre'];
 
-// ── Storage helpers ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+//  CONFIGURATION SUPABASE
+//  Remplissez ces deux valeurs pour activer la base de données cloud.
+//  Laissez vides pour utiliser localStorage (mode hors-ligne).
+// ══════════════════════════════════════════════════════════════════
+const SUPABASE_URL      = 'https://kokwzdfbypjvvqduuovk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_fHfuKLMEEdAGhHm4jH9OVg_1G6nZjM9';
+
+const USE_SUPABASE = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+// ── Supabase REST helper ─────────────────────────────────────────
+async function sbQuery(table, method='GET', body=null, filter='') {
+    const url = `${SUPABASE_URL}/rest/v1/${table}${filter}`;
+    const headers = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': method==='POST' ? 'return=representation' : 'return=representation'
+    };
+    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
+    if (!res.ok) { const e = await res.text(); throw new Error(e); }
+    const text = await res.text();
+    return text ? JSON.parse(text) : [];
+}
+
+// ── DB abstraction layer (Supabase OR localStorage) ──────────────
 function genId() { return Date.now() + Math.floor(Math.random() * 9999); }
 function getData(k) { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch { return []; } }
 function setData(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
 function getSettings() { try { return JSON.parse(localStorage.getItem('lib_settings') || '{}'); } catch { return {}; } }
+
+// Map Supabase snake_case ↔ app camelCase
+function sbToMember(r) {
+    return { id:r.id, memberCode:r.member_code, name:r.name, email:r.email, phone:r.phone||'', address:r.address||'', dateOfBirth:r.date_of_birth||'', idNumber:r.id_number||'', photo:r.photo||'', joinDate:r.join_date };
+}
+function memberToSb(m) {
+    return { member_code:m.memberCode, name:m.name, email:m.email, phone:m.phone||null, address:m.address||null, date_of_birth:m.dateOfBirth||null, id_number:m.idNumber||null, photo:m.photo||null };
+}
+function sbToBook(r) {
+    return { id:r.id, barcode:r.barcode, title:r.title, author:r.author, isbn:r.isbn||'', year:r.year||'', category:r.category||'Autre', publisher:r.publisher||'', shelf:r.shelf||'', copies:r.copies, available:r.available, description:r.description||'', addedDate:r.added_date };
+}
+function bookToSb(b) {
+    return { barcode:b.barcode, title:b.title, author:b.author, isbn:b.isbn||null, year:b.year||null, category:b.category, publisher:b.publisher||null, shelf:b.shelf||null, copies:b.copies, available:b.available, description:b.description||null };
+}
+function sbToLoan(r) {
+    return { id:r.id, bookId:r.book_id, memberId:r.member_id, loanDate:r.loan_date, dueDate:r.due_date, returnDate:r.return_date, daysLate:r.days_late||0, lateFee:r.late_fee||0 };
+}
+
+// High-level DB functions
+const DB = {
+    async getMembers() {
+        if (!USE_SUPABASE) return getData('lib_members');
+        const rows = await sbQuery('members','GET',null,'?order=join_date.desc');
+        return rows.map(sbToMember);
+    },
+    async getBooks() {
+        if (!USE_SUPABASE) return getData('lib_books');
+        const rows = await sbQuery('books','GET',null,'?order=added_date.desc');
+        return rows.map(sbToBook);
+    },
+    async getActiveLoans() {
+        if (!USE_SUPABASE) return getData('lib_loans').filter(l=>!l.returnDate);
+        const rows = await sbQuery('loans','GET',null,'?return_date=is.null&order=loan_date.desc');
+        return rows.map(sbToLoan);
+    },
+    async getAllLoans() {
+        if (!USE_SUPABASE) return getData('lib_loans');
+        const rows = await sbQuery('loans','GET',null,'?order=loan_date.desc');
+        return rows.map(sbToLoan);
+    },
+    async addMember(m) {
+        if (!USE_SUPABASE) { setData('lib_members',[...getData('lib_members'),m]); return m; }
+        const rows = await sbQuery('members','POST', memberToSb(m));
+        return sbToMember(Array.isArray(rows)?rows[0]:rows);
+    },
+    async updateMember(id, m) {
+        if (!USE_SUPABASE) { setData('lib_members', getData('lib_members').map(x=>x.id===id?{...x,...m}:x)); return; }
+        await sbQuery('members','PATCH', memberToSb(m), `?id=eq.${id}`);
+    },
+    async deleteMember(id) {
+        if (!USE_SUPABASE) { setData('lib_members', getData('lib_members').filter(x=>x.id!==id)); return; }
+        await sbQuery('members','DELETE',null,`?id=eq.${id}`);
+    },
+    async addBook(b) {
+        if (!USE_SUPABASE) { setData('lib_books',[...getData('lib_books'),b]); return b; }
+        const rows = await sbQuery('books','POST', bookToSb(b));
+        return sbToBook(Array.isArray(rows)?rows[0]:rows);
+    },
+    async updateBook(id, b) {
+        if (!USE_SUPABASE) { setData('lib_books', getData('lib_books').map(x=>x.id===id?{...x,...b}:x)); return; }
+        await sbQuery('books','PATCH', bookToSb(b), `?id=eq.${id}`);
+    },
+    async deleteBook(id) {
+        if (!USE_SUPABASE) { setData('lib_books', getData('lib_books').filter(x=>x.id!==id)); return; }
+        await sbQuery('books','DELETE',null,`?id=eq.${id}`);
+    },
+    async updateBookAvailability(id, delta) {
+        if (!USE_SUPABASE) {
+            const books = getData('lib_books');
+            const b = books.find(x=>x.id===id);
+            if (b) { b.available = Math.min(b.copies, Math.max(0, b.available+delta)); setData('lib_books',books); }
+            return;
+        }
+        // Use RPC for atomic update
+        const rows = await sbQuery('books','GET',null,`?id=eq.${id}&select=available,copies`);
+        if (rows.length) {
+            const newVal = Math.min(rows[0].copies, Math.max(0, rows[0].available+delta));
+            await sbQuery('books','PATCH',{available:newVal},`?id=eq.${id}`);
+        }
+    },
+    async addLoan(l) {
+        if (!USE_SUPABASE) { setData('lib_loans',[...getData('lib_loans'),l]); return l; }
+        const sbLoan = { book_id:l.bookId, member_id:l.memberId, loan_date:l.loanDate, due_date:l.dueDate };
+        const rows = await sbQuery('loans','POST', sbLoan);
+        return sbToLoan(Array.isArray(rows)?rows[0]:rows);
+    },
+    async returnLoan(id, daysLate, lateFee) {
+        if (!USE_SUPABASE) {
+            setData('lib_loans', getData('lib_loans').map(l=>l.id===id?{...l,returnDate:new Date().toISOString(),daysLate,lateFee}:l));
+            return;
+        }
+        await sbQuery('loans','PATCH',{return_date:new Date().toISOString(),days_late:daysLate,late_fee:lateFee},`?id=eq.${id}`);
+    },
+    async bulkAddBooks(booksArr) {
+        if (!USE_SUPABASE) {
+            setData('lib_books',[...getData('lib_books'),...booksArr]);
+            return booksArr;
+        }
+        const rows = await sbQuery('books','POST', booksArr.map(bookToSb));
+        return (Array.isArray(rows)?rows:[rows]).map(sbToBook);
+    }
+};
 
 // ── Zotero parsers ───────────────────────────────────────────────
 function parseBib(text) {
@@ -299,6 +426,8 @@ function App() {
     const importRef = useRef(null);
     const zoteroRef = useRef(null);
 
+    const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         reload();
         const s = getSettings();
@@ -309,10 +438,16 @@ function App() {
         if (tab === 'scanner' && scanRef.current) scanRef.current.focus();
     }, [tab]);
 
-    function reload() {
-        setMembers(getData('lib_members'));
-        setBooks(getData('lib_books'));
-        setLoans(getData('lib_loans').filter(l => !l.returnDate));
+    async function reload() {
+        setLoading(true);
+        try {
+            const [m, b, l] = await Promise.all([DB.getMembers(), DB.getBooks(), DB.getActiveLoans()]);
+            setMembers(m); setBooks(b); setLoans(l);
+        } catch(e) {
+            toast('Erreur de chargement: ' + e.message, 'error', '❌');
+        } finally {
+            setLoading(false);
+        }
     }
 
     function toast(msg, type='success', icon='✅') {
@@ -332,87 +467,97 @@ function App() {
     }
 
     // ── Members ──
-    function saveMember() {
+    async function saveMember() {
         if (!mForm.name || !mForm.email) { toast('Nom et email requis','error','⚠️'); return; }
-        const all = getData('lib_members');
-        if (editM) {
-            setData('lib_members', all.map(m => m.id===editM.id ? {...m,...mForm} : m));
-            toast('Membre mis à jour !');
-        } else {
-            const maxN = all.reduce((mx,m) => Math.max(mx, parseInt((m.memberCode||'').replace('MBR-','')||0)), 0);
-            setData('lib_members', [...all, {...mForm, id:genId(), memberCode:`MBR-${String(maxN+1).padStart(4,'0')}`, joinDate:new Date().toISOString()}]);
-            toast('Membre ajouté !');
-        }
-        setMForm({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});
-        setEditM(null); closeModal(); reload();
+        try {
+            if (editM) {
+                await DB.updateMember(editM.id, mForm);
+                toast('Membre mis à jour !');
+            } else {
+                const allM = await DB.getMembers();
+                const maxN = allM.reduce((mx,m) => Math.max(mx, parseInt((m.memberCode||'').replace('MBR-','')||0)), 0);
+                const newM = {...mForm, id:genId(), memberCode:`MBR-${String(maxN+1).padStart(4,'0')}`, joinDate:new Date().toISOString()};
+                await DB.addMember(newM);
+                toast('Membre ajouté !');
+            }
+            setMForm({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});
+            setEditM(null); closeModal(); reload();
+        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
     }
 
-    function deleteMember(id) {
+    async function deleteMember(id) {
         if (!confirm('Supprimer ce membre ?')) return;
-        if (getData('lib_loans').some(l => l.memberId===id && !l.returnDate)) { toast('Membre avec prêts actifs','error','❌'); return; }
-        setData('lib_members', getData('lib_members').filter(m => m.id!==id));
-        toast('Membre supprimé'); reload();
+        const activeLoans = await DB.getActiveLoans();
+        if (activeLoans.some(l => l.memberId===id)) { toast('Membre avec prêts actifs','error','❌'); return; }
+        try { await DB.deleteMember(id); toast('Membre supprimé'); reload(); }
+        catch(e) { toast('Erreur: '+e.message,'error','❌'); }
     }
 
     function openEditMember(m) { setMForm({...m}); setEditM(m); setModal('member'); }
 
     // ── Books ──
-    function saveBook() {
+    async function saveBook() {
         if (!bForm.title || !bForm.author) { toast('Titre et auteur requis','error','⚠️'); return; }
-        const all = getData('lib_books');
-        const copies = parseInt(bForm.copies)||1;
-        if (editB) {
-            setData('lib_books', all.map(b => b.id===editB.id ? {...b,...bForm, copies} : b));
-            toast('Livre mis à jour !');
-        } else {
-            const maxN = all.reduce((mx,b) => Math.max(mx, parseInt((b.barcode||'').replace('BOOK-','')||0)), 0);
-            setData('lib_books', [...all, {...bForm, copies, available:copies, id:genId(), barcode:`BOOK-${String(maxN+1).padStart(4,'0')}`, addedDate:new Date().toISOString()}]);
-            toast('Livre ajouté !');
-        }
-        setBForm({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});
-        setEditB(null); closeModal(); reload();
+        try {
+            const copies = parseInt(bForm.copies)||1;
+            if (editB) {
+                await DB.updateBook(editB.id, {...bForm, copies});
+                toast('Livre mis à jour !');
+            } else {
+                const allB = await DB.getBooks();
+                const maxN = allB.reduce((mx,b) => Math.max(mx, parseInt((b.barcode||'').replace('BOOK-','')||0)), 0);
+                const newB = {...bForm, copies, available:copies, id:genId(), barcode:`BOOK-${String(maxN+1).padStart(4,'0')}`, addedDate:new Date().toISOString()};
+                await DB.addBook(newB);
+                toast('Livre ajouté !');
+            }
+            setBForm({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});
+            setEditB(null); closeModal(); reload();
+        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
     }
 
-    function deleteBook(id) {
+    async function deleteBook(id) {
         if (!confirm('Supprimer ce livre ?')) return;
-        if (getData('lib_loans').some(l => l.bookId===id && !l.returnDate)) { toast('Livre actuellement prêté','error','❌'); return; }
-        setData('lib_books', getData('lib_books').filter(b => b.id!==id));
-        toast('Livre supprimé'); reload();
+        const activeLoans = await DB.getActiveLoans();
+        if (activeLoans.some(l => l.bookId===id)) { toast('Livre actuellement prêté','error','❌'); return; }
+        try { await DB.deleteBook(id); toast('Livre supprimé'); reload(); }
+        catch(e) { toast('Erreur: '+e.message,'error','❌'); }
     }
 
     function openEditBook(b) { setBForm({...b}); setEditB(b); setModal('book'); }
 
     // ── Loans ──
-    function createLoan(bookId, memberId) {
-        const allBooks = getData('lib_books');
-        const book = allBooks.find(b => b.id===bookId);
+    async function createLoan(bookId, memberId) {
+        const book = books.find(b => b.id===bookId);
         if (!book || book.available<=0) { toast('Livre non disponible','error','❌'); return; }
-        const due = new Date(); due.setDate(due.getDate()+(settings.loanDays||14));
-        setData('lib_loans', [...getData('lib_loans'), {id:genId(), bookId, memberId, loanDate:new Date().toISOString(), dueDate:due.toISOString(), returnDate:null}]);
-        setData('lib_books', allBooks.map(b => b.id===bookId ? {...b, available:b.available-1} : b));
-        toast('Prêt créé !'); setScanInput(''); setScanStatus('✅ Prêt enregistré !');
-        setTimeout(()=>setScanStatus(''),3000); reload();
+        try {
+            const due = new Date(); due.setDate(due.getDate()+(settings.loanDays||14));
+            await DB.addLoan({id:genId(), bookId, memberId, loanDate:new Date().toISOString(), dueDate:due.toISOString(), returnDate:null});
+            await DB.updateBookAvailability(bookId, -1);
+            toast('Prêt créé !'); setScanInput(''); setScanStatus('✅ Prêt enregistré !');
+            setTimeout(()=>setScanStatus(''),3000); reload();
+        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
     }
 
-    function returnLoan(loanId) {
-        const all = getData('lib_loans');
-        const loan = all.find(l => l.id===loanId);
+    async function returnLoan(loanId) {
+        const loan = loans.find(l => l.id===loanId);
         if (!loan) return;
         const now = new Date(), due = new Date(loan.dueDate);
         const daysLate = Math.max(0, Math.ceil((now-due)/(1000*60*60*24)));
         const lateFee = daysLate*(settings.lateFeePerDay||10);
-        setData('lib_loans', all.map(l => l.id===loanId ? {...l, returnDate:now.toISOString(), daysLate, lateFee} : l));
-        setData('lib_books', getData('lib_books').map(b => b.id===loan.bookId ? {...b, available:Math.min(b.copies,b.available+1)} : b));
-        if (daysLate>0) toast(`${daysLate} j retard — Pénalité: ${lateFee} HTG`,'warning','⚠️');
-        else toast('Retour enregistré !');
-        reload();
+        try {
+            await DB.returnLoan(loanId, daysLate, lateFee);
+            await DB.updateBookAvailability(loan.bookId, +1);
+            if (daysLate>0) toast(`${daysLate} j retard — Pénalité: ${lateFee} HTG`,'warning','⚠️');
+            else toast('Retour enregistré !');
+            reload();
+        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
     }
 
     // ── Scanner ──
     function handleScan(e) {
         if (e.key!=='Enter' || !scanInput.trim()) return;
         const code = scanInput.trim().toUpperCase();
-        const allM = getData('lib_members'), allB = getData('lib_books');
+        const allM = members, allB = books;
         if (code.startsWith('MBR-')) {
             const m = allM.find(x => x.memberCode===code);
             if (m) { setScannedItem({type:'member',data:m}); setScanStatus(`✅ Membre: ${m.name}`); }
@@ -431,9 +576,10 @@ function App() {
     function exportCSV() {
         const bom='\ufeff';
         let csv=bom+'Type,Code,Nom/Titre,Email/Auteur,Tél/ISBN,Statut,Date\n';
+        const allLoans = await DB.getAllLoans();
         members.forEach(m=>{ csv+=`Membre,"${m.memberCode}","${m.name}","${m.email}","${m.phone||''}",Actif,${new Date(m.joinDate).toLocaleDateString('fr-FR')}\n`; });
         books.forEach(b=>{ csv+=`Livre,"${b.barcode}","${b.title}","${b.author}","${b.isbn||''}","${b.available}/${b.copies}",${new Date(b.addedDate).toLocaleDateString('fr-FR')}\n`; });
-        getData('lib_loans').forEach(l=>{
+        allLoans.forEach(l=>{
             const bk=books.find(x=>x.id===l.bookId), mb=members.find(x=>x.id===l.memberId);
             csv+=`Prêt,"${l.id}","${bk?.title||''}","${mb?.name||''}","${new Date(l.dueDate).toLocaleDateString('fr-FR')}","${l.returnDate?'Retourné':'En cours'}",${new Date(l.loanDate).toLocaleDateString('fr-FR')}\n`;
         });
@@ -441,8 +587,9 @@ function App() {
         toast('Export CSV téléchargé !');
     }
 
-    function exportJSON() {
-        const data={members:getData('lib_members'),books:getData('lib_books'),loans:getData('lib_loans'),settings:getSettings(),exportDate:new Date().toISOString()};
+    async function exportJSON() {
+        const [allM, allB, allL] = await Promise.all([DB.getMembers(), DB.getBooks(), DB.getAllLoans()]);
+        const data={members:allM, books:allB, loans:allL, settings:getSettings(), exportDate:new Date().toISOString()};
         dl(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),`bibliotheque-backup-${today()}.json`);
         toast('Sauvegarde JSON téléchargée !');
     }
@@ -450,13 +597,14 @@ function App() {
     function importJSON(e) {
         const file=e.target.files[0]; if(!file) return;
         const r=new FileReader();
-        r.onload=ev=>{ try {
+        r.onload=async ev=>{ try {
             const d=JSON.parse(ev.target.result);
+            // Always write to localStorage as fallback/cache
             if(d.members) setData('lib_members',d.members);
             if(d.books) setData('lib_books',d.books);
             if(d.loans) setData('lib_loans',d.loans);
             if(d.settings) localStorage.setItem('lib_settings',JSON.stringify(d.settings));
-            reload(); toast('Données importées !');
+            reload(); toast('Données importées !' + (USE_SUPABASE ? ' (localStorage seulement — sync Supabase manuelle)' : ''));
         } catch { toast('Fichier invalide','error','❌'); } };
         r.readAsText(file,'UTF-8'); e.target.value='';
     }
@@ -483,57 +631,134 @@ function App() {
         r.readAsText(file,'UTF-8'); e.target.value='';
     }
 
-    function importZotero() {
+    async function importZotero() {
         const toImport=zPreview.filter(b=>b._sel);
         if(!toImport.length) { toast('Sélectionnez au moins un livre','error','⚠️'); return; }
-        const allBooks=getData('lib_books');
-        let maxN=allBooks.reduce((mx,b)=>Math.max(mx,parseInt((b.barcode||'').replace('BOOK-','')||0)),0);
-        let skip=0; const newBooks=[];
-        toImport.forEach(b=>{
-            if(allBooks.find(x=>x.title?.toLowerCase()===b.title?.toLowerCase()&&x.author?.toLowerCase()===b.author?.toLowerCase())) { skip++; return; }
-            maxN++;
-            newBooks.push({title:b.title,author:b.author,isbn:b.isbn,publisher:b.publisher,year:b.year,category:b.category,description:b.description,shelf:b.shelf||'',copies:1,available:1,id:genId(),barcode:`BOOK-${String(maxN).padStart(4,'0')}`,addedDate:new Date().toISOString()});
-        });
-        setData('lib_books',[...allBooks,...newBooks]);
-        reload(); setZPreview([]); setZStatus(''); closeModal();
-        if(skip>0) toast(`${newBooks.length} importé(s), ${skip} doublon(s) ignoré(s)`,'warning','📚');
-        else toast(`${newBooks.length} livre(s) importé(s) depuis Zotero !`,'success','📚');
+        try {
+            const allBooks = await DB.getBooks();
+            let maxN=allBooks.reduce((mx,b)=>Math.max(mx,parseInt((b.barcode||'').replace('BOOK-','')||0)),0);
+            let skip=0; const newBooks=[];
+            toImport.forEach(b=>{
+                if(allBooks.find(x=>x.title?.toLowerCase()===b.title?.toLowerCase()&&x.author?.toLowerCase()===b.author?.toLowerCase())) { skip++; return; }
+                maxN++;
+                newBooks.push({title:b.title,author:b.author,isbn:b.isbn,publisher:b.publisher,year:b.year,category:b.category,description:b.description,shelf:b.shelf||'',copies:1,available:1,id:genId(),barcode:`BOOK-${String(maxN).padStart(4,'0')}`,addedDate:new Date().toISOString()});
+            });
+            if(newBooks.length>0) await DB.bulkAddBooks(newBooks);
+            reload(); setZPreview([]); setZStatus(''); closeModal();
+            if(skip>0) toast(`${newBooks.length} importé(s), ${skip} doublon(s) ignoré(s)`,'warning','📚');
+            else toast(`${newBooks.length} livre(s) importé(s) depuis Zotero !`,'success','📚');
+        } catch(e) { toast('Erreur import: '+e.message,'error','❌'); }
     }
 
     // ── Print card ──
     function printCard(member) {
-        const w=window.open('','','width=600,height=700');
-        w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-        *{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#f0f0f0;display:flex;justify-content:center;padding:30px}
-        .card{width:420px;background:linear-gradient(135deg,#2c3e50,#34495e);border-radius:18px;overflow:hidden;color:white;box-shadow:0 20px 50px rgba(0,0,0,.3)}
-        .top{background:rgba(255,255,255,.12);padding:22px 28px;display:flex;align-items:center;gap:18px}
-        .logo{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;background:rgba(255,255,255,.2)}
-        .body{padding:28px}.pq{display:flex;gap:20px;align-items:center;margin-bottom:22px}
-        .photo{width:110px;height:110px;border-radius:50%;border:4px solid white;object-fit:cover}
-        .ph{width:110px;height:110px;border-radius:50%;border:4px solid white;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:48px}
-        .qr{flex:1;background:white;border-radius:12px;padding:12px;text-align:center}.qr img{width:100%;max-width:110px}
-        .info{background:rgba(255,255,255,.15);border-radius:12px;padding:18px}.row{font-size:14px;margin:8px 0}.lbl{font-weight:bold;opacity:.85}
-        .code{text-align:center;font-size:20px;font-weight:bold;letter-spacing:3px;margin-top:20px;padding:14px;background:rgba(192,57,43,.5);border-radius:10px}
-        .bc{background:white;border-radius:10px;margin-top:16px;padding:12px;text-align:center}.bc img{max-height:65px}
-        @media print{body{background:white;padding:0}}</style></head><body>
-        <div class="card">
-          <div class="top">${settings.libraryLogo?`<img src="${settings.libraryLogo}" class="logo" style="object-fit:cover">`:`<div class="logo">📚</div>`}
-            <div><div style="font-size:20px;font-weight:bold">${settings.libraryName}</div><div style="font-size:12px;opacity:.7">Carte de Membre</div></div></div>
-          <div class="body">
-            <div class="pq">${member.photo?`<img src="${member.photo}" class="photo">`:`<div class="ph">👤</div>`}
-              <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(member.memberCode)}"><div style="font-size:11px;color:#666;margin-top:6px">Accès rapide</div></div></div>
-            <div class="info">
-              <div class="row"><span class="lbl">Nom: </span>${member.name}</div>
-              <div class="row"><span class="lbl">Email: </span>${member.email}</div>
-              ${member.phone?`<div class="row"><span class="lbl">Tél: </span>${member.phone}</div>`:''}
-              ${member.idNumber?`<div class="row"><span class="lbl">ID: </span>${member.idNumber}</div>`:''}
-              <div class="row"><span class="lbl">Depuis: </span>${new Date(member.joinDate).toLocaleDateString('fr-FR')}</div>
-            </div>
-            <div class="code">${member.memberCode}</div>
-            <div class="bc"><img src="https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128"></div>
-          </div>
-        </div></body></html>`);
-        w.document.close(); setTimeout(()=>w.print(),500);
+        // Build card HTML with fully inline styles — no classes, no CSS variables
+        // so print exactly matches screen preview regardless of browser print settings
+        const logo = settings.libraryLogo;
+        const libName = settings.libraryName;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(member.memberCode)}`;
+        const barUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128&dpi=200`;
+
+        const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  /* Force background printing in all browsers */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; background: #e8e8e8; display: flex; justify-content: center; align-items: flex-start; padding: 30px; min-height: 100vh; }
+  @page { size: 85.6mm 120mm; margin: 0; }
+  @media print {
+    body { background: #e8e8e8 !important; padding: 0; display: block; }
+    .wrapper { margin: 0 auto; }
+  }
+</style>
+</head><body>
+<div class="wrapper" style="width:420px;">
+
+  <!-- CARD -->
+  <div style="width:420px; background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%); border-radius:18px; overflow:hidden; color:white; box-shadow:0 12px 40px rgba(0,0,0,0.35); font-family:Arial,sans-serif;">
+
+    <!-- Header -->
+    <div style="background:rgba(255,255,255,0.13); padding:20px 26px; display:flex; align-items:center; gap:16px; border-bottom:1px solid rgba(255,255,255,0.1);">
+      ${logo
+        ? `<img src="${logo}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.4);" />`
+        : `<div style="width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:26px;border:2px solid rgba(255,255,255,0.3);">📚</div>`
+      }
+      <div>
+        <div style="font-size:19px;font-weight:bold;letter-spacing:0.3px;">${libName}</div>
+        <div style="font-size:11px;opacity:0.65;margin-top:2px;">CARTE DE MEMBRE OFFICIELLE</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:22px 26px;">
+
+      <!-- Photo + QR -->
+      <div style="display:flex;gap:18px;align-items:center;margin-bottom:20px;">
+        ${member.photo
+          ? `<img src="${member.photo}" style="width:100px;height:100px;border-radius:50%;border:4px solid white;object-fit:cover;flex-shrink:0;" />`
+          : `<div style="width:100px;height:100px;border-radius:50%;border:4px solid white;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:44px;flex-shrink:0;">👤</div>`
+        }
+        <div style="flex:1;background:white;border-radius:10px;padding:10px;text-align:center;">
+          <img src="${qrUrl}" style="width:110px;height:110px;display:block;margin:0 auto;" />
+          <div style="font-size:10px;color:#666;margin-top:5px;">Scan rapide</div>
+        </div>
+      </div>
+
+      <!-- Info box -->
+      <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Nom: </span>${member.name}</div>
+        <div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Email: </span>${member.email}</div>
+        ${member.phone ? `<div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Tél: </span>${member.phone}</div>` : ''}
+        ${member.idNumber ? `<div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">ID: </span>${member.idNumber}</div>` : ''}
+        <div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Membre depuis: </span>${new Date(member.joinDate).toLocaleDateString('fr-FR')}</div>
+      </div>
+
+      <!-- Member code badge -->
+      <div style="text-align:center;font-size:18px;font-weight:bold;letter-spacing:4px;padding:12px;background:rgba(192,57,43,0.55);border-radius:9px;margin-bottom:14px;">
+        ${member.memberCode}
+      </div>
+
+      <!-- Barcode -->
+      <div style="background:white;border-radius:9px;padding:12px;text-align:center;">
+        <img src="${barUrl}" style="height:55px;max-width:100%;" />
+        <div style="font-size:10px;color:#555;margin-top:5px;letter-spacing:2px;">${member.memberCode}</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body></html>`;
+
+        // Use hidden iframe so the card renders in the same document context
+        // This guarantees the print preview matches the screen exactly
+        let iframe = document.getElementById('__print_iframe__');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = '__print_iframe__';
+            iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:600px;height:800px;border:none;';
+            document.body.appendChild(iframe);
+        }
+        iframe.onload = () => {
+            // Wait for QR + barcode images to load before printing
+            const imgs = iframe.contentDocument.querySelectorAll('img');
+            let loaded = 0;
+            const total = imgs.length;
+            const tryPrint = () => {
+                loaded++;
+                if (loaded >= total) {
+                    setTimeout(() => iframe.contentWindow.print(), 200);
+                }
+            };
+            if (total === 0) {
+                setTimeout(() => iframe.contentWindow.print(), 200);
+            } else {
+                imgs.forEach(img => {
+                    if (img.complete) tryPrint();
+                    else { img.onload = tryPrint; img.onerror = tryPrint; }
+                });
+            }
+        };
+        iframe.srcdoc = html;
     }
 
     // ── Computed ──
@@ -551,9 +776,17 @@ function App() {
     });
     const catStats = CATEGORIES.reduce((a,c)=>({...a,[c]:books.filter(b=>b.category===c).length}),{});
     const overdueLoans = loans.filter(l => new Date(l.dueDate) < new Date());
-    const allHistory = getData('lib_loans');
+    const [allHistory, setAllHistory] = useState([]);
+    useEffect(() => { DB.getAllLoans().then(setAllHistory).catch(()=>{}); }, [loans]);
 
     // ─────────────────────────────────────────────────────────────
+    if (loading) return (
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:20,background:'var(--light)'}}>
+            <div style={{fontSize:'3em'}}>📚</div>
+            <div style={{fontSize:'1.1em',color:'var(--text-muted)',fontWeight:500}}>Chargement{USE_SUPABASE ? ' depuis Supabase' : ''}…</div>
+        </div>
+    );
+
     return (
         <div className="app-shell">
             <Toasts toasts={toasts} />
@@ -844,8 +1077,8 @@ function App() {
                             ? <div className="empty-state"><div className="empty-icon">🗂️</div><div>Aucun historique</div></div>
                             : <div className="item-grid">
                                 {[...allHistory].reverse().map(loan=>{
-                                    const mb=getData('lib_members').find(m=>m.id===loan.memberId);
-                                    const bk=getData('lib_books').find(b=>b.id===loan.bookId);
+                                    const mb=members.find(m=>m.id===loan.memberId);
+                                    const bk=books.find(b=>b.id===loan.bookId);
                                     return (
                                         <div key={loan.id} className="item-card">
                                             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16}}>
@@ -901,11 +1134,17 @@ function App() {
                         </div>
                         <div className="settings-section">
                             <h3>💾 Données</h3>
+                            <div style={{padding:'12px 14px',background: USE_SUPABASE ? '#eafaf1' : '#fef9e7',border:`1px solid ${USE_SUPABASE?'#a9dfbf':'#f9e79f'}`,borderRadius:'var(--radius-sm)',marginBottom:16,fontSize:'0.9em'}}>
+                                {USE_SUPABASE
+                                    ? <span>🟢 <strong>Supabase connecté</strong> — données stockées dans le cloud</span>
+                                    : <span>🟡 <strong>Mode hors-ligne</strong> (localStorage) — ajoutez vos clés Supabase pour le cloud</span>
+                                }
+                            </div>
                             <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
                                 <button className="btn btn-secondary" onClick={exportJSON}>💾 Sauvegarder</button>
                                 <button className="btn btn-secondary" onClick={()=>importRef.current.click()}>📥 Restaurer</button>
                                 <button className="btn btn-danger btn-sm" style={{marginLeft:'auto'}} onClick={()=>{
-                                    if(confirm('Supprimer TOUTES les données ?')){
+                                    if(confirm('Supprimer TOUTES les données ? Cette action est irréversible.')){
                                         ['lib_members','lib_books','lib_loans'].forEach(k=>localStorage.removeItem(k));
                                         reload(); toast('Données effacées','warning','🗑️'); closeModal();
                                     }
