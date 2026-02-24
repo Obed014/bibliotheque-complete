@@ -1,1323 +1,1022 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Système de Bibliothèque Professionnel</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #c0392b;
-            --accent2: #e67e22;
-            --light: #f8f4ef;
-            --card-bg: #fff;
-            --border: #e8e0d5;
-            --text: #2c3e50;
-            --text-muted: #7f8c8d;
-            --shadow: 0 4px 24px rgba(44,62,80,0.10);
-            --shadow-lg: 0 12px 40px rgba(44,62,80,0.18);
-            --radius: 14px;
-            --radius-sm: 8px;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DM Sans', sans-serif; background: var(--light); min-height: 100vh; color: var(--text); }
-        .app-shell { display: flex; min-height: 100vh; }
-        .sidebar { width: 260px; background: var(--primary); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; position: fixed; height: 100vh; z-index: 100; }
-        .sidebar-logo { padding: 30px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .sidebar-logo-img { width: 54px; height: 54px; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 12px; border: 2px solid rgba(255,255,255,0.2); }
-        .sidebar-lib-name { font-family: 'DM Serif Display', serif; font-size: 1.35em; line-height: 1.2; }
-        .sidebar-lib-sub { font-size: 0.78em; opacity: 0.6; margin-top: 3px; }
-        .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
-        .sidebar-nav button { display: flex; align-items: center; gap: 14px; width: 100%; padding: 13px 24px; background: none; border: none; color: rgba(255,255,255,0.72); font-size: 0.97em; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: left; font-family: inherit; border-left: 3px solid transparent; }
-        .sidebar-nav button:hover { background: rgba(255,255,255,0.08); color: #fff; }
-        .sidebar-nav button.active { background: rgba(192,57,43,0.22); color: #fff; border-left-color: var(--accent); font-weight: 600; }
-        .sidebar-nav .nav-icon { font-size: 1.25em; width: 26px; text-align: center; }
-        .sidebar-nav .nav-badge { margin-left: auto; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 2px 9px; font-size: 0.78em; font-weight: 700; }
-        .sidebar-footer { padding: 18px 24px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px; flex-wrap: wrap; }
-        .sidebar-footer button { flex: 1; min-width: 70px; padding: 9px 8px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: rgba(255,255,255,0.8); border-radius: 8px; font-size: 0.8em; cursor: pointer; font-family: inherit; transition: all 0.2s; text-align: center; }
-        .sidebar-footer button:hover { background: rgba(255,255,255,0.12); color: #fff; }
-        .sidebar-footer button.zotero-btn { background: rgba(206,43,55,0.25); border-color: rgba(206,43,55,0.5); color: #ffb3b3; width: 100%; flex-basis: 100%; }
-        .sidebar-footer button.zotero-btn:hover { background: rgba(206,43,55,0.4); color: #fff; }
-        .main-content { flex: 1; margin-left: 260px; padding: 36px 36px 60px; max-width: calc(100vw - 260px); }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
-        .page-title { font-family: 'DM Serif Display', serif; font-size: 2.1em; color: var(--primary); }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 18px; margin-bottom: 36px; }
-        .stat-card { background: var(--card-bg); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); border: 1px solid var(--border); position: relative; overflow: hidden; }
-        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; }
-        .stat-card.c-blue::before { background: #3498db; }
-        .stat-card.c-green::before { background: #27ae60; }
-        .stat-card.c-purple::before { background: #8e44ad; }
-        .stat-card.c-orange::before { background: var(--accent2); }
-        .stat-card.c-red::before { background: var(--accent); }
-        .stat-number { font-size: 2.8em; font-weight: 700; color: var(--primary); line-height: 1; margin-bottom: 6px; }
-        .stat-label { font-size: 0.85em; color: var(--text-muted); font-weight: 500; }
-        .btn { padding: 10px 22px; border: none; border-radius: var(--radius-sm); font-size: 0.93em; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 7px; font-family: inherit; }
-        .btn:active { transform: scale(0.97); }
-        .btn-primary { background: var(--accent); color: white; box-shadow: 0 3px 10px rgba(192,57,43,0.3); }
-        .btn-primary:hover { background: #a93226; }
-        .btn-success { background: #27ae60; color: white; }
-        .btn-success:hover { background: #219a52; }
-        .btn-danger { background: #e74c3c; color: white; }
-        .btn-warning { background: var(--accent2); color: white; }
-        .btn-secondary { background: #ecf0f1; color: var(--primary); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: #dde4e6; }
-        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
-        .btn-ghost:hover { background: var(--light); color: var(--primary); }
-        .btn-sm { padding: 7px 14px; font-size: 0.84em; }
-        .search-wrap { position: relative; margin-bottom: 20px; }
-        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1.1em; pointer-events: none; }
-        .search-bar { width: 100%; padding: 12px 16px 12px 42px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.97em; background: white; transition: all 0.2s; font-family: inherit; color: var(--text); }
-        .search-bar:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(192,57,43,0.1); }
-        .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .form-select { padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.93em; background: white; cursor: pointer; font-family: inherit; color: var(--text); }
-        .form-select:focus { outline: none; border-color: var(--accent); }
-        .item-grid { display: grid; gap: 16px; }
-        .item-card { background: var(--card-bg); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 22px; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .item-card:hover { box-shadow: var(--shadow); border-color: #c8bfb5; }
-        .item-card.overdue { border-color: #f5c6cb; background: #fff9f9; }
-        .item-title { font-size: 1.12em; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
-        .item-subtitle { color: var(--text-muted); font-size: 0.92em; margin-bottom: 3px; }
-        .item-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-        .item-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: 600; }
-        .badge-green { background: #d5f5e3; color: #1e8449; }
-        .badge-red { background: #fadbd8; color: #922b21; }
-        .badge-purple { background: #e8daef; color: #76448a; }
-        .badge-blue { background: #d6eaf8; color: #1a5276; }
-        .badge-orange { background: #fdebd0; color: #a04000; }
-        .badge-gray { background: #ecf0f1; color: #5d6d7e; }
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.15s; backdrop-filter: blur(4px); }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .modal-content { background: white; border-radius: 18px; padding: 36px; max-width: 640px; width: 92%; max-height: 90vh; overflow-y: auto; animation: slideUp 0.2s; box-shadow: var(--shadow-lg); }
-        .modal-content.wide { max-width: 780px; }
-        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
-        .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.7em; color: var(--primary); }
-        .close-btn { background: var(--light); border: none; font-size: 1.3em; cursor: pointer; color: var(--text-muted); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; }
-        .close-btn:hover { background: var(--border); color: var(--primary); }
-        .form-group { margin-bottom: 18px; }
-        .form-label { display: block; font-weight: 600; color: var(--text); margin-bottom: 6px; font-size: 0.93em; }
-        .form-input, .form-textarea { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.95em; transition: all 0.2s; font-family: inherit; color: var(--text); background: white; }
-        .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(192,57,43,0.08); }
-        .form-textarea { resize: vertical; min-height: 90px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .form-actions { display: flex; gap: 12px; margin-top: 28px; }
-        .photo-upload { border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
-        .photo-upload:hover { border-color: var(--accent); background: #fef9f8; }
-        .photo-preview { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); margin: 16px auto; display: block; }
-        .scanner-box { background: var(--primary); padding: 28px; border-radius: var(--radius); color: white; margin-bottom: 28px; }
-        .scanner-input { width: 100%; padding: 16px 20px; border: none; border-radius: var(--radius-sm); font-size: 1.1em; font-weight: 500; font-family: inherit; }
-        .scanner-status { margin-top: 14px; padding: 12px 18px; background: rgba(255,255,255,0.15); border-radius: var(--radius-sm); font-size: 1em; }
-        .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 32px; }
-        .cat-card { background: white; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 18px; text-align: center; cursor: pointer; transition: all 0.2s; }
-        .cat-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
-        .cat-count { font-size: 2.2em; font-weight: 700; color: var(--accent); }
-        .cat-name { font-size: 0.85em; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
-        .alert { padding: 14px 18px; border-radius: var(--radius-sm); margin-bottom: 18px; display: flex; align-items: center; gap: 12px; font-size: 0.95em; flex-wrap: wrap; }
-        .alert-warning { background: #fef9e7; color: #7d6608; border: 1px solid #f9e79f; }
-        .alert-success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
-        .alert-info { background: #eaf2ff; color: #1a5276; border: 1px solid #a9cce3; }
-        .empty-state { text-align: center; padding: 70px 20px; color: var(--text-muted); }
-        .empty-icon { font-size: 4em; margin-bottom: 16px; opacity: 0.4; }
-        .settings-section { background: white; border: 1.5px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
-        .settings-section h3 { font-size: 1.05em; font-weight: 700; color: var(--primary); margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .qr-code { width: 100px; height: 100px; border-radius: 10px; flex-shrink: 0; }
-        .toast-container { position: fixed; bottom: 28px; right: 28px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; pointer-events: none; }
-        .toast { background: var(--primary); color: white; padding: 13px 20px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); font-size: 0.95em; font-weight: 500; animation: toastIn 0.25s; min-width: 220px; display: flex; align-items: center; gap: 10px; }
-        .toast.success { background: #27ae60; }
-        .toast.error { background: var(--accent); }
-        .toast.warning { background: var(--accent2); }
-        @keyframes toastIn { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .member-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); flex-shrink: 0; font-size: 28px; display: flex; align-items: center; justify-content: center; background: #ecf0f1; }
-        .zotero-drop { border: 2.5px dashed #a9cce3; border-radius: var(--radius); padding: 32px; text-align: center; cursor: pointer; background: #f8fbff; transition: border-color 0.2s; margin-bottom: 18px; }
-        .zotero-drop:hover { border-color: var(--accent); }
-        .zotero-list { max-height: 340px; overflow-y: auto; border: 1.5px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 20px; }
-        .zotero-row { display: flex; align-items: start; gap: 14px; padding: 13px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
-        .zotero-row:last-child { border-bottom: none; }
-        .zotero-row:hover { background: #f8fbff; }
-        .zotero-row.selected { background: #f0f7ff; }
-        @media (max-width: 768px) {
-            .sidebar { width: 100%; height: auto; position: relative; }
-            .main-content { margin-left: 0; padding: 20px; max-width: 100%; }
-            .form-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Système de Bibliothèque Professionnel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root {
+  --primary:#2c3e50; --accent:#c0392b; --accent2:#e67e22;
+  --light:#f8f4ef; --border:#e8e0d5; --text:#2c3e50; --muted:#7f8c8d;
+  --shadow:0 4px 24px rgba(44,62,80,.10); --shadow-lg:0 12px 40px rgba(44,62,80,.18);
+  --r:14px; --rs:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--light);min-height:100vh;color:var(--text)}
+/* ── Layout ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:260px;background:var(--primary);color:#fff;display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100}
+.sb-logo{padding:28px 24px 18px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-logo-img{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:10px;border:2px solid rgba(255,255,255,.2);object-fit:cover}
+.sb-name{font-family:'DM Serif Display',serif;font-size:1.3em;line-height:1.2}
+.sb-sub{font-size:.76em;opacity:.55;margin-top:3px}
+.sb-nav{flex:1;padding:14px 0;overflow-y:auto}
+.sb-nav button{display:flex;align-items:center;gap:13px;width:100%;padding:12px 24px;background:none;border:none;color:rgba(255,255,255,.7);font-size:.95em;font-weight:500;cursor:pointer;transition:all .2s;text-align:left;font-family:inherit;border-left:3px solid transparent}
+.sb-nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-nav button.active{background:rgba(192,57,43,.22);color:#fff;border-left-color:var(--accent);font-weight:600}
+.nav-icon{font-size:1.2em;width:24px;text-align:center}
+.nav-badge{margin-left:auto;background:rgba(255,255,255,.15);border-radius:20px;padding:2px 8px;font-size:.76em;font-weight:700}
+.sb-foot{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:7px;flex-wrap:wrap}
+.sb-foot button{flex:1;min-width:60px;padding:8px 6px;border:1px solid rgba(255,255,255,.22);background:transparent;color:rgba(255,255,255,.78);border-radius:7px;font-size:.78em;cursor:pointer;font-family:inherit;transition:all .2s;text-align:center}
+.sb-foot button:hover{background:rgba(255,255,255,.12);color:#fff}
+.sb-foot .btn-zotero{background:rgba(206,43,55,.25);border-color:rgba(206,43,55,.5);color:#ffb3b3;width:100%;flex-basis:100%;margin-top:2px}
+.sb-foot .btn-zotero:hover{background:rgba(206,43,55,.45);color:#fff}
+.main{flex:1;margin-left:260px;padding:34px 34px 60px;max-width:calc(100vw - 260px)}
+/* ── Page header ── */
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;flex-wrap:wrap;gap:12px}
+.pt{font-family:'DM Serif Display',serif;font-size:2em;color:var(--primary)}
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:16px;margin-bottom:32px}
+.sc{background:#fff;border-radius:var(--r);padding:22px;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.sc.blue::before{background:#3498db}.sc.green::before{background:#27ae60}
+.sc.purple::before{background:#8e44ad}.sc.orange::before{background:var(--accent2)}
+.sc.red::before{background:var(--accent)}
+.sn{font-size:2.7em;font-weight:700;color:var(--primary);line-height:1;margin-bottom:5px}
+.sl{font-size:.84em;color:var(--muted);font-weight:500}
+/* ── Buttons ── */
+.btn{padding:10px 20px;border:none;border-radius:var(--rs);font-size:.92em;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--accent);color:#fff;box-shadow:0 3px 10px rgba(192,57,43,.3)}.btn-p:hover{background:#a93226}
+.btn-s{background:#27ae60;color:#fff}.btn-s:hover{background:#219a52}
+.btn-d{background:#e74c3c;color:#fff}
+.btn-2{background:#ecf0f1;color:var(--primary);border:1px solid var(--border)}.btn-2:hover{background:#dde4e6}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-g:hover{background:var(--light);color:var(--primary)}
+.btn-sm{padding:6px 13px;font-size:.82em}
+/* ── Search / Filter ── */
+.sw{position:relative;margin-bottom:18px}
+.si{position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none}
+.sbar{width:100%;padding:11px 15px 11px 40px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:.95em;background:#fff;font-family:inherit;color:var(--text);transition:border-color .2s}
+.sbar:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(192,57,43,.09)}
+.fbar{display:flex;gap:11px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.fsel{padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:.92em;background:#fff;cursor:pointer;font-family:inherit;color:var(--text)}
+.fsel:focus{outline:none;border-color:var(--accent)}
+/* ── Cards ── */
+.grid{display:grid;gap:15px}
+.card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:20px;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.card:hover{box-shadow:var(--shadow);border-color:#c8bfb5}
+.card.late{border-color:#f5c6cb;background:#fff9f9}
+.ct{font-size:1.1em;font-weight:700;color:var(--primary);margin-bottom:3px}
+.cs{color:var(--muted);font-size:.91em;margin-bottom:3px}
+.cm{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+.ca{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px;padding-top:13px;border-top:1px solid var(--border)}
+/* ── Badges ── */
+.b{display:inline-block;padding:4px 11px;border-radius:20px;font-size:.79em;font-weight:600}
+.bg{background:#d5f5e3;color:#1e8449}.br{background:#fadbd8;color:#922b21}
+.bp{background:#e8daef;color:#76448a}.bb{background:#d6eaf8;color:#1a5276}
+.bo{background:#fdebd0;color:#a04000}.bk{background:#ecf0f1;color:#5d6d7e}
+/* ── Modal ── */
+.ov{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;animation:fi .15s;backdrop-filter:blur(4px)}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.mc{background:#fff;border-radius:18px;padding:34px;max-width:620px;width:92%;max-height:90vh;overflow-y:auto;animation:su .2s;box-shadow:var(--shadow-lg)}
+.mc.wide{max-width:760px}
+@keyframes su{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+.mt{font-family:'DM Serif Display',serif;font-size:1.65em;color:var(--primary)}
+.xb{background:var(--light);border:none;font-size:1.25em;cursor:pointer;color:var(--muted);width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:all .2s}
+.xb:hover{background:var(--border);color:var(--primary)}
+/* ── Forms ── */
+.fg{margin-bottom:16px}
+.fl{display:block;font-weight:600;color:var(--text);margin-bottom:5px;font-size:.91em}
+.fi,.ft{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:.94em;transition:border-color .2s;font-family:inherit;color:var(--text);background:#fff}
+.fi:focus,.ft:focus,.fsel:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(192,57,43,.08)}
+.ft{resize:vertical;min-height:85px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.fac{display:flex;gap:11px;margin-top:26px}
+/* ── Photo upload ── */
+.pu{border:2px dashed var(--border);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:all .2s}
+.pu:hover{border-color:var(--accent);background:#fef9f8}
+.pp{width:115px;height:115px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);margin:14px auto;display:block}
+/* ── Scanner ── */
+.scan-box{background:var(--primary);padding:26px;border-radius:var(--r);color:#fff;margin-bottom:26px}
+.scan-in{width:100%;padding:15px 19px;border:none;border-radius:var(--rs);font-size:1.08em;font-weight:500;font-family:inherit}
+.scan-st{margin-top:13px;padding:11px 17px;background:rgba(255,255,255,.15);border-radius:var(--rs);font-size:.97em}
+/* ── Category grid ── */
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:13px;margin-bottom:30px}
+.cc{background:#fff;border:1.5px solid var(--border);border-radius:var(--rs);padding:17px;text-align:center;cursor:pointer;transition:all .2s}
+.cc:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.cn{font-size:2.1em;font-weight:700;color:var(--accent)}
+.cl{font-size:.83em;color:var(--muted);margin-top:4px;font-weight:500}
+/* ── Alerts ── */
+.al{padding:13px 17px;border-radius:var(--rs);margin-bottom:16px;display:flex;align-items:center;gap:11px;font-size:.94em;flex-wrap:wrap}
+.al-w{background:#fef9e7;color:#7d6608;border:1px solid #f9e79f}
+.al-s{background:#eafaf1;color:#1e8449;border:1px solid #a9dfbf}
+.al-i{background:#eaf2ff;color:#1a5276;border:1px solid #a9cce3}
+/* ── Empty ── */
+.empty{text-align:center;padding:65px 20px;color:var(--muted)}
+.empty-i{font-size:3.8em;margin-bottom:14px;opacity:.38}
+/* ── Settings section ── */
+.ss{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px}
+.ss h3{font-size:1.03em;font-weight:700;color:var(--primary);margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:9px}
+/* ── QR / Avatar ── */
+.qr{width:98px;height:98px;border-radius:9px;flex-shrink:0}
+.av{width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;font-size:27px;display:flex;align-items:center;justify-content:center;background:#ecf0f1}
+/* ── Toasts ── */
+.tc{position:fixed;bottom:26px;right:26px;display:flex;flex-direction:column;gap:9px;z-index:9999;pointer-events:none}
+.toast{background:var(--primary);color:#fff;padding:12px 18px;border-radius:var(--rs);box-shadow:var(--shadow-lg);font-size:.93em;font-weight:500;animation:ti .22s;min-width:210px;display:flex;align-items:center;gap:9px}
+.toast.ok{background:#27ae60}.toast.err{background:var(--accent)}.toast.warn{background:var(--accent2)}
+@keyframes ti{from{transform:translateX(55px);opacity:0}to{transform:translateX(0);opacity:1}}
+/* ── Zotero ── */
+.zdrop{border:2.5px dashed #a9cce3;border-radius:var(--r);padding:30px;text-align:center;cursor:pointer;background:#f8fbff;transition:border-color .2s;margin-bottom:16px}
+.zdrop:hover{border-color:var(--accent)}
+.zlist{max-height:330px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);margin-bottom:18px}
+.zrow{display:flex;align-items:start;gap:13px;padding:12px 15px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.zrow:last-child{border-bottom:none}
+.zrow:hover,.zrow.sel{background:#f0f7ff}
+/* ── Responsive ── */
+@media(max-width:768px){
+  .sidebar{width:100%;height:auto;position:relative}
+  .main{margin-left:0;padding:18px;max-width:100%}
+  .fgrid{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useCallback } = React;
 
-const CATEGORIES = ['Fiction', 'Science', 'Histoire', 'Biographie', 'Enfants', 'Religion', 'Technologie', 'Art', 'Cuisine', 'Autre'];
+// ════════════════════════════════════════════════════════
+//  ⚙️  CONFIGURATION SUPABASE
+//  1. Allez sur supabase.com → votre projet → Settings → API
+//  2. Copiez "Project URL" et la clé "anon / public" (commence par eyJ...)
+//  3. Collez-les ci-dessous
+// ════════════════════════════════════════════════════════
+const SB_URL = 'https://kokwzdfbypjvvqduuovk.supabase.co';
+const SB_KEY = '';  // ← Collez ici votre clé anon (eyJ...)
 
-// ══════════════════════════════════════════════════════════════════
-//  CONFIGURATION SUPABASE
-//  Remplissez ces deux valeurs pour activer la base de données cloud.
-//  Laissez vides pour utiliser localStorage (mode hors-ligne).
-// ══════════════════════════════════════════════════════════════════
-const SUPABASE_URL      = 'https://kokwzdfbypjvvqduuovk.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_fHfuKLMEEdAGhHm4jH9OVg_1G6nZjM9';
+const CATS = ['Fiction','Science','Histoire','Biographie','Enfants','Religion','Technologie','Art','Cuisine','Autre'];
+const USE_SB = !!(SB_URL && SB_KEY && SB_KEY.startsWith('eyJ'));
 
-const USE_SUPABASE = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+// ── Helpers localStorage ─────────────────────────────────
+function gd(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch{ return []; } }
+function sd(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
+function gsettings(){ try{ return JSON.parse(localStorage.getItem('lib_cfg')||'{}'); }catch{ return {}; } }
+function gid(){ return Date.now()+Math.floor(Math.random()*9999); }
+function today(){ return new Date().toISOString().split('T')[0]; }
+function dlBlob(blob,name){ const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u); }
 
-// ── Supabase REST helper ─────────────────────────────────────────
-async function sbQuery(table, method='GET', body=null, filter='') {
-    const url = `${SUPABASE_URL}/rest/v1/${table}${filter}`;
-    const headers = {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': method==='POST' ? 'return=representation' : 'return=representation'
-    };
-    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
-    if (!res.ok) { const e = await res.text(); throw new Error(e); }
-    const text = await res.text();
-    return text ? JSON.parse(text) : [];
+// ── Supabase REST ────────────────────────────────────────
+async function sb(table, method='GET', body=null, qs=''){
+  const url=`${SB_URL}/rest/v1/${table}${qs}`;
+  const h={'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'};
+  const r=await fetch(url,{method,headers:h,body:body?JSON.stringify(body):null});
+  if(!r.ok){ const e=await r.text(); throw new Error(e); }
+  const t=await r.text(); return t?JSON.parse(t):[];
 }
 
-// ── DB abstraction layer (Supabase OR localStorage) ──────────────
-function genId() { return Date.now() + Math.floor(Math.random() * 9999); }
-function getData(k) { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch { return []; } }
-function setData(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
-function getSettings() { try { return JSON.parse(localStorage.getItem('lib_settings') || '{}'); } catch { return {}; } }
+// ── Mappers ──────────────────────────────────────────────
+const toM = r=>({id:r.id,memberCode:r.member_code,name:r.name,email:r.email,phone:r.phone||'',address:r.address||'',dateOfBirth:r.date_of_birth||'',idNumber:r.id_number||'',photo:r.photo||'',joinDate:r.join_date});
+const fromM = m=>({member_code:m.memberCode,name:m.name,email:m.email,phone:m.phone||null,address:m.address||null,date_of_birth:m.dateOfBirth||null,id_number:m.idNumber||null,photo:m.photo||null});
+const toB = r=>({id:r.id,barcode:r.barcode,title:r.title,author:r.author,isbn:r.isbn||'',year:r.year||'',category:r.category||'Autre',publisher:r.publisher||'',shelf:r.shelf||'',copies:r.copies,available:r.available,description:r.description||'',addedDate:r.added_date});
+const fromB = b=>({barcode:b.barcode,title:b.title,author:b.author,isbn:b.isbn||null,year:b.year||null,category:b.category,publisher:b.publisher||null,shelf:b.shelf||null,copies:b.copies,available:b.available,description:b.description||null});
+const toL = r=>({id:r.id,bookId:r.book_id,memberId:r.member_id,loanDate:r.loan_date,dueDate:r.due_date,returnDate:r.return_date||null,daysLate:r.days_late||0,lateFee:r.late_fee||0});
 
-// Map Supabase snake_case ↔ app camelCase
-function sbToMember(r) {
-    return { id:r.id, memberCode:r.member_code, name:r.name, email:r.email, phone:r.phone||'', address:r.address||'', dateOfBirth:r.date_of_birth||'', idNumber:r.id_number||'', photo:r.photo||'', joinDate:r.join_date };
-}
-function memberToSb(m) {
-    return { member_code:m.memberCode, name:m.name, email:m.email, phone:m.phone||null, address:m.address||null, date_of_birth:m.dateOfBirth||null, id_number:m.idNumber||null, photo:m.photo||null };
-}
-function sbToBook(r) {
-    return { id:r.id, barcode:r.barcode, title:r.title, author:r.author, isbn:r.isbn||'', year:r.year||'', category:r.category||'Autre', publisher:r.publisher||'', shelf:r.shelf||'', copies:r.copies, available:r.available, description:r.description||'', addedDate:r.added_date };
-}
-function bookToSb(b) {
-    return { barcode:b.barcode, title:b.title, author:b.author, isbn:b.isbn||null, year:b.year||null, category:b.category, publisher:b.publisher||null, shelf:b.shelf||null, copies:b.copies, available:b.available, description:b.description||null };
-}
-function sbToLoan(r) {
-    return { id:r.id, bookId:r.book_id, memberId:r.member_id, loanDate:r.loan_date, dueDate:r.due_date, returnDate:r.return_date, daysLate:r.days_late||0, lateFee:r.late_fee||0 };
-}
-
-// High-level DB functions
+// ── DB layer ─────────────────────────────────────────────
 const DB = {
-    async getMembers() {
-        if (!USE_SUPABASE) return getData('lib_members');
-        const rows = await sbQuery('members','GET',null,'?order=join_date.desc');
-        return rows.map(sbToMember);
-    },
-    async getBooks() {
-        if (!USE_SUPABASE) return getData('lib_books');
-        const rows = await sbQuery('books','GET',null,'?order=added_date.desc');
-        return rows.map(sbToBook);
-    },
-    async getActiveLoans() {
-        if (!USE_SUPABASE) return getData('lib_loans').filter(l=>!l.returnDate);
-        const rows = await sbQuery('loans','GET',null,'?return_date=is.null&order=loan_date.desc');
-        return rows.map(sbToLoan);
-    },
-    async getAllLoans() {
-        if (!USE_SUPABASE) return getData('lib_loans');
-        const rows = await sbQuery('loans','GET',null,'?order=loan_date.desc');
-        return rows.map(sbToLoan);
-    },
-    async addMember(m) {
-        if (!USE_SUPABASE) { setData('lib_members',[...getData('lib_members'),m]); return m; }
-        const rows = await sbQuery('members','POST', memberToSb(m));
-        return sbToMember(Array.isArray(rows)?rows[0]:rows);
-    },
-    async updateMember(id, m) {
-        if (!USE_SUPABASE) { setData('lib_members', getData('lib_members').map(x=>x.id===id?{...x,...m}:x)); return; }
-        await sbQuery('members','PATCH', memberToSb(m), `?id=eq.${id}`);
-    },
-    async deleteMember(id) {
-        if (!USE_SUPABASE) { setData('lib_members', getData('lib_members').filter(x=>x.id!==id)); return; }
-        await sbQuery('members','DELETE',null,`?id=eq.${id}`);
-    },
-    async addBook(b) {
-        if (!USE_SUPABASE) { setData('lib_books',[...getData('lib_books'),b]); return b; }
-        const rows = await sbQuery('books','POST', bookToSb(b));
-        return sbToBook(Array.isArray(rows)?rows[0]:rows);
-    },
-    async updateBook(id, b) {
-        if (!USE_SUPABASE) { setData('lib_books', getData('lib_books').map(x=>x.id===id?{...x,...b}:x)); return; }
-        await sbQuery('books','PATCH', bookToSb(b), `?id=eq.${id}`);
-    },
-    async deleteBook(id) {
-        if (!USE_SUPABASE) { setData('lib_books', getData('lib_books').filter(x=>x.id!==id)); return; }
-        await sbQuery('books','DELETE',null,`?id=eq.${id}`);
-    },
-    async updateBookAvailability(id, delta) {
-        if (!USE_SUPABASE) {
-            const books = getData('lib_books');
-            const b = books.find(x=>x.id===id);
-            if (b) { b.available = Math.min(b.copies, Math.max(0, b.available+delta)); setData('lib_books',books); }
-            return;
-        }
-        // Use RPC for atomic update
-        const rows = await sbQuery('books','GET',null,`?id=eq.${id}&select=available,copies`);
-        if (rows.length) {
-            const newVal = Math.min(rows[0].copies, Math.max(0, rows[0].available+delta));
-            await sbQuery('books','PATCH',{available:newVal},`?id=eq.${id}`);
-        }
-    },
-    async addLoan(l) {
-        if (!USE_SUPABASE) { setData('lib_loans',[...getData('lib_loans'),l]); return l; }
-        const sbLoan = { book_id:l.bookId, member_id:l.memberId, loan_date:l.loanDate, due_date:l.dueDate };
-        const rows = await sbQuery('loans','POST', sbLoan);
-        return sbToLoan(Array.isArray(rows)?rows[0]:rows);
-    },
-    async returnLoan(id, daysLate, lateFee) {
-        if (!USE_SUPABASE) {
-            setData('lib_loans', getData('lib_loans').map(l=>l.id===id?{...l,returnDate:new Date().toISOString(),daysLate,lateFee}:l));
-            return;
-        }
-        await sbQuery('loans','PATCH',{return_date:new Date().toISOString(),days_late:daysLate,late_fee:lateFee},`?id=eq.${id}`);
-    },
-    async bulkAddBooks(booksArr) {
-        if (!USE_SUPABASE) {
-            setData('lib_books',[...getData('lib_books'),...booksArr]);
-            return booksArr;
-        }
-        const rows = await sbQuery('books','POST', booksArr.map(bookToSb));
-        return (Array.isArray(rows)?rows:[rows]).map(sbToBook);
+  async getMembers(){
+    if(!USE_SB) return gd('lib_members');
+    return (await sb('members','GET',null,'?order=join_date.desc')).map(toM);
+  },
+  async getBooks(){
+    if(!USE_SB) return gd('lib_books');
+    return (await sb('books','GET',null,'?order=added_date.desc')).map(toB);
+  },
+  async getLoans(activeOnly=true){
+    if(!USE_SB){
+      const all=gd('lib_loans');
+      return activeOnly ? all.filter(l=>!l.returnDate) : all;
     }
+    const qs=activeOnly?'?return_date=is.null&order=loan_date.desc':'?order=loan_date.desc';
+    return (await sb('loans','GET',null,qs)).map(toL);
+  },
+  async addMember(m){
+    if(!USE_SB){ sd('lib_members',[...gd('lib_members'),m]); return m; }
+    const r=await sb('members','POST',fromM(m));
+    return toM(Array.isArray(r)?r[0]:r);
+  },
+  async updateMember(id,m){
+    if(!USE_SB){ sd('lib_members',gd('lib_members').map(x=>x.id===id?{...x,...m}:x)); return; }
+    await sb('members','PATCH',fromM(m),`?id=eq.${id}`);
+  },
+  async deleteMember(id){
+    if(!USE_SB){ sd('lib_members',gd('lib_members').filter(x=>x.id!==id)); return; }
+    await sb('members','DELETE',null,`?id=eq.${id}`);
+  },
+  async addBook(b){
+    if(!USE_SB){ sd('lib_books',[...gd('lib_books'),b]); return b; }
+    const r=await sb('books','POST',fromB(b));
+    return toB(Array.isArray(r)?r[0]:r);
+  },
+  async updateBook(id,b){
+    if(!USE_SB){ sd('lib_books',gd('lib_books').map(x=>x.id===id?{...x,...b}:x)); return; }
+    await sb('books','PATCH',fromB(b),`?id=eq.${id}`);
+  },
+  async deleteBook(id){
+    if(!USE_SB){ sd('lib_books',gd('lib_books').filter(x=>x.id!==id)); return; }
+    await sb('books','DELETE',null,`?id=eq.${id}`);
+  },
+  async setAvail(id,delta){
+    if(!USE_SB){
+      const all=gd('lib_books'),b=all.find(x=>x.id===id);
+      if(b){b.available=Math.min(b.copies,Math.max(0,b.available+delta));sd('lib_books',all);}
+      return;
+    }
+    const rows=await sb('books','GET',null,`?id=eq.${id}&select=available,copies`);
+    if(rows.length) await sb('books','PATCH',{available:Math.min(rows[0].copies,Math.max(0,rows[0].available+delta))},`?id=eq.${id}`);
+  },
+  async addLoan(l){
+    if(!USE_SB){ sd('lib_loans',[...gd('lib_loans'),l]); return l; }
+    const r=await sb('loans','POST',{book_id:l.bookId,member_id:l.memberId,loan_date:l.loanDate,due_date:l.dueDate});
+    return toL(Array.isArray(r)?r[0]:r);
+  },
+  async returnLoan(id,daysLate,lateFee){
+    if(!USE_SB){ sd('lib_loans',gd('lib_loans').map(l=>l.id===id?{...l,returnDate:new Date().toISOString(),daysLate,lateFee}:l)); return; }
+    await sb('loans','PATCH',{return_date:new Date().toISOString(),days_late:daysLate,late_fee:lateFee},`?id=eq.${id}`);
+  },
+  async bulkAddBooks(arr){
+    if(!USE_SB){ sd('lib_books',[...gd('lib_books'),...arr]); return arr; }
+    const r=await sb('books','POST',arr.map(fromB));
+    return (Array.isArray(r)?r:[r]).map(toB);
+  }
 };
 
-// ── Zotero parsers ───────────────────────────────────────────────
-function parseBib(text) {
-    const entries = [];
-    const re = /@(\w+)\{[^,]*,([\s\S]*?)\n\}/g;
-    let m;
-    while ((m = re.exec(text)) !== null) {
-        const type = m[1].toLowerCase();
-        const body = m[2];
-        const f = {};
-        const fr = /\s+(\w+)\s*=\s*\{([\s\S]*?)\}[,\s]/g;
-        let fm;
-        while ((fm = fr.exec(body + '\n')) !== null) f[fm[1].toLowerCase()] = fm[2].replace(/\s+/g,' ').trim();
-        const yr = body.match(/\byear\s*=\s*[{"]?(\d{4})/i);
-        if (yr) f.year = yr[1];
-        const title = f.title || '';
-        if (!title) continue;
-        const catMap = { book:'Autre', article:'Science', inproceedings:'Science', phdthesis:'Science', mastersthesis:'Science', techreport:'Technologie', manual:'Technologie' };
-        entries.push({
-            title,
-            author: (f.author || f.editor || '').replace(/ and /gi,', ').replace(/[{}]/g,''),
-            isbn: f.isbn || f.isbn13 || '',
-            publisher: f.publisher || '',
-            year: f.year || '',
-            description: f.abstract || '',
-            category: catMap[type] || 'Autre',
-            shelf: '', copies: 1
-        });
+// ── Zotero parsers ───────────────────────────────────────
+function parseBib(txt){
+  // Parse BibTeX by splitting on lines — avoids { } in regex which breaks Babel
+  const res=[], lines=txt.split('\n'), cm={book:'Autre',article:'Science',inproceedings:'Science',phdthesis:'Science',mastersthesis:'Science',techreport:'Technologie',manual:'Technologie'};
+  let cur=null;
+  for(const raw of lines){
+    const line=raw.trim();
+    if(/^@\w+\s*\x7B/.test(line)){
+      const t=(line.match(/^@(\w+)/)||[])[1]||'misc';
+      cur={type:t.toLowerCase(),fields:{}};
+      res.push(cur);
+    } else if(cur && line.includes('=')){
+      const eq=line.indexOf('=');
+      const key=line.slice(0,eq).trim().toLowerCase();
+      let val=line.slice(eq+1).trim();
+      if(val.charAt(0)==='\x7B') val=val.slice(1);
+      if(val.slice(-2)==='\x7D,') val=val.slice(0,-2);
+      else if(val.slice(-1)===',') val=val.slice(0,-1);
+      else if(val.slice(-1)==='\x7D') val=val.slice(0,-1);
+      if(key && val) cur.fields[key]=(cur.fields[key]?cur.fields[key]+' ':'')+val.replace(/\s+/g,' ').trim();
     }
-    return entries;
-}
-
-function parseRIS(text) {
-    const entries = [];
-    text.split(/\nER\s*-/).forEach(block => {
-        const f = {};
-        block.split('\n').forEach(line => {
-            const m = line.match(/^([A-Z][A-Z0-9])\s+-\s+(.+)$/);
-            if (m) { if (!f[m[1]]) f[m[1]]=[]; f[m[1]].push(m[2].trim()); }
-        });
-        const title = (f['TI']||f['T1']||f['BT']||[''])[0];
-        if (!title) return;
-        const ty = (f['TY']||['BOOK'])[0];
-        const tyMap = {BOOK:'Autre',JOUR:'Science',CONF:'Science',THES:'Science',RPRT:'Technologie',COMP:'Technologie'};
-        entries.push({
-            title,
-            author: (f['AU']||f['A1']||[]).join(', '),
-            year: ((f['PY']||f['Y1']||[''])[0]).substring(0,4),
-            isbn: (f['SN']||[''])[0],
-            publisher: (f['PB']||[''])[0],
-            description: (f['AB']||f['N2']||[''])[0],
-            category: tyMap[ty] || 'Autre',
-            shelf: '', copies: 1
-        });
-    });
-    return entries;
-}
-
-function parseCSV(text) {
-    function parseLine(line) {
-        const res=[]; let cur='', q=false;
-        for(let i=0;i<line.length;i++){
-            const c=line[i];
-            if(c==='"'&&line[i+1]==='"'){cur+='"';i++;}
-            else if(c==='"'){q=!q;}
-            else if(c===','&&!q){res.push(cur);cur='';}
-            else{cur+=c;}
-        }
-        res.push(cur); return res;
-    }
-    const lines=text.split('\n').filter(l=>l.trim());
-    if(lines.length<2) return [];
-    const headers=parseLine(lines[0]).map(h=>h.trim().toLowerCase());
-    const col=names=>{ for(const n of names){ const i=headers.indexOf(n); if(i!==-1) return i; } return -1; };
-    const entries=[];
-    for(let i=1;i<lines.length;i++){
-        const v=parseLine(lines[i]);
-        const g=(...names)=>{ const idx=col(names); return idx!==-1?(v[idx]||'').trim():''; };
-        const title=g('title'); if(!title) continue;
-        const ty=g('item type','type','itemtype').toLowerCase().replace(/\s/g,'');
-        const tyMap={book:'Autre',journalarticle:'Science',conferencepaper:'Science',thesis:'Science',report:'Technologie',computerprogram:'Technologie',artwork:'Art'};
-        entries.push({
-            title,
-            author: g('author','authors'),
-            year: g('publication year','year','date').substring(0,4),
-            isbn: g('isbn','isbn/issn'),
-            publisher: g('publisher'),
-            description: g('abstract note','abstract'),
-            category: tyMap[ty]||'Autre',
-            shelf:'', copies:1
-        });
-    }
-    return entries;
-}
-
-// ── Toast component ──────────────────────────────────────────────
-function Toasts({ toasts }) {
-    return (
-        <div className="toast-container">
-            {toasts.map(t => (
-                <div key={t.id} className={"toast "+(t.type||'')}>
-                    <span>{t.icon}</span><span>{t.msg}</span>
-                </div>
-            ))}
-        </div>
-    );
-}
-
-// ── Main App ─────────────────────────────────────────────────────
-function App() {
-    const [tab, setTab] = useState('dashboard');
-    const [members, setMembers] = useState([]);
-    const [books, setBooks] = useState([]);
-    const [loans, setLoans] = useState([]);
-    const [modal, setModal] = useState(null);
-    const [search, setSearch] = useState('');
-    const [catFilter, setCatFilter] = useState('all');
-    const [scanInput, setScanInput] = useState('');
-    const [scanStatus, setScanStatus] = useState('');
-    const [scannedItem, setScannedItem] = useState(null);
-    const [toasts, setToasts] = useState([]);
-    const [settings, setSettings] = useState({ libraryName:'Ma Bibliothèque', libraryLogo:'', loanDays:14, lateFeePerDay:10 });
-
-    // forms
-    const [mForm, setMForm] = useState({ name:'', email:'', phone:'', address:'', dateOfBirth:'', idNumber:'', photo:'' });
-    const [bForm, setBForm] = useState({ title:'', author:'', isbn:'', year:'', category:'Fiction', publisher:'', shelf:'', copies:1, description:'' });
-    const [editM, setEditM] = useState(null);
-    const [editB, setEditB] = useState(null);
-
-    // zotero
-    const [zPreview, setZPreview] = useState([]);
-    const [zStatus, setZStatus] = useState('');
-
-    // refs
-    const scanRef = useRef(null);
-    const logoRef = useRef(null);
-    const photoRef = useRef(null);
-    const importRef = useRef(null);
-    const zoteroRef = useRef(null);
-
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        reload();
-        const s = getSettings();
-        if (s && s.libraryName) setSettings(prev => ({...prev, ...s}));
-    }, []);
-
-    useEffect(() => {
-        if (tab === 'scanner' && scanRef.current) scanRef.current.focus();
-    }, [tab]);
-
-    async function reload() {
-        setLoading(true);
-        try {
-            const [m, b, l] = await Promise.all([DB.getMembers(), DB.getBooks(), DB.getActiveLoans()]);
-            setMembers(m); setBooks(b); setLoans(l);
-        } catch(e) {
-            toast('Erreur de chargement: ' + e.message, 'error', '❌');
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    function toast(msg, type='success', icon='✅') {
-        const id = genId();
-        setToasts(p => [...p, {id, msg, type, icon}]);
-        setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500);
-    }
-
-    function closeModal() { setModal(null); }
-
-    // ── Settings ──
-    function saveSettings(s) {
-        setSettings(s);
-        localStorage.setItem('lib_settings', JSON.stringify(s));
-        toast('Paramètres sauvegardés !');
-        closeModal();
-    }
-
-    // ── Members ──
-    async function saveMember() {
-        if (!mForm.name || !mForm.email) { toast('Nom et email requis','error','⚠️'); return; }
-        try {
-            if (editM) {
-                await DB.updateMember(editM.id, mForm);
-                toast('Membre mis à jour !');
-            } else {
-                const allM = await DB.getMembers();
-                const maxN = allM.reduce((mx,m) => Math.max(mx, parseInt((m.memberCode||'').replace('MBR-','')||0)), 0);
-                const newM = {...mForm, id:genId(), memberCode:`MBR-${String(maxN+1).padStart(4,'0')}`, joinDate:new Date().toISOString()};
-                await DB.addMember(newM);
-                toast('Membre ajouté !');
-            }
-            setMForm({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});
-            setEditM(null); closeModal(); reload();
-        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
-    }
-
-    async function deleteMember(id) {
-        if (!confirm('Supprimer ce membre ?')) return;
-        const activeLoans = await DB.getActiveLoans();
-        if (activeLoans.some(l => l.memberId===id)) { toast('Membre avec prêts actifs','error','❌'); return; }
-        try { await DB.deleteMember(id); toast('Membre supprimé'); reload(); }
-        catch(e) { toast('Erreur: '+e.message,'error','❌'); }
-    }
-
-    function openEditMember(m) { setMForm({...m}); setEditM(m); setModal('member'); }
-
-    // ── Books ──
-    async function saveBook() {
-        if (!bForm.title || !bForm.author) { toast('Titre et auteur requis','error','⚠️'); return; }
-        try {
-            const copies = parseInt(bForm.copies)||1;
-            if (editB) {
-                await DB.updateBook(editB.id, {...bForm, copies});
-                toast('Livre mis à jour !');
-            } else {
-                const allB = await DB.getBooks();
-                const maxN = allB.reduce((mx,b) => Math.max(mx, parseInt((b.barcode||'').replace('BOOK-','')||0)), 0);
-                const newB = {...bForm, copies, available:copies, id:genId(), barcode:`BOOK-${String(maxN+1).padStart(4,'0')}`, addedDate:new Date().toISOString()};
-                await DB.addBook(newB);
-                toast('Livre ajouté !');
-            }
-            setBForm({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});
-            setEditB(null); closeModal(); reload();
-        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
-    }
-
-    async function deleteBook(id) {
-        if (!confirm('Supprimer ce livre ?')) return;
-        const activeLoans = await DB.getActiveLoans();
-        if (activeLoans.some(l => l.bookId===id)) { toast('Livre actuellement prêté','error','❌'); return; }
-        try { await DB.deleteBook(id); toast('Livre supprimé'); reload(); }
-        catch(e) { toast('Erreur: '+e.message,'error','❌'); }
-    }
-
-    function openEditBook(b) { setBForm({...b}); setEditB(b); setModal('book'); }
-
-    // ── Loans ──
-    async function createLoan(bookId, memberId) {
-        const book = books.find(b => b.id===bookId);
-        if (!book || book.available<=0) { toast('Livre non disponible','error','❌'); return; }
-        try {
-            const due = new Date(); due.setDate(due.getDate()+(settings.loanDays||14));
-            await DB.addLoan({id:genId(), bookId, memberId, loanDate:new Date().toISOString(), dueDate:due.toISOString(), returnDate:null});
-            await DB.updateBookAvailability(bookId, -1);
-            toast('Prêt créé !'); setScanInput(''); setScanStatus('✅ Prêt enregistré !');
-            setTimeout(()=>setScanStatus(''),3000); reload();
-        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
-    }
-
-    async function returnLoan(loanId) {
-        const loan = loans.find(l => l.id===loanId);
-        if (!loan) return;
-        const now = new Date(), due = new Date(loan.dueDate);
-        const daysLate = Math.max(0, Math.ceil((now-due)/(1000*60*60*24)));
-        const lateFee = daysLate*(settings.lateFeePerDay||10);
-        try {
-            await DB.returnLoan(loanId, daysLate, lateFee);
-            await DB.updateBookAvailability(loan.bookId, +1);
-            if (daysLate>0) toast(`${daysLate} j retard — Pénalité: ${lateFee} HTG`,'warning','⚠️');
-            else toast('Retour enregistré !');
-            reload();
-        } catch(e) { toast('Erreur: '+e.message,'error','❌'); }
-    }
-
-    // ── Scanner ──
-    function handleScan(e) {
-        if (e.key!=='Enter' || !scanInput.trim()) return;
-        const code = scanInput.trim().toUpperCase();
-        const allM = members, allB = books;
-        if (code.startsWith('MBR-')) {
-            const m = allM.find(x => x.memberCode===code);
-            if (m) { setScannedItem({type:'member',data:m}); setScanStatus(`✅ Membre: ${m.name}`); }
-            else setScanStatus('❌ Membre non trouvé');
-        } else {
-            const b = allB.find(x => x.barcode===code || x.isbn===code || (x.isbn||'').replace(/-/g,'')===code);
-            if (b) {
-                if (scannedItem && scannedItem.type==='member') { createLoan(b.id, scannedItem.data.id); setScannedItem(null); }
-                else { setScannedItem({type:'book',data:b}); setScanStatus(`✅ Livre: ${b.title}`); }
-            } else setScanStatus('❌ Livre non trouvé');
-        }
-        setScanInput('');
-    }
-
-    // ── Export / Import ──
-    function exportCSV() {
-        const bom='\ufeff';
-        let csv=bom+'Type,Code,Nom/Titre,Email/Auteur,Tél/ISBN,Statut,Date\n';
-        const allLoans = await DB.getAllLoans();
-        members.forEach(m=>{ csv+=`Membre,"${m.memberCode}","${m.name}","${m.email}","${m.phone||''}",Actif,${new Date(m.joinDate).toLocaleDateString('fr-FR')}\n`; });
-        books.forEach(b=>{ csv+=`Livre,"${b.barcode}","${b.title}","${b.author}","${b.isbn||''}","${b.available}/${b.copies}",${new Date(b.addedDate).toLocaleDateString('fr-FR')}\n`; });
-        allLoans.forEach(l=>{
-            const bk=books.find(x=>x.id===l.bookId), mb=members.find(x=>x.id===l.memberId);
-            csv+=`Prêt,"${l.id}","${bk?.title||''}","${mb?.name||''}","${new Date(l.dueDate).toLocaleDateString('fr-FR')}","${l.returnDate?'Retourné':'En cours'}",${new Date(l.loanDate).toLocaleDateString('fr-FR')}\n`;
-        });
-        dl(new Blob([csv],{type:'text/csv;charset=utf-8;'}), `bibliotheque-${today()}.csv`);
-        toast('Export CSV téléchargé !');
-    }
-
-    async function exportJSON() {
-        const [allM, allB, allL] = await Promise.all([DB.getMembers(), DB.getBooks(), DB.getAllLoans()]);
-        const data={members:allM, books:allB, loans:allL, settings:getSettings(), exportDate:new Date().toISOString()};
-        dl(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),`bibliotheque-backup-${today()}.json`);
-        toast('Sauvegarde JSON téléchargée !');
-    }
-
-    function importJSON(e) {
-        const file=e.target.files[0]; if(!file) return;
-        const r=new FileReader();
-        r.onload=async ev=>{ try {
-            const d=JSON.parse(ev.target.result);
-            // Always write to localStorage as fallback/cache
-            if(d.members) setData('lib_members',d.members);
-            if(d.books) setData('lib_books',d.books);
-            if(d.loans) setData('lib_loans',d.loans);
-            if(d.settings) localStorage.setItem('lib_settings',JSON.stringify(d.settings));
-            reload(); toast('Données importées !' + (USE_SUPABASE ? ' (localStorage seulement — sync Supabase manuelle)' : ''));
-        } catch { toast('Fichier invalide','error','❌'); } };
-        r.readAsText(file,'UTF-8'); e.target.value='';
-    }
-
-    function dl(blob, name) { const u=URL.createObjectURL(blob),a=document.createElement('a'); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u); }
-    function today() { return new Date().toISOString().split('T')[0]; }
-
-    // ── Zotero ──
-    function handleZoteroFile(e) {
-        const file=e.target.files[0]; if(!file) return;
-        setZStatus('Analyse en cours...'); setZPreview([]);
-        const r=new FileReader();
-        r.onload=ev=>{
-            const text=ev.target.result;
-            const ext=file.name.split('.').pop().toLowerCase();
-            let parsed=[];
-            if(ext==='bib') parsed=parseBib(text);
-            else if(ext==='ris') parsed=parseRIS(text);
-            else if(ext==='csv') parsed=parseCSV(text);
-            else { setZStatus('❌ Format non supporté. Utilisez .bib, .ris ou .csv'); return; }
-            if(parsed.length===0) setZStatus('❌ Aucune référence trouvée dans ce fichier.');
-            else { setZPreview(parsed.map((b,i)=>({...b,_sel:true,_i:i}))); setZStatus(`✅ ${parsed.length} référence(s) trouvée(s)`); }
-        };
-        r.readAsText(file,'UTF-8'); e.target.value='';
-    }
-
-    async function importZotero() {
-        const toImport=zPreview.filter(b=>b._sel);
-        if(!toImport.length) { toast('Sélectionnez au moins un livre','error','⚠️'); return; }
-        try {
-            const allBooks = await DB.getBooks();
-            let maxN=allBooks.reduce((mx,b)=>Math.max(mx,parseInt((b.barcode||'').replace('BOOK-','')||0)),0);
-            let skip=0; const newBooks=[];
-            toImport.forEach(b=>{
-                if(allBooks.find(x=>x.title?.toLowerCase()===b.title?.toLowerCase()&&x.author?.toLowerCase()===b.author?.toLowerCase())) { skip++; return; }
-                maxN++;
-                newBooks.push({title:b.title,author:b.author,isbn:b.isbn,publisher:b.publisher,year:b.year,category:b.category,description:b.description,shelf:b.shelf||'',copies:1,available:1,id:genId(),barcode:`BOOK-${String(maxN).padStart(4,'0')}`,addedDate:new Date().toISOString()});
-            });
-            if(newBooks.length>0) await DB.bulkAddBooks(newBooks);
-            reload(); setZPreview([]); setZStatus(''); closeModal();
-            if(skip>0) toast(`${newBooks.length} importé(s), ${skip} doublon(s) ignoré(s)`,'warning','📚');
-            else toast(`${newBooks.length} livre(s) importé(s) depuis Zotero !`,'success','📚');
-        } catch(e) { toast('Erreur import: '+e.message,'error','❌'); }
-    }
-
-    // ── Print card ──
-    function printCard(member) {
-        // Build card HTML with fully inline styles — no classes, no CSS variables
-        // so print exactly matches screen preview regardless of browser print settings
-        const logo = settings.libraryLogo;
-        const libName = settings.libraryName;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(member.memberCode)}`;
-        const barUrl = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128&dpi=200`;
-
-        const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  /* Force background printing in all browsers */
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Arial, sans-serif; background: #e8e8e8; display: flex; justify-content: center; align-items: flex-start; padding: 30px; min-height: 100vh; }
-  @page { size: 85.6mm 120mm; margin: 0; }
-  @media print {
-    body { background: #e8e8e8 !important; padding: 0; display: block; }
-    .wrapper { margin: 0 auto; }
   }
-</style>
-</head><body>
-<div class="wrapper" style="width:420px;">
+  return res.filter(e=>e.fields.title).map(e=>{
+    const f=e.fields;
+    return {title:f.title||'',author:(f.author||f.editor||'').replace(/ and /gi,', '),isbn:f.isbn||f.isbn13||'',publisher:f.publisher||'',year:f.year||'',description:f.abstract||'',category:cm[e.type]||'Autre',shelf:'',copies:1};
+  });
+}
+function parseRIS(txt){
+  const res=[];
+  txt.split(/\nER\s*-/).forEach(block=>{
+    const f={};
+    block.split('\n').forEach(line=>{const m=line.match(/^([A-Z][A-Z0-9])\s+-\s+(.+)$/);if(m){if(!f[m[1]])f[m[1]]=[];f[m[1]].push(m[2].trim());}});
+    const title=(f['TI']||f['T1']||f['BT']||[''])[0];if(!title)return;
+    const ty=(f['TY']||['BOOK'])[0];
+    const cm={BOOK:'Autre',JOUR:'Science',CONF:'Science',THES:'Science',RPRT:'Technologie',COMP:'Technologie'};
+    res.push({title,author:(f['AU']||f['A1']||[]).join(', '),year:((f['PY']||f['Y1']||[''])[0]).substring(0,4),isbn:(f['SN']||[''])[0],publisher:(f['PB']||[''])[0],description:(f['AB']||f['N2']||[''])[0],category:cm[ty]||'Autre',shelf:'',copies:1});
+  });
+  return res;
+}
+function parseCSV(txt){
+  function pl(line){const res=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'){cur+='"';i++;}else if(c==='"'){q=!q;}else if(c===','&&!q){res.push(cur);cur='';}else{cur+=c;}}res.push(cur);return res;}
+  const lines=txt.split('\n').filter(l=>l.trim());if(lines.length<2)return[];
+  const hdrs=pl(lines[0]).map(h=>h.trim().toLowerCase());
+  const col=(...ns)=>{for(const n of ns){const i=hdrs.indexOf(n);if(i!==-1)return i;}return -1;};
+  const res=[];
+  for(let i=1;i<lines.length;i++){
+    const v=pl(lines[i]);
+    const g=(...ns)=>{const i=col(...ns);return i!==-1?(v[i]||'').trim():'';};
+    const title=g('title');if(!title)continue;
+    const ty=g('item type','type','itemtype').toLowerCase().replace(/\s/g,'');
+    const cm={book:'Autre',journalarticle:'Science',conferencepaper:'Science',thesis:'Science',report:'Technologie',computerprogram:'Technologie',artwork:'Art'};
+    res.push({title,author:g('author','authors'),year:g('publication year','year','date').substring(0,4),isbn:g('isbn','isbn/issn'),publisher:g('publisher'),description:g('abstract note','abstract'),category:cm[ty]||'Autre',shelf:'',copies:1});
+  }
+  return res;
+}
 
-  <!-- CARD -->
-  <div style="width:420px; background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%); border-radius:18px; overflow:hidden; color:white; box-shadow:0 12px 40px rgba(0,0,0,0.35); font-family:Arial,sans-serif;">
+// ── Toast ────────────────────────────────────────────────
+function Toasts({list}){
+  return <div className="tc">{list.map(t=><div key={t.id} className={`toast ${t.cls}`}><span>{t.icon}</span><span>{t.msg}</span></div>)}</div>;
+}
 
-    <!-- Header -->
-    <div style="background:rgba(255,255,255,0.13); padding:20px 26px; display:flex; align-items:center; gap:16px; border-bottom:1px solid rgba(255,255,255,0.1);">
-      ${logo
-        ? `<img src="${logo}" style="width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.4);" />`
-        : `<div style="width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:26px;border:2px solid rgba(255,255,255,0.3);">📚</div>`
+// ════════════════════════════════════════════════════════
+//  APP
+// ════════════════════════════════════════════════════════
+function App(){
+  const [tab,setTab]=useState('dashboard');
+  const [members,setMembers]=useState([]);
+  const [books,setBooks]=useState([]);
+  const [loans,setLoans]=useState([]);
+  const [history,setHistory]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [modal,setModal]=useState(null);
+  const [search,setSearch]=useState('');
+  const [catF,setCatF]=useState('all');
+  const [scanVal,setScanVal]=useState('');
+  const [scanSt,setScanSt]=useState('');
+  const [scanItem,setScanItem]=useState(null);
+  const [toasts,setToasts]=useState([]);
+  const [cfg,setCfg]=useState({libraryName:'Ma Bibliothèque',libraryLogo:'',loanDays:14,feePerDay:10});
+  // forms
+  const [mf,setMf]=useState({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});
+  const [bf,setBf]=useState({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});
+  const [editM,setEditM]=useState(null);
+  const [editB,setEditB]=useState(null);
+  // zotero
+  const [zp,setZp]=useState([]);
+  const [zst,setZst]=useState('');
+  // refs
+  const scanRef=useRef(),logoRef=useRef(),photoRef=useRef(),importRef=useRef(),zRef=useRef();
+
+  // ── Init ──
+  useEffect(()=>{
+    const s=gsettings(); if(s&&s.libraryName) setCfg(prev=>({...prev,...s}));
+    reload();
+  },[]);
+  useEffect(()=>{ if(tab==='scanner'&&scanRef.current) scanRef.current.focus(); },[tab]);
+
+  async function reload(){
+    setLoading(true);
+    try{
+      const[m,b,l,h]=await Promise.all([DB.getMembers(),DB.getBooks(),DB.getLoans(true),DB.getLoans(false)]);
+      setMembers(m);setBooks(b);setLoans(l);setHistory(h);
+    }catch(e){ toast(e.message,'err','❌'); }
+    finally{ setLoading(false); }
+  }
+
+  // ── Toast ──
+  function toast(msg,cls='ok',icon='✅'){
+    const id=gid();
+    setToasts(p=>[...p,{id,msg,cls,icon}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3500);
+  }
+
+  const close=()=>setModal(null);
+
+  // ── Settings ──
+  function saveCfg(s){ setCfg(s); localStorage.setItem('lib_cfg',JSON.stringify(s)); toast('Paramètres sauvegardés !'); close(); }
+
+  // ── Members ──
+  async function saveMember(){
+    if(!mf.name||!mf.email){ toast('Nom et email requis','err','⚠️'); return; }
+    try{
+      if(editM){ await DB.updateMember(editM.id,mf); toast('Membre mis à jour !'); }
+      else{
+        const all=await DB.getMembers();
+        const maxN=all.reduce((mx,m)=>Math.max(mx,parseInt((m.memberCode||'').replace('MBR-','')||0)),0);
+        await DB.addMember({...mf,id:gid(),memberCode:`MBR-${String(maxN+1).padStart(4,'0')}`,joinDate:new Date().toISOString()});
+        toast('Membre ajouté !');
       }
-      <div>
-        <div style="font-size:19px;font-weight:bold;letter-spacing:0.3px;">${libName}</div>
-        <div style="font-size:11px;opacity:0.65;margin-top:2px;">CARTE DE MEMBRE OFFICIELLE</div>
+      setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});
+      setEditM(null); close(); reload();
+    }catch(e){ toast(e.message,'err','❌'); }
+  }
+  async function delMember(id){
+    if(!confirm('Supprimer ce membre ?')) return;
+    if(loans.some(l=>l.memberId===id)){ toast('Membre avec prêts actifs','err','❌'); return; }
+    try{ await DB.deleteMember(id); toast('Membre supprimé'); reload(); }
+    catch(e){ toast(e.message,'err','❌'); }
+  }
+  function openEditM(m){ setMf({...m}); setEditM(m); setModal('member'); }
+
+  // ── Books ──
+  async function saveBook(){
+    if(!bf.title||!bf.author){ toast('Titre et auteur requis','err','⚠️'); return; }
+    try{
+      const copies=parseInt(bf.copies)||1;
+      if(editB){ await DB.updateBook(editB.id,{...bf,copies}); toast('Livre mis à jour !'); }
+      else{
+        const all=await DB.getBooks();
+        const maxN=all.reduce((mx,b)=>Math.max(mx,parseInt((b.barcode||'').replace('BOOK-','')||0)),0);
+        await DB.addBook({...bf,copies,available:copies,id:gid(),barcode:`BOOK-${String(maxN+1).padStart(4,'0')}`,addedDate:new Date().toISOString()});
+        toast('Livre ajouté !');
+      }
+      setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});
+      setEditB(null); close(); reload();
+    }catch(e){ toast(e.message,'err','❌'); }
+  }
+  async function delBook(id){
+    if(!confirm('Supprimer ce livre ?')) return;
+    if(loans.some(l=>l.bookId===id)){ toast('Livre actuellement prêté','err','❌'); return; }
+    try{ await DB.deleteBook(id); toast('Livre supprimé'); reload(); }
+    catch(e){ toast(e.message,'err','❌'); }
+  }
+  function openEditB(b){ setBf({...b}); setEditB(b); setModal('book'); }
+
+  // ── Loans ──
+  async function createLoan(bookId,memberId){
+    const bk=books.find(b=>b.id===bookId);
+    if(!bk||bk.available<=0){ toast('Livre non disponible','err','❌'); return; }
+    try{
+      const due=new Date(); due.setDate(due.getDate()+(cfg.loanDays||14));
+      await DB.addLoan({id:gid(),bookId,memberId,loanDate:new Date().toISOString(),dueDate:due.toISOString(),returnDate:null});
+      await DB.setAvail(bookId,-1);
+      toast('Prêt créé !'); setScanVal(''); setScanSt('✅ Prêt enregistré !');
+      setTimeout(()=>setScanSt(''),3000); reload();
+    }catch(e){ toast(e.message,'err','❌'); }
+  }
+  async function returnLoan(loanId){
+    const loan=loans.find(l=>l.id===loanId); if(!loan) return;
+    const now=new Date(),due=new Date(loan.dueDate);
+    const daysLate=Math.max(0,Math.ceil((now-due)/(86400000)));
+    const lateFee=daysLate*(cfg.feePerDay||10);
+    try{
+      await DB.returnLoan(loanId,daysLate,lateFee);
+      await DB.setAvail(loan.bookId,+1);
+      if(daysLate>0) toast(`${daysLate}j retard — ${lateFee} HTG`,'warn','⚠️');
+      else toast('Retour enregistré !');
+      reload();
+    }catch(e){ toast(e.message,'err','❌'); }
+  }
+
+  // ── Scanner ──
+  function handleScan(e){
+    if(e.key!=='Enter'||!scanVal.trim()) return;
+    const code=scanVal.trim().toUpperCase();
+    if(code.startsWith('MBR-')){
+      const m=members.find(x=>x.memberCode===code);
+      if(m){ setScanItem({type:'member',data:m}); setScanSt(`✅ Membre: ${m.name}`); }
+      else setScanSt('❌ Membre non trouvé');
+    } else {
+      const b=books.find(x=>x.barcode===code||x.isbn===code||(x.isbn||'').replace(/-/g,'')===code);
+      if(b){
+        if(scanItem&&scanItem.type==='member'){ createLoan(b.id,scanItem.data.id); setScanItem(null); }
+        else{ setScanItem({type:'book',data:b}); setScanSt(`✅ Livre: ${b.title}`); }
+      } else setScanSt('❌ Code non trouvé');
+    }
+    setScanVal('');
+  }
+
+  // ── Export ──
+  async function exportCSV(){
+    const bom='\ufeff';
+    let csv=bom+'Type,Code,Nom/Titre,Email/Auteur,Tél/ISBN,Statut,Date\n';
+    members.forEach(m=>{ csv+=`Membre,"${m.memberCode}","${m.name}","${m.email}","${m.phone||''}",Actif,${new Date(m.joinDate).toLocaleDateString('fr-FR')}\n`; });
+    books.forEach(b=>{ csv+=`Livre,"${b.barcode}","${b.title}","${b.author}","${b.isbn||''}","${b.available}/${b.copies}",${new Date(b.addedDate).toLocaleDateString('fr-FR')}\n`; });
+    history.forEach(l=>{
+      const bk=books.find(x=>x.id===l.bookId),mb=members.find(x=>x.id===l.memberId);
+      csv+=`Prêt,"${l.id}","${bk?.title||''}","${mb?.name||''}","${new Date(l.dueDate).toLocaleDateString('fr-FR')}","${l.returnDate?'Retourné':'En cours'}",${new Date(l.loanDate).toLocaleDateString('fr-FR')}\n`;
+    });
+    dlBlob(new Blob([csv],{type:'text/csv;charset=utf-8;'}),`bibliotheque-${today()}.csv`);
+    toast('Export CSV téléchargé !');
+  }
+  async function exportJSON(){
+    const data={members,books,loans:history,settings:cfg,exportDate:new Date().toISOString()};
+    dlBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),`backup-${today()}.json`);
+    toast('Sauvegarde JSON téléchargée !');
+  }
+  function importJSON(e){
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader();
+    r.onload=ev=>{ try{
+      const d=JSON.parse(ev.target.result);
+      if(d.members) sd('lib_members',d.members);
+      if(d.books) sd('lib_books',d.books);
+      if(d.loans) sd('lib_loans',d.loans);
+      if(d.settings) localStorage.setItem('lib_cfg',JSON.stringify(d.settings));
+      reload(); toast('Données importées !');
+    }catch{ toast('Fichier invalide','err','❌'); } };
+    r.readAsText(file,'UTF-8'); e.target.value='';
+  }
+
+  // ── Zotero ──
+  function handleZFile(e){
+    const file=e.target.files[0]; if(!file) return;
+    setZst('Analyse en cours...'); setZp([]);
+    const r=new FileReader();
+    r.onload=ev=>{
+      const txt=ev.target.result,ext=file.name.split('.').pop().toLowerCase();
+      let parsed=[];
+      if(ext==='bib') parsed=parseBib(txt);
+      else if(ext==='ris') parsed=parseRIS(txt);
+      else if(ext==='csv') parsed=parseCSV(txt);
+      else{ setZst('❌ Format non supporté (.bib, .ris, .csv)'); return; }
+      if(!parsed.length) setZst('❌ Aucune référence trouvée.');
+      else{ setZp(parsed.map((b,i)=>({...b,_s:true,_i:i}))); setZst(`✅ ${parsed.length} référence(s) trouvée(s)`); }
+    };
+    r.readAsText(file,'UTF-8'); e.target.value='';
+  }
+  async function doZotero(){
+    const toImport=zp.filter(b=>b._s);
+    if(!toImport.length){ toast('Sélectionnez au moins un livre','err','⚠️'); return; }
+    try{
+      const all=await DB.getBooks();
+      let maxN=all.reduce((mx,b)=>Math.max(mx,parseInt((b.barcode||'').replace('BOOK-','')||0)),0);
+      let skip=0; const nb=[];
+      toImport.forEach(b=>{
+        if(all.find(x=>x.title?.toLowerCase()===b.title?.toLowerCase()&&x.author?.toLowerCase()===b.author?.toLowerCase())){ skip++; return; }
+        maxN++;
+        nb.push({title:b.title,author:b.author,isbn:b.isbn,publisher:b.publisher,year:b.year,category:b.category,description:b.description,shelf:b.shelf||'',copies:1,available:1,id:gid(),barcode:`BOOK-${String(maxN).padStart(4,'0')}`,addedDate:new Date().toISOString()});
+      });
+      if(nb.length) await DB.bulkAddBooks(nb);
+      reload(); setZp([]); setZst(''); close();
+      toast(skip>0?`${nb.length} importé(s), ${skip} doublon(s) ignoré(s)`:`${nb.length} livre(s) importé(s) !`, skip>0?'warn':'ok', '📚');
+    }catch(e){ toast(e.message,'err','❌'); }
+  }
+
+  // ── Print card ──
+  function printCard(member){
+    const qr=`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(member.memberCode)}`;
+    const bar=`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128&dpi=200`;
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#e8e8e8;display:flex;justify-content:center;padding:28px}
+@media print{body{background:#e8e8e8!important;padding:0}}
+</style></head><body>
+<div style="width:420px;background:linear-gradient(135deg,#2c3e50,#34495e);border-radius:18px;overflow:hidden;color:white;box-shadow:0 12px 40px rgba(0,0,0,.35)">
+  <div style="background:rgba(255,255,255,.13);padding:20px 26px;display:flex;align-items:center;gap:16px;border-bottom:1px solid rgba(255,255,255,.1)">
+    ${cfg.libraryLogo?`<img src="${cfg.libraryLogo}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.4)">`:`<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:26px">📚</div>`}
+    <div><div style="font-size:19px;font-weight:bold">${cfg.libraryName}</div><div style="font-size:11px;opacity:.65;margin-top:2px">CARTE DE MEMBRE</div></div>
+  </div>
+  <div style="padding:22px 26px">
+    <div style="display:flex;gap:18px;align-items:center;margin-bottom:20px">
+      ${member.photo?`<img src="${member.photo}" style="width:100px;height:100px;border-radius:50%;border:4px solid white;object-fit:cover;flex-shrink:0">`:`<div style="width:100px;height:100px;border-radius:50%;border:4px solid white;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:44px;flex-shrink:0">👤</div>`}
+      <div style="flex:1;background:white;border-radius:10px;padding:10px;text-align:center">
+        <img src="${qr}" style="width:110px;height:110px;display:block;margin:0 auto">
+        <div style="font-size:10px;color:#666;margin-top:5px">Scan rapide</div>
       </div>
     </div>
-
-    <!-- Body -->
-    <div style="padding:22px 26px;">
-
-      <!-- Photo + QR -->
-      <div style="display:flex;gap:18px;align-items:center;margin-bottom:20px;">
-        ${member.photo
-          ? `<img src="${member.photo}" style="width:100px;height:100px;border-radius:50%;border:4px solid white;object-fit:cover;flex-shrink:0;" />`
-          : `<div style="width:100px;height:100px;border-radius:50%;border:4px solid white;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:44px;flex-shrink:0;">👤</div>`
-        }
-        <div style="flex:1;background:white;border-radius:10px;padding:10px;text-align:center;">
-          <img src="${qrUrl}" style="width:110px;height:110px;display:block;margin:0 auto;" />
-          <div style="font-size:10px;color:#666;margin-top:5px;">Scan rapide</div>
-        </div>
-      </div>
-
-      <!-- Info box -->
-      <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
-        <div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Nom: </span>${member.name}</div>
-        <div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Email: </span>${member.email}</div>
-        ${member.phone ? `<div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Tél: </span>${member.phone}</div>` : ''}
-        ${member.idNumber ? `<div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">ID: </span>${member.idNumber}</div>` : ''}
-        <div style="font-size:14px;margin:6px 0;"><span style="font-weight:bold;opacity:0.85;">Membre depuis: </span>${new Date(member.joinDate).toLocaleDateString('fr-FR')}</div>
-      </div>
-
-      <!-- Member code badge -->
-      <div style="text-align:center;font-size:18px;font-weight:bold;letter-spacing:4px;padding:12px;background:rgba(192,57,43,0.55);border-radius:9px;margin-bottom:14px;">
-        ${member.memberCode}
-      </div>
-
-      <!-- Barcode -->
-      <div style="background:white;border-radius:9px;padding:12px;text-align:center;">
-        <img src="${barUrl}" style="height:55px;max-width:100%;" />
-        <div style="font-size:10px;color:#555;margin-top:5px;letter-spacing:2px;">${member.memberCode}</div>
-      </div>
-
+    <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:14px;margin:6px 0"><b>Nom:</b> ${member.name}</div>
+      <div style="font-size:14px;margin:6px 0"><b>Email:</b> ${member.email}</div>
+      ${member.phone?`<div style="font-size:14px;margin:6px 0"><b>Tél:</b> ${member.phone}</div>`:''}
+      ${member.idNumber?`<div style="font-size:14px;margin:6px 0"><b>ID:</b> ${member.idNumber}</div>`:''}
+      <div style="font-size:14px;margin:6px 0"><b>Depuis:</b> ${new Date(member.joinDate).toLocaleDateString('fr-FR')}</div>
+    </div>
+    <div style="text-align:center;font-size:18px;font-weight:bold;letter-spacing:4px;padding:12px;background:rgba(192,57,43,.55);border-radius:9px;margin-bottom:14px">${member.memberCode}</div>
+    <div style="background:white;border-radius:9px;padding:12px;text-align:center">
+      <img src="${bar}" style="height:55px;max-width:100%">
+      <div style="font-size:10px;color:#555;margin-top:5px;letter-spacing:2px">${member.memberCode}</div>
     </div>
   </div>
 </div>
 </body></html>`;
+    let iframe=document.getElementById('_pf');
+    if(!iframe){ iframe=document.createElement('iframe'); iframe.id='_pf'; iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:600px;height:800px;border:none'; document.body.appendChild(iframe); }
+    iframe.onload=()=>{
+      const imgs=iframe.contentDocument.querySelectorAll('img');
+      let done=0;
+      const tryPrint=()=>{ if(++done>=imgs.length) setTimeout(()=>iframe.contentWindow.print(),200); };
+      if(!imgs.length) setTimeout(()=>iframe.contentWindow.print(),200);
+      else imgs.forEach(img=>{ if(img.complete)tryPrint(); else{img.onload=tryPrint;img.onerror=tryPrint;} });
+    };
+    iframe.srcdoc=html;
+  }
 
-        // Use hidden iframe so the card renders in the same document context
-        // This guarantees the print preview matches the screen exactly
-        let iframe = document.getElementById('__print_iframe__');
-        if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.id = '__print_iframe__';
-            iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:600px;height:800px;border:none;';
-            document.body.appendChild(iframe);
-        }
-        iframe.onload = () => {
-            // Wait for QR + barcode images to load before printing
-            const imgs = iframe.contentDocument.querySelectorAll('img');
-            let loaded = 0;
-            const total = imgs.length;
-            const tryPrint = () => {
-                loaded++;
-                if (loaded >= total) {
-                    setTimeout(() => iframe.contentWindow.print(), 200);
-                }
-            };
-            if (total === 0) {
-                setTimeout(() => iframe.contentWindow.print(), 200);
-            } else {
-                imgs.forEach(img => {
-                    if (img.complete) tryPrint();
-                    else { img.onload = tryPrint; img.onerror = tryPrint; }
-                });
-            }
-        };
-        iframe.srcdoc = html;
-    }
+  // ── Computed ──
+  const fMembers=members.filter(m=>(m.name||'').toLowerCase().includes(search.toLowerCase())||(m.email||'').toLowerCase().includes(search.toLowerCase())||(m.memberCode||'').toLowerCase().includes(search.toLowerCase()));
+  const fBooks=books.filter(b=>{
+    const ms=(b.title||'').toLowerCase().includes(search.toLowerCase())||(b.author||'').toLowerCase().includes(search.toLowerCase())||(b.isbn||'').toLowerCase().includes(search.toLowerCase())||(b.barcode||'').toLowerCase().includes(search.toLowerCase());
+    return ms&&(catF==='all'||b.category===catF);
+  });
+  const cStats=CATS.reduce((a,c)=>({...a,[c]:books.filter(b=>b.category===c).length}),{});
+  const overdue=loans.filter(l=>new Date(l.dueDate)<new Date());
 
-    // ── Computed ──
-    const filteredMembers = members.filter(m =>
-        (m.name||'').toLowerCase().includes(search.toLowerCase()) ||
-        (m.email||'').toLowerCase().includes(search.toLowerCase()) ||
-        (m.memberCode||'').toLowerCase().includes(search.toLowerCase())
-    );
-    const filteredBooks = books.filter(b => {
-        const ms = (b.title||'').toLowerCase().includes(search.toLowerCase()) ||
-            (b.author||'').toLowerCase().includes(search.toLowerCase()) ||
-            (b.isbn||'').toLowerCase().includes(search.toLowerCase()) ||
-            (b.barcode||'').toLowerCase().includes(search.toLowerCase());
-        return ms && (catFilter==='all' || b.category===catFilter);
-    });
-    const catStats = CATEGORIES.reduce((a,c)=>({...a,[c]:books.filter(b=>b.category===c).length}),{});
-    const overdueLoans = loans.filter(l => new Date(l.dueDate) < new Date());
-    const [allHistory, setAllHistory] = useState([]);
-    useEffect(() => { DB.getAllLoans().then(setAllHistory).catch(()=>{}); }, [loans]);
+  // ── Loading screen ──
+  if(loading) return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:18,background:'var(--light)'}}>
+      <div style={{fontSize:'3em'}}>📚</div>
+      <div style={{fontSize:'1.05em',color:'var(--muted)',fontWeight:500}}>Chargement{USE_SB?' depuis Supabase':''}…</div>
+    </div>
+  );
 
-    // ─────────────────────────────────────────────────────────────
-    if (loading) return (
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:20,background:'var(--light)'}}>
-            <div style={{fontSize:'3em'}}>📚</div>
-            <div style={{fontSize:'1.1em',color:'var(--text-muted)',fontWeight:500}}>Chargement{USE_SUPABASE ? ' depuis Supabase' : ''}…</div>
+  // ════════════════════════════════════════════════════════
+  return(
+  <div className="shell">
+    <Toasts list={toasts}/>
+
+    {/* ── Sidebar ── */}
+    <aside className="sidebar">
+      <div className="sb-logo">
+        {cfg.libraryLogo?<img src={cfg.libraryLogo} className="sb-logo-img" style={{display:'block'}} alt=""/>:<div className="sb-logo-img">📚</div>}
+        <div className="sb-name">{cfg.libraryName}</div>
+        <div className="sb-sub">{USE_SB?'🟢 Cloud Supabase':'🟡 Local'}</div>
+      </div>
+      <nav className="sb-nav">
+        {[{k:'dashboard',i:'📊',l:'Tableau de bord'},{k:'scanner',i:'🔍',l:'Scanner USB'},{k:'members',i:'👥',l:'Membres',n:members.length},{k:'books',i:'📚',l:'Livres',n:books.length},{k:'loans',i:'📖',l:'Prêts actifs',n:loans.length},{k:'history',i:'🗂️',l:'Historique',n:history.length}].map(item=>(
+          <button key={item.k} className={tab===item.k?'active':''} onClick={()=>{setTab(item.k);setSearch('');setCatF('all');}}>
+            <span className="nav-icon">{item.i}</span><span>{item.l}</span>
+            {item.n!==undefined&&<span className="nav-badge">{item.n}</span>}
+          </button>
+        ))}
+      </nav>
+      <div className="sb-foot">
+        <button onClick={exportCSV}>📊 CSV</button>
+        <button onClick={exportJSON}>💾 Backup</button>
+        <input type="file" accept=".json" ref={importRef} style={{display:'none'}} onChange={importJSON}/>
+        <button onClick={()=>importRef.current.click()}>📥 Import</button>
+        <button onClick={()=>setModal('settings')} style={{width:'100%',flexBasis:'100%',marginTop:2}}>⚙️ Paramètres</button>
+        <button className="btn-zotero" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}>📥 Importer depuis Zotero</button>
+      </div>
+    </aside>
+
+    {/* ── Main ── */}
+    <main className="main">
+
+      {/* DASHBOARD */}
+      {tab==='dashboard'&&(
+        <div>
+          <div className="ph"><h1 className="pt">Tableau de bord</h1><button className="btn btn-2" onClick={reload}>🔄 Actualiser</button></div>
+          {overdue.length>0&&<div className="al al-w">⚠️ <strong>{overdue.length} prêt(s) en retard</strong></div>}
+          <div className="stats">
+            <div className="sc blue"><div className="sn">{members.length}</div><div className="sl">Membres</div></div>
+            <div className="sc green"><div className="sn">{books.length}</div><div className="sl">Livres</div></div>
+            <div className="sc purple"><div className="sn">{loans.length}</div><div className="sl">Prêts actifs</div></div>
+            <div className="sc orange"><div className="sn">{books.reduce((s,b)=>s+(b.available||0),0)}</div><div className="sl">Disponibles</div></div>
+            <div className="sc red"><div className="sn">{overdue.length}</div><div className="sl">En retard</div></div>
+            <div className="sc blue"><div className="sn">{history.length}</div><div className="sl">Total prêts</div></div>
+          </div>
+          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:'1.45em',marginBottom:16,color:'var(--primary)'}}>Par catégorie</h2>
+          <div className="cg">
+            {CATS.map(c=><div key={c} className="cc" onClick={()=>{setTab('books');setCatF(c);}}><div className="cn">{cStats[c]||0}</div><div className="cl">{c}</div></div>)}
+          </div>
+          {overdue.length>0&&<>
+            <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:'1.45em',marginBottom:16,color:'var(--primary)'}}>⚠️ Retards</h2>
+            <div className="grid">
+              {overdue.map(loan=>{
+                const mb=members.find(m=>m.id===loan.memberId),bk=books.find(b=>b.id===loan.bookId);
+                const dl=Math.ceil((new Date()-new Date(loan.dueDate))/86400000);
+                return(<div key={loan.id} className="card late">
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
+                    <div><div className="ct">{bk?.title||'?'}</div><div className="cs">👤 {mb?.name} — {mb?.email}</div>
+                    <div style={{color:'var(--accent)',fontWeight:700,marginTop:6}}>⚠️ {dl}j retard — {dl*(cfg.feePerDay||10)} HTG</div></div>
+                    <button className="btn btn-s btn-sm" onClick={()=>returnLoan(loan.id)}>✓ Retourner</button>
+                  </div>
+                </div>);
+              })}
+            </div>
+          </>}
         </div>
-    );
+      )}
 
-    return (
-        <div className="app-shell">
-            <Toasts toasts={toasts} />
-
-            {/* Sidebar */}
-            <aside className="sidebar">
-                <div className="sidebar-logo">
-                    {settings.libraryLogo
-                        ? <img src={settings.libraryLogo} className="sidebar-logo-img" style={{display:'block'}} alt="Logo" />
-                        : <div className="sidebar-logo-img">📚</div>}
-                    <div className="sidebar-lib-name">{settings.libraryName}</div>
-                    <div className="sidebar-lib-sub">Gestion professionnelle</div>
-                </div>
-
-                <nav className="sidebar-nav">
-                    {[
-                        {key:'dashboard',icon:'📊',label:'Tableau de bord'},
-                        {key:'scanner',icon:'🔍',label:'Scanner USB'},
-                        {key:'members',icon:'👥',label:'Membres',count:members.length},
-                        {key:'books',icon:'📚',label:'Livres',count:books.length},
-                        {key:'loans',icon:'📖',label:'Prêts actifs',count:loans.length},
-                        {key:'history',icon:'🗂️',label:'Historique',count:allHistory.length},
-                    ].map(item=>(
-                        <button key={item.key} className={tab===item.key?'active':''} onClick={()=>{setTab(item.key);setSearch('');setCatFilter('all');}}>
-                            <span className="nav-icon">{item.icon}</span>
-                            <span>{item.label}</span>
-                            {item.count!==undefined && <span className="nav-badge">{item.count}</span>}
-                        </button>
-                    ))}
-                </nav>
-
-                <div className="sidebar-footer">
-                    <button onClick={exportCSV} title="Export CSV">📊 CSV</button>
-                    <button onClick={exportJSON} title="Sauvegarde">💾 Backup</button>
-                    <input type="file" accept=".json" ref={importRef} style={{display:'none'}} onChange={importJSON} />
-                    <button onClick={()=>importRef.current.click()} title="Importer">📥 Import</button>
-                    <button onClick={()=>setModal('settings')} style={{width:'100%',marginTop:4}}>⚙️ Paramètres</button>
-                    <button className="zotero-btn" onClick={()=>{setZPreview([]);setZStatus('');setModal('zotero');}}>
-                        📥 Importer depuis Zotero
-                    </button>
-                </div>
-            </aside>
-
-            {/* Main */}
-            <main className="main-content">
-
-                {/* DASHBOARD */}
-                {tab==='dashboard' && (
-                    <div>
-                        <div className="page-header">
-                            <h1 className="page-title">Tableau de bord</h1>
-                            <button className="btn btn-secondary" onClick={reload}>🔄 Actualiser</button>
-                        </div>
-                        {overdueLoans.length>0 && (
-                            <div className="alert alert-warning">⚠️ <strong>{overdueLoans.length} prêt(s) en retard</strong></div>
-                        )}
-                        <div className="stats-grid">
-                            <div className="stat-card c-blue"><div className="stat-number">{members.length}</div><div className="stat-label">Membres</div></div>
-                            <div className="stat-card c-green"><div className="stat-number">{books.length}</div><div className="stat-label">Livres</div></div>
-                            <div className="stat-card c-purple"><div className="stat-number">{loans.length}</div><div className="stat-label">Prêts actifs</div></div>
-                            <div className="stat-card c-orange"><div className="stat-number">{books.reduce((s,b)=>s+(b.available||0),0)}</div><div className="stat-label">Disponibles</div></div>
-                            <div className="stat-card c-red"><div className="stat-number">{overdueLoans.length}</div><div className="stat-label">En retard</div></div>
-                            <div className="stat-card c-blue"><div className="stat-number">{allHistory.length}</div><div className="stat-label">Total prêts</div></div>
-                        </div>
-                        <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:'1.5em',marginBottom:'18px',color:'var(--primary)'}}>Par catégorie</h2>
-                        <div className="cat-grid">
-                            {CATEGORIES.map(cat=>(
-                                <div key={cat} className="cat-card" onClick={()=>{setTab('books');setCatFilter(cat);}}>
-                                    <div className="cat-count">{catStats[cat]||0}</div>
-                                    <div className="cat-name">{cat}</div>
-                                </div>
-                            ))}
-                        </div>
-                        {overdueLoans.length>0 && (
-                            <div>
-                                <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:'1.5em',marginBottom:'16px',color:'var(--primary)'}}>⚠️ Retards</h2>
-                                <div className="item-grid">
-                                    {overdueLoans.map(loan=>{
-                                        const mb=members.find(m=>m.id===loan.memberId), bk=books.find(b=>b.id===loan.bookId);
-                                        const dl=Math.ceil((new Date()-new Date(loan.dueDate))/(1000*60*60*24));
-                                        return (
-                                            <div key={loan.id} className="item-card overdue">
-                                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16}}>
-                                                    <div>
-                                                        <div className="item-title">{bk?.title||'?'}</div>
-                                                        <div className="item-subtitle">👤 {mb?.name} — {mb?.email}</div>
-                                                        <div style={{color:'var(--accent)',fontWeight:700,marginTop:6}}>⚠️ {dl} j retard — {dl*(settings.lateFeePerDay||10)} HTG</div>
-                                                    </div>
-                                                    <button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}>✓ Retourner</button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* SCANNER */}
-                {tab==='scanner' && (
-                    <div>
-                        <div className="page-header"><h1 className="page-title">Scanner USB</h1></div>
-                        <div className="scanner-box">
-                            <h2 style={{fontSize:'1.4em',marginBottom:10}}>🔍 Zone de scan</h2>
-                            <p style={{opacity:.75,marginBottom:18,fontSize:'0.95em'}}>Scannez la carte membre puis le livre pour créer un prêt</p>
-                            <input ref={scanRef} type="text" className="scanner-input" value={scanInput} onChange={e=>setScanInput(e.target.value)} onKeyPress={handleScan} placeholder="Pointez votre scanner ici..." autoFocus />
-                            {scanStatus && <div className="scanner-status">{scanStatus}</div>}
-                        </div>
-                        {scannedItem && (
-                            <div className="alert alert-success">
-                                {scannedItem.type==='member'
-                                    ? <><strong>👤 {scannedItem.data.name}</strong> — Scannez maintenant le livre</>
-                                    : <><strong>📚 {scannedItem.data.title}</strong> — Scannez la carte membre</>}
-                                <button className="btn btn-sm btn-secondary" style={{marginLeft:'auto'}} onClick={()=>setScannedItem(null)}>Annuler</button>
-                            </div>
-                        )}
-                        <div style={{background:'white',border:'1.5px solid var(--border)',borderRadius:'var(--radius)',padding:24,marginBottom:20}}>
-                            <h3 style={{fontWeight:700,marginBottom:14}}>💡 Mode manuel</h3>
-                            <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center'}}>
-                                <select className="form-select" id="man-m" style={{flex:1}}>
-                                    <option value="">Sélectionner un membre</option>
-                                    {members.map(m=><option key={m.id} value={m.id}>{m.name} ({m.memberCode})</option>)}
-                                </select>
-                                <select className="form-select" id="man-b" style={{flex:1}}>
-                                    <option value="">Sélectionner un livre</option>
-                                    {books.filter(b=>b.available>0).map(b=><option key={b.id} value={b.id}>{b.title} ({b.available} dispo)</option>)}
-                                </select>
-                                <button className="btn btn-primary" onClick={()=>{
-                                    const mId=parseInt(document.getElementById('man-m').value);
-                                    const bId=parseInt(document.getElementById('man-b').value);
-                                    if(!mId||!bId){toast('Sélectionnez un membre et un livre','error','⚠️');return;}
-                                    createLoan(bId,mId);
-                                }}>📖 Créer le prêt</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* MEMBERS */}
-                {tab==='members' && (
-                    <div>
-                        <div className="page-header">
-                            <h1 className="page-title">Membres</h1>
-                            <button className="btn btn-primary" onClick={()=>{setMForm({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}>➕ Nouveau membre</button>
-                        </div>
-                        <div className="search-wrap">
-                            <span className="search-icon">🔍</span>
-                            <input type="text" className="search-bar" placeholder="Rechercher par nom, email ou code..." value={search} onChange={e=>setSearch(e.target.value)} />
-                        </div>
-                        {filteredMembers.length===0
-                            ? <div className="empty-state"><div className="empty-icon">👥</div><div>Aucun membre</div></div>
-                            : <div className="item-grid">
-                                {filteredMembers.map(member=>{
-                                    const ml=loans.filter(l=>l.memberId===member.id);
-                                    return (
-                                        <div key={member.id} className="item-card">
-                                            <div style={{display:'flex',justifyContent:'space-between',gap:20}}>
-                                                <div style={{display:'flex',gap:18,alignItems:'center',flex:1}}>
-                                                    {member.photo
-                                                        ? <img src={member.photo} className="member-avatar" style={{display:'block'}} alt="" />
-                                                        : <div className="member-avatar">👤</div>}
-                                                    <div style={{flex:1}}>
-                                                        <div className="item-title">{member.name}</div>
-                                                        <div className="item-subtitle">📧 {member.email}</div>
-                                                        {member.phone && <div className="item-subtitle">📞 {member.phone}</div>}
-                                                        <div className="item-meta">
-                                                            <span className="badge badge-purple">{member.memberCode}</span>
-                                                            {ml.length>0 && <span className="badge badge-blue">{ml.length} prêt(s)</span>}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(member.memberCode)}`} className="qr-code" alt="QR" />
-                                            </div>
-                                            <div className="item-actions">
-                                                <button className="btn btn-primary btn-sm" onClick={()=>printCard(member)}>🖨️ Carte</button>
-                                                <button className="btn btn-secondary btn-sm" onClick={()=>openEditMember(member)}>✏️ Modifier</button>
-                                                <button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--accent)'}} onClick={()=>deleteMember(member.id)}>🗑️</button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        }
-                    </div>
-                )}
-
-                {/* BOOKS */}
-                {tab==='books' && (
-                    <div>
-                        <div className="page-header">
-                            <h1 className="page-title">Livres</h1>
-                            <div style={{display:'flex',gap:10}}>
-                                <button className="btn btn-secondary" onClick={()=>{setZPreview([]);setZStatus('');setModal('zotero');}}>📥 Zotero</button>
-                                <button className="btn btn-primary" onClick={()=>{setBForm({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}>➕ Nouveau livre</button>
-                            </div>
-                        </div>
-                        <div className="filter-bar">
-                            <div className="search-wrap" style={{flex:1,marginBottom:0}}>
-                                <span className="search-icon">🔍</span>
-                                <input type="text" className="search-bar" style={{marginBottom:0}} placeholder="Titre, auteur, ISBN..." value={search} onChange={e=>setSearch(e.target.value)} />
-                            </div>
-                            <select className="form-select" value={catFilter} onChange={e=>setCatFilter(e.target.value)}>
-                                <option value="all">🏷️ Toutes catégories</option>
-                                {CATEGORIES.map(c=><option key={c} value={c}>{c} ({catStats[c]||0})</option>)}
-                            </select>
-                        </div>
-                        {filteredBooks.length===0
-                            ? <div className="empty-state"><div className="empty-icon">📚</div><div>Aucun livre</div></div>
-                            : <div className="item-grid">
-                                {filteredBooks.map(book=>(
-                                    <div key={book.id} className="item-card">
-                                        <div style={{display:'flex',justifyContent:'space-between',gap:20}}>
-                                            <div style={{flex:1}}>
-                                                <div className="item-title">{book.title}</div>
-                                                <div className="item-subtitle">✍️ {book.author}{book.year?` — ${book.year}`:''}</div>
-                                                {book.isbn && <div className="item-subtitle" style={{fontSize:'0.82em'}}>ISBN: {book.isbn}</div>}
-                                                <div className="item-meta">
-                                                    {book.category && <span className="badge badge-blue">{book.category}</span>}
-                                                    {book.shelf && <span className="badge badge-orange">📍 {book.shelf}</span>}
-                                                    <span className={`badge ${book.available>0?'badge-green':'badge-red'}`}>{book.available}/{book.copies} dispo</span>
-                                                    <span className="badge badge-gray">{book.barcode}</span>
-                                                </div>
-                                                {book.description && <div style={{fontSize:'0.88em',color:'var(--text-muted)',marginTop:8,lineHeight:1.5}}>{book.description.substring(0,120)}{book.description.length>120?'…':''}</div>}
-                                            </div>
-                                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(book.barcode)}`} className="qr-code" alt="QR" />
-                                        </div>
-                                        <div className="item-actions">
-                                            {book.available>0 && members.length>0 && (
-                                                <select className="form-select" style={{flex:1}} onChange={e=>{if(e.target.value){createLoan(book.id,parseInt(e.target.value));e.target.value=''}}}>
-                                                    <option value="">📖 Prêter à...</option>
-                                                    {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
-                                                </select>
-                                            )}
-                                            <button className="btn btn-secondary btn-sm" onClick={()=>openEditBook(book)}>✏️ Modifier</button>
-                                            <button className="btn btn-ghost btn-sm" style={{color:'var(--accent)'}} onClick={()=>deleteBook(book.id)}>🗑️</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        }
-                    </div>
-                )}
-
-                {/* ACTIVE LOANS */}
-                {tab==='loans' && (
-                    <div>
-                        <div className="page-header">
-                            <h1 className="page-title">Prêts actifs</h1>
-                            {overdueLoans.length>0 && <span className="badge badge-red" style={{fontSize:'1em'}}>⚠️ {overdueLoans.length} en retard</span>}
-                        </div>
-                        {loans.length===0
-                            ? <div className="empty-state"><div className="empty-icon">📖</div><div>Aucun prêt actif</div></div>
-                            : <div className="item-grid">
-                                {loans.map(loan=>{
-                                    const mb=members.find(m=>m.id===loan.memberId), bk=books.find(b=>b.id===loan.bookId);
-                                    const dud=Math.ceil((new Date(loan.dueDate)-new Date())/(1000*60*60*24));
-                                    const late=dud<0;
-                                    return (
-                                        <div key={loan.id} className={`item-card${late?' overdue':''}`}>
-                                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:16}}>
-                                                <div style={{flex:1}}>
-                                                    <div className="item-title">{bk?.title||'?'}</div>
-                                                    <div className="item-subtitle">👤 {mb?.name||'?'} — {mb?.email}</div>
-                                                    <div className="item-subtitle">📅 Prêt: {new Date(loan.loanDate).toLocaleDateString('fr-FR')}</div>
-                                                    <div style={{marginTop:8,fontWeight:700,color:late?'var(--accent)':'#27ae60'}}>
-                                                        {late ? `⚠️ ${Math.abs(dud)} j retard — ${Math.abs(dud)*(settings.lateFeePerDay||10)} HTG` : `✅ Retour: ${new Date(loan.dueDate).toLocaleDateString('fr-FR')} (${dud}j)`}
-                                                    </div>
-                                                </div>
-                                                <button className="btn btn-success" onClick={()=>returnLoan(loan.id)}>✓ Retourner</button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        }
-                    </div>
-                )}
-
-                {/* HISTORY */}
-                {tab==='history' && (
-                    <div>
-                        <div className="page-header">
-                            <h1 className="page-title">Historique</h1>
-                            <button className="btn btn-secondary" onClick={exportCSV}>📊 CSV</button>
-                        </div>
-                        {allHistory.length===0
-                            ? <div className="empty-state"><div className="empty-icon">🗂️</div><div>Aucun historique</div></div>
-                            : <div className="item-grid">
-                                {[...allHistory].reverse().map(loan=>{
-                                    const mb=members.find(m=>m.id===loan.memberId);
-                                    const bk=books.find(b=>b.id===loan.bookId);
-                                    return (
-                                        <div key={loan.id} className="item-card">
-                                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16}}>
-                                                <div>
-                                                    <div className="item-title" style={{fontSize:'1em'}}>{bk?.title||'?'}</div>
-                                                    <div className="item-subtitle">👤 {mb?.name||'?'}</div>
-                                                    <div className="item-subtitle">📅 {new Date(loan.loanDate).toLocaleDateString('fr-FR')}{loan.returnDate?` → ${new Date(loan.returnDate).toLocaleDateString('fr-FR')}`:''}</div>
-                                                    {loan.daysLate>0 && <div style={{fontSize:'0.85em',color:'var(--accent)',fontWeight:600}}>{loan.daysLate}j retard — {loan.lateFee} HTG</div>}
-                                                </div>
-                                                <span className={`badge ${loan.returnDate?'badge-green':'badge-blue'}`}>{loan.returnDate?'✓ Retourné':'📖 En cours'}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        }
-                    </div>
-                )}
-
-            </main>
-
-            {/* ═══ MODALS ═══ */}
-
-            {/* Settings */}
-            {modal==='settings' && (
-                <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal-content" onClick={e=>e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2 className="modal-title">⚙️ Paramètres</h2>
-                            <button className="close-btn" onClick={closeModal}>×</button>
-                        </div>
-                        <div className="settings-section">
-                            <h3>🏛️ Bibliothèque</h3>
-                            <div className="form-group"><label className="form-label">Nom</label>
-                                <input className="form-input" value={settings.libraryName} onChange={e=>setSettings({...settings,libraryName:e.target.value})} /></div>
-                            <div className="form-group"><label className="form-label">Logo</label>
-                                <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
-                                    const f=e.target.files[0]; if(!f) return;
-                                    const r=new FileReader(); r.onloadend=()=>setSettings(s=>({...s,libraryLogo:r.result})); r.readAsDataURL(f);
-                                }} />
-                                <button className="btn btn-secondary" style={{width:'100%'}} onClick={()=>logoRef.current.click()}>📷 Choisir logo</button>
-                                {settings.libraryLogo && <img src={settings.libraryLogo} style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',marginTop:12,border:'3px solid var(--accent)'}} alt="" />}
-                            </div>
-                        </div>
-                        <div className="settings-section">
-                            <h3>📖 Règles de prêt</h3>
-                            <div className="form-grid">
-                                <div className="form-group"><label className="form-label">Durée (jours)</label>
-                                    <input className="form-input" type="number" min="1" value={settings.loanDays||14} onChange={e=>setSettings({...settings,loanDays:parseInt(e.target.value)})} /></div>
-                                <div className="form-group"><label className="form-label">Pénalité/jour (HTG)</label>
-                                    <input className="form-input" type="number" min="0" value={settings.lateFeePerDay||10} onChange={e=>setSettings({...settings,lateFeePerDay:parseInt(e.target.value)})} /></div>
-                            </div>
-                        </div>
-                        <div className="settings-section">
-                            <h3>💾 Données</h3>
-                            <div style={{padding:'12px 14px',background: USE_SUPABASE ? '#eafaf1' : '#fef9e7',border:`1px solid ${USE_SUPABASE?'#a9dfbf':'#f9e79f'}`,borderRadius:'var(--radius-sm)',marginBottom:16,fontSize:'0.9em'}}>
-                                {USE_SUPABASE
-                                    ? <span>🟢 <strong>Supabase connecté</strong> — données stockées dans le cloud</span>
-                                    : <span>🟡 <strong>Mode hors-ligne</strong> (localStorage) — ajoutez vos clés Supabase pour le cloud</span>
-                                }
-                            </div>
-                            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                                <button className="btn btn-secondary" onClick={exportJSON}>💾 Sauvegarder</button>
-                                <button className="btn btn-secondary" onClick={()=>importRef.current.click()}>📥 Restaurer</button>
-                                <button className="btn btn-danger btn-sm" style={{marginLeft:'auto'}} onClick={()=>{
-                                    if(confirm('Supprimer TOUTES les données ? Cette action est irréversible.')){
-                                        ['lib_members','lib_books','lib_loans'].forEach(k=>localStorage.removeItem(k));
-                                        reload(); toast('Données effacées','warning','🗑️'); closeModal();
-                                    }
-                                }}>🗑️ Tout effacer</button>
-                            </div>
-                        </div>
-                        <div className="form-actions">
-                            <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveSettings(settings)}>💾 Sauvegarder</button>
-                            <button className="btn btn-secondary" onClick={closeModal}>Annuler</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Member form */}
-            {modal==='member' && (
-                <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal-content" onClick={e=>e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2 className="modal-title">{editM?'✏️ Modifier membre':'➕ Nouveau membre'}</h2>
-                            <button className="close-btn" onClick={closeModal}>×</button>
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Photo</label>
-                            <input ref={photoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
-                                const f=e.target.files[0]; if(!f) return;
-                                const r=new FileReader(); r.onloadend=()=>setMForm(prev=>({...prev,photo:r.result})); r.readAsDataURL(f);
-                            }} />
-                            <div className="photo-upload" onClick={()=>photoRef.current.click()}>
-                                {mForm.photo ? <img src={mForm.photo} className="photo-preview" alt="" /> : <><div style={{fontSize:'2.5em',marginBottom:8}}>📷</div><div style={{color:'var(--text-muted)',fontSize:'0.9em'}}>Cliquez pour ajouter une photo</div></>}
-                            </div>
-                        </div>
-                        <div className="form-group"><label className="form-label">Nom complet *</label><input className="form-input" value={mForm.name} onChange={e=>setMForm({...mForm,name:e.target.value})} placeholder="Jean Dupont" /></div>
-                        <div className="form-group"><label className="form-label">Email *</label><input className="form-input" type="email" value={mForm.email} onChange={e=>setMForm({...mForm,email:e.target.value})} placeholder="jean@email.com" /></div>
-                        <div className="form-group"><label className="form-label">Téléphone</label><input className="form-input" type="tel" value={mForm.phone} onChange={e=>setMForm({...mForm,phone:e.target.value})} placeholder="+509 1234 5678" /></div>
-                        <div className="form-group"><label className="form-label">Adresse</label><textarea className="form-textarea" value={mForm.address} onChange={e=>setMForm({...mForm,address:e.target.value})} placeholder="123 Rue Example" /></div>
-                        <div className="form-grid">
-                            <div className="form-group"><label className="form-label">Date de naissance</label><input className="form-input" type="date" value={mForm.dateOfBirth} onChange={e=>setMForm({...mForm,dateOfBirth:e.target.value})} /></div>
-                            <div className="form-group"><label className="form-label">N° d'identité</label><input className="form-input" value={mForm.idNumber} onChange={e=>setMForm({...mForm,idNumber:e.target.value})} placeholder="CIN/NIF" /></div>
-                        </div>
-                        <div className="form-actions">
-                            <button className="btn btn-primary" style={{flex:1}} onClick={saveMember}>✓ Enregistrer</button>
-                            <button className="btn btn-secondary" onClick={closeModal}>Annuler</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Book form */}
-            {modal==='book' && (
-                <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal-content" onClick={e=>e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2 className="modal-title">{editB?'✏️ Modifier livre':'➕ Nouveau livre'}</h2>
-                            <button className="close-btn" onClick={closeModal}>×</button>
-                        </div>
-                        <div className="form-group"><label className="form-label">Titre *</label><input className="form-input" value={bForm.title} onChange={e=>setBForm({...bForm,title:e.target.value})} placeholder="Titre du livre" /></div>
-                        <div className="form-group"><label className="form-label">Auteur *</label><input className="form-input" value={bForm.author} onChange={e=>setBForm({...bForm,author:e.target.value})} placeholder="Nom de l'auteur" /></div>
-                        <div className="form-group"><label className="form-label">ISBN</label><input className="form-input" value={bForm.isbn} onChange={e=>setBForm({...bForm,isbn:e.target.value})} placeholder="978-XXXXXXXXXX" /></div>
-                        <div className="form-grid">
-                            <div className="form-group"><label className="form-label">Année</label><input className="form-input" value={bForm.year} onChange={e=>setBForm({...bForm,year:e.target.value})} placeholder="2024" /></div>
-                            <div className="form-group"><label className="form-label">Catégorie</label>
-                                <select className="form-select" style={{width:'100%'}} value={bForm.category} onChange={e=>setBForm({...bForm,category:e.target.value})}>
-                                    {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="form-grid">
-                            <div className="form-group"><label className="form-label">Cote</label><input className="form-input" value={bForm.shelf} onChange={e=>setBForm({...bForm,shelf:e.target.value})} placeholder="A-12" /></div>
-                            <div className="form-group"><label className="form-label">Exemplaires</label><input className="form-input" type="number" min="1" value={bForm.copies} onChange={e=>setBForm({...bForm,copies:e.target.value})} /></div>
-                        </div>
-                        <div className="form-group"><label className="form-label">Éditeur</label><input className="form-input" value={bForm.publisher} onChange={e=>setBForm({...bForm,publisher:e.target.value})} placeholder="Éditeur" /></div>
-                        <div className="form-group"><label className="form-label">Description</label><textarea className="form-textarea" value={bForm.description} onChange={e=>setBForm({...bForm,description:e.target.value})} placeholder="Résumé" /></div>
-                        <div className="form-actions">
-                            <button className="btn btn-primary" style={{flex:1}} onClick={saveBook}>✓ Enregistrer</button>
-                            <button className="btn btn-secondary" onClick={closeModal}>Annuler</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Zotero Import */}
-            {modal==='zotero' && (
-                <div className="modal-overlay" onClick={()=>{closeModal();setZPreview([]);setZStatus('');}}>
-                    <div className="modal-content wide" onClick={e=>e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2 className="modal-title">📥 Importer depuis Zotero</h2>
-                            <button className="close-btn" onClick={()=>{closeModal();setZPreview([]);setZStatus('');}}>×</button>
-                        </div>
-
-                        <div className="alert alert-info" style={{flexDirection:'column',alignItems:'start',gap:8}}>
-                            <div style={{fontWeight:700}}>📋 Comment exporter depuis Zotero :</div>
-                            <ol style={{paddingLeft:20,fontSize:'0.9em',lineHeight:2.1}}>
-                                <li>Ouvrez Zotero, sélectionnez vos références (<strong>Ctrl+A</strong> pour tout)</li>
-                                <li>Clic droit → <strong>Exporter les éléments…</strong></li>
-                                <li>Choisissez le format : <strong>BibTeX</strong>, <strong>RIS</strong> ou <strong>CSV</strong></li>
-                                <li>Importez le fichier téléchargé ici</li>
-                            </ol>
-                            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:4}}>
-                                {['✅ BibTeX .bib','✅ RIS .ris','✅ CSV .csv'].map(t=>(
-                                    <span key={t} style={{background:'#d6eaf8',color:'#1a5276',padding:'4px 12px',borderRadius:20,fontSize:'0.82em',fontWeight:600}}>{t}</span>
-                                ))}
-                            </div>
-                        </div>
-
-                        <input ref={zoteroRef} type="file" accept=".bib,.ris,.csv" style={{display:'none'}} onChange={handleZoteroFile} />
-
-                        <div className="zotero-drop" onClick={()=>zoteroRef.current.click()}>
-                            <div style={{fontSize:'3em',marginBottom:10}}>📂</div>
-                            <div style={{fontWeight:700,color:'var(--primary)',marginBottom:4}}>Cliquez pour choisir un fichier Zotero</div>
-                            <div style={{fontSize:'0.85em',color:'var(--text-muted)'}}>Formats : .bib · .ris · .csv</div>
-                        </div>
-
-                        {zStatus && (
-                            <div className={`alert ${zStatus.startsWith('❌')?'alert-warning':'alert-success'}`}>
-                                {zStatus}
-                            </div>
-                        )}
-
-                        {zPreview.length>0 && (
-                            <div>
-                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-                                    <div style={{fontWeight:700}}>{zPreview.filter(b=>b._sel).length} / {zPreview.length} sélectionnée(s)</div>
-                                    <div style={{display:'flex',gap:8}}>
-                                        <button className="btn btn-sm btn-secondary" onClick={()=>setZPreview(p=>p.map(b=>({...b,_sel:true})))}>Tout sélectionner</button>
-                                        <button className="btn btn-sm btn-ghost" onClick={()=>setZPreview(p=>p.map(b=>({...b,_sel:false})))}>Désélectionner</button>
-                                    </div>
-                                </div>
-
-                                <div className="zotero-list">
-                                    {zPreview.map((book,i)=>(
-                                        <div key={i} className={`zotero-row${book._sel?' selected':''}`} onClick={()=>setZPreview(p=>p.map((b,j)=>j===i?{...b,_sel:!b._sel}:b))}>
-                                            <input type="checkbox" checked={book._sel} onChange={()=>{}} onClick={e=>e.stopPropagation()} style={{width:17,height:17,marginTop:3,accentColor:'var(--accent)',flexShrink:0,cursor:'pointer'}} />
-                                            <div style={{flex:1,minWidth:0}}>
-                                                <div style={{fontWeight:600,color:'var(--primary)',fontSize:'0.95em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{book.title}</div>
-                                                <div style={{fontSize:'0.83em',color:'var(--text-muted)',marginTop:2}}>
-                                                    {book.author||'—'}{book.year?` · ${book.year}`:''}{book.publisher?` · ${book.publisher}`:''}
-                                                </div>
-                                                <div style={{marginTop:5,display:'flex',gap:6,flexWrap:'wrap'}}>
-                                                    <span className="badge badge-blue" style={{fontSize:'0.75em'}}>{book.category}</span>
-                                                    {book.isbn && <span className="badge badge-gray" style={{fontSize:'0.75em'}}>ISBN: {book.isbn}</span>}
-                                                </div>
-                                            </div>
-                                            <select
-                                                className="form-select"
-                                                style={{width:130,padding:'6px 10px',fontSize:'0.82em',flexShrink:0}}
-                                                value={book.category}
-                                                onClick={e=>e.stopPropagation()}
-                                                onChange={e=>setZPreview(p=>p.map((b,j)=>j===i?{...b,category:e.target.value}:b))}
-                                            >
-                                                {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="form-actions">
-                                    <button className="btn btn-primary" style={{flex:1}} onClick={importZotero}>
-                                        📥 Importer {zPreview.filter(b=>b._sel).length} livre(s)
-                                    </button>
-                                    <button className="btn btn-secondary" onClick={()=>{setZPreview([]);setZStatus('');}}>Annuler</button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
+      {/* SCANNER */}
+      {tab==='scanner'&&(
+        <div>
+          <div className="ph"><h1 className="pt">Scanner USB</h1></div>
+          <div className="scan-box">
+            <h2 style={{fontSize:'1.35em',marginBottom:10}}>🔍 Zone de scan</h2>
+            <p style={{opacity:.75,marginBottom:16,fontSize:'.94em'}}>Scannez la carte membre puis le livre pour créer un prêt</p>
+            <input ref={scanRef} type="text" className="scan-in" value={scanVal} onChange={e=>setScanVal(e.target.value)} onKeyPress={handleScan} placeholder="Pointez votre scanner ici..." autoFocus/>
+            {scanSt&&<div className="scan-st">{scanSt}</div>}
+          </div>
+          {scanItem&&<div className="al al-s">
+            {scanItem.type==='member'?<><strong>👤 {scanItem.data.name}</strong> — Scannez maintenant le livre</>:<><strong>📚 {scanItem.data.title}</strong> — Scannez la carte membre</>}
+            <button className="btn btn-2 btn-sm" style={{marginLeft:'auto'}} onClick={()=>setScanItem(null)}>Annuler</button>
+          </div>}
+          <div style={{background:'#fff',border:'1.5px solid var(--border)',borderRadius:'var(--r)',padding:22}}>
+            <h3 style={{fontWeight:700,marginBottom:13}}>💡 Prêt manuel</h3>
+            <div style={{display:'flex',gap:11,flexWrap:'wrap',alignItems:'center'}}>
+              <select className="fsel" id="man-m" style={{flex:1}}>
+                <option value="">Sélectionner un membre</option>
+                {members.map(m=><option key={m.id} value={m.id}>{m.name} ({m.memberCode})</option>)}
+              </select>
+              <select className="fsel" id="man-b" style={{flex:1}}>
+                <option value="">Sélectionner un livre disponible</option>
+                {books.filter(b=>b.available>0).map(b=><option key={b.id} value={b.id}>{b.title} ({b.available} dispo)</option>)}
+              </select>
+              <button className="btn btn-p" onClick={()=>{
+                const mId=parseInt(document.getElementById('man-m').value);
+                const bId=parseInt(document.getElementById('man-b').value);
+                if(!mId||!bId){toast('Sélectionnez un membre et un livre','err','⚠️');return;}
+                createLoan(bId,mId);
+              }}>📖 Créer le prêt</button>
+            </div>
+          </div>
         </div>
-    );
+      )}
+
+      {/* MEMBERS */}
+      {tab==='members'&&(
+        <div>
+          <div className="ph">
+            <h1 className="pt">Membres</h1>
+            <button className="btn btn-p" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}>➕ Nouveau membre</button>
+          </div>
+          <div className="sw"><span className="si">🔍</span><input type="text" className="sbar" placeholder="Rechercher nom, email, code..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+          {fMembers.length===0?<div className="empty"><div className="empty-i">👥</div><div>Aucun membre</div></div>:
+          <div className="grid">
+            {fMembers.map(m=>{
+              const ml=loans.filter(l=>l.memberId===m.id);
+              return(<div key={m.id} className="card">
+                <div style={{display:'flex',justifyContent:'space-between',gap:18}}>
+                  <div style={{display:'flex',gap:16,alignItems:'center',flex:1}}>
+                    {m.photo?<img src={m.photo} className="av" style={{display:'block'}} alt=""/>:<div className="av">👤</div>}
+                    <div style={{flex:1}}>
+                      <div className="ct">{m.name}</div>
+                      <div className="cs">📧 {m.email}</div>
+                      {m.phone&&<div className="cs">📞 {m.phone}</div>}
+                      <div className="cm">
+                        <span className="b bp">{m.memberCode}</span>
+                        {ml.length>0&&<span className="b bb">{ml.length} prêt(s)</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=98x98&data=${encodeURIComponent(m.memberCode)}`} className="qr" alt="QR"/>
+                </div>
+                <div className="ca">
+                  <button className="btn btn-p btn-sm" onClick={()=>printCard(m)}>🖨️ Carte</button>
+                  <button className="btn btn-2 btn-sm" onClick={()=>openEditM(m)}>✏️ Modifier</button>
+                  <button className="btn btn-g btn-sm" style={{marginLeft:'auto',color:'var(--accent)'}} onClick={()=>delMember(m.id)}>🗑️</button>
+                </div>
+              </div>);
+            })}
+          </div>}
+        </div>
+      )}
+
+      {/* BOOKS */}
+      {tab==='books'&&(
+        <div>
+          <div className="ph">
+            <h1 className="pt">Livres</h1>
+            <div style={{display:'flex',gap:9}}>
+              <button className="btn btn-2" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}>📥 Zotero</button>
+              <button className="btn btn-p" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}>➕ Nouveau livre</button>
+            </div>
+          </div>
+          <div className="fbar">
+            <div className="sw" style={{flex:1,marginBottom:0}}>
+              <span className="si">🔍</span>
+              <input type="text" className="sbar" style={{marginBottom:0}} placeholder="Titre, auteur, ISBN..." value={search} onChange={e=>setSearch(e.target.value)}/>
+            </div>
+            <select className="fsel" value={catF} onChange={e=>setCatF(e.target.value)}>
+              <option value="all">🏷️ Toutes catégories</option>
+              {CATS.map(c=><option key={c} value={c}>{c} ({cStats[c]||0})</option>)}
+            </select>
+          </div>
+          {fBooks.length===0?<div className="empty"><div className="empty-i">📚</div><div>Aucun livre</div></div>:
+          <div className="grid">
+            {fBooks.map(bk=>(
+              <div key={bk.id} className="card">
+                <div style={{display:'flex',justifyContent:'space-between',gap:18}}>
+                  <div style={{flex:1}}>
+                    <div className="ct">{bk.title}</div>
+                    <div className="cs">✍️ {bk.author}{bk.year?` — ${bk.year}`:''}</div>
+                    {bk.isbn&&<div className="cs" style={{fontSize:'.81em'}}>ISBN: {bk.isbn}</div>}
+                    <div className="cm">
+                      {bk.category&&<span className="b bb">{bk.category}</span>}
+                      {bk.shelf&&<span className="b bo">📍 {bk.shelf}</span>}
+                      <span className={`b ${bk.available>0?'bg':'br'}`}>{bk.available}/{bk.copies} dispo</span>
+                      <span className="b bk">{bk.barcode}</span>
+                    </div>
+                    {bk.description&&<div style={{fontSize:'.87em',color:'var(--muted)',marginTop:8,lineHeight:1.5}}>{bk.description.substring(0,120)}{bk.description.length>120?'…':''}</div>}
+                  </div>
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=98x98&data=${encodeURIComponent(bk.barcode)}`} className="qr" alt="QR"/>
+                </div>
+                <div className="ca">
+                  {bk.available>0&&members.length>0&&(
+                    <select className="fsel" style={{flex:1}} onChange={e=>{if(e.target.value){createLoan(bk.id,parseInt(e.target.value));e.target.value=''}}}>
+                      <option value="">📖 Prêter à...</option>
+                      {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                  )}
+                  <button className="btn btn-2 btn-sm" onClick={()=>openEditB(bk)}>✏️ Modifier</button>
+                  <button className="btn btn-g btn-sm" style={{color:'var(--accent)'}} onClick={()=>delBook(bk.id)}>🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>}
+        </div>
+      )}
+
+      {/* LOANS */}
+      {tab==='loans'&&(
+        <div>
+          <div className="ph">
+            <h1 className="pt">Prêts actifs</h1>
+            {overdue.length>0&&<span className="b br" style={{fontSize:'1em'}}>⚠️ {overdue.length} en retard</span>}
+          </div>
+          {loans.length===0?<div className="empty"><div className="empty-i">📖</div><div>Aucun prêt actif</div></div>:
+          <div className="grid">
+            {loans.map(loan=>{
+              const mb=members.find(m=>m.id===loan.memberId),bk=books.find(b=>b.id===loan.bookId);
+              const dud=Math.ceil((new Date(loan.dueDate)-new Date())/86400000);
+              const late=dud<0;
+              return(<div key={loan.id} className={`card${late?' late':''}`}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:14}}>
+                  <div style={{flex:1}}>
+                    <div className="ct">{bk?.title||'?'}</div>
+                    <div className="cs">👤 {mb?.name||'?'} — {mb?.email}</div>
+                    <div className="cs">📅 Prêt: {new Date(loan.loanDate).toLocaleDateString('fr-FR')}</div>
+                    <div style={{marginTop:7,fontWeight:700,color:late?'var(--accent)':'#27ae60'}}>
+                      {late?`⚠️ ${Math.abs(dud)}j retard — ${Math.abs(dud)*(cfg.feePerDay||10)} HTG`:`✅ Retour: ${new Date(loan.dueDate).toLocaleDateString('fr-FR')} (${dud}j)`}
+                    </div>
+                  </div>
+                  <button className="btn btn-s" onClick={()=>returnLoan(loan.id)}>✓ Retourner</button>
+                </div>
+              </div>);
+            })}
+          </div>}
+        </div>
+      )}
+
+      {/* HISTORY */}
+      {tab==='history'&&(
+        <div>
+          <div className="ph"><h1 className="pt">Historique</h1><button className="btn btn-2" onClick={exportCSV}>📊 CSV</button></div>
+          {history.length===0?<div className="empty"><div className="empty-i">🗂️</div><div>Aucun historique</div></div>:
+          <div className="grid">
+            {[...history].reverse().map(loan=>{
+              const mb=members.find(m=>m.id===loan.memberId),bk=books.find(b=>b.id===loan.bookId);
+              return(<div key={loan.id} className="card">
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
+                  <div>
+                    <div className="ct" style={{fontSize:'1em'}}>{bk?.title||'?'}</div>
+                    <div className="cs">👤 {mb?.name||'?'}</div>
+                    <div className="cs">📅 {new Date(loan.loanDate).toLocaleDateString('fr-FR')}{loan.returnDate?` → ${new Date(loan.returnDate).toLocaleDateString('fr-FR')}`:''}</div>
+                    {loan.daysLate>0&&<div style={{fontSize:'.84em',color:'var(--accent)',fontWeight:600}}>{loan.daysLate}j retard — {loan.lateFee} HTG</div>}
+                  </div>
+                  <span className={`b ${loan.returnDate?'bg':'bb'}`}>{loan.returnDate?'✓ Retourné':'📖 En cours'}</span>
+                </div>
+              </div>);
+            })}
+          </div>}
+        </div>
+      )}
+
+    </main>
+
+    {/* ════ MODALS ════ */}
+
+    {/* Settings */}
+    {modal==='settings'&&(
+      <div className="ov" onClick={close}>
+        <div className="mc" onClick={e=>e.stopPropagation()}>
+          <div className="mh"><h2 className="mt">⚙️ Paramètres</h2><button className="xb" onClick={close}>×</button></div>
+          <div className="ss">
+            <h3>🏛️ Bibliothèque</h3>
+            <div className="fg"><label className="fl">Nom</label><input className="fi" value={cfg.libraryName} onChange={e=>setCfg({...cfg,libraryName:e.target.value})}/></div>
+            <div className="fg"><label className="fl">Logo</label>
+              <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setCfg(s=>({...s,libraryLogo:r.result}));r.readAsDataURL(f);}}/>
+              <button className="btn btn-2" style={{width:'100%'}} onClick={()=>logoRef.current.click()}>📷 Choisir logo</button>
+              {cfg.libraryLogo&&<img src={cfg.libraryLogo} style={{width:76,height:76,borderRadius:'50%',objectFit:'cover',marginTop:11,border:'3px solid var(--accent)'}} alt=""/>}
+            </div>
+          </div>
+          <div className="ss">
+            <h3>📖 Règles de prêt</h3>
+            <div className="fgrid">
+              <div className="fg"><label className="fl">Durée (jours)</label><input className="fi" type="number" min="1" value={cfg.loanDays||14} onChange={e=>setCfg({...cfg,loanDays:parseInt(e.target.value)})}/></div>
+              <div className="fg"><label className="fl">Pénalité/jour (HTG)</label><input className="fi" type="number" min="0" value={cfg.feePerDay||10} onChange={e=>setCfg({...cfg,feePerDay:parseInt(e.target.value)})}/></div>
+            </div>
+          </div>
+          <div className="ss">
+            <h3>☁️ Base de données</h3>
+            <div style={{padding:'11px 14px',background:USE_SB?'#eafaf1':'#fef9e7',border:`1px solid ${USE_SB?'#a9dfbf':'#f9e79f'}`,borderRadius:'var(--rs)',marginBottom:14,fontSize:'.9em'}}>
+              {USE_SB?<span>🟢 <strong>Supabase connecté</strong> — données stockées dans le cloud</span>:<span>🟡 <strong>Mode hors-ligne</strong> — ajoutez la clé <code>SB_KEY</code> dans le fichier HTML</span>}
+            </div>
+            <div style={{display:'flex',gap:9,flexWrap:'wrap'}}>
+              <button className="btn btn-2" onClick={exportJSON}>💾 Sauvegarder JSON</button>
+              <button className="btn btn-2" onClick={()=>importRef.current.click()}>📥 Restaurer</button>
+              <button className="btn btn-d btn-sm" style={{marginLeft:'auto'}} onClick={()=>{if(confirm('Supprimer TOUTES les données ?')){['lib_members','lib_books','lib_loans'].forEach(k=>localStorage.removeItem(k));reload();close();toast('Données effacées','warn','🗑️');}}}>🗑️ Tout effacer</button>
+            </div>
+          </div>
+          <div className="fac">
+            <button className="btn btn-p" style={{flex:1}} onClick={()=>saveCfg(cfg)}>💾 Sauvegarder</button>
+            <button className="btn btn-2" onClick={close}>Annuler</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Member form */}
+    {modal==='member'&&(
+      <div className="ov" onClick={close}>
+        <div className="mc" onClick={e=>e.stopPropagation()}>
+          <div className="mh"><h2 className="mt">{editM?'✏️ Modifier membre':'➕ Nouveau membre'}</h2><button className="xb" onClick={close}>×</button></div>
+          <div className="fg"><label className="fl">Photo</label>
+            <input ref={photoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setMf(prev=>({...prev,photo:r.result}));r.readAsDataURL(f);}}/>
+            <div className="pu" onClick={()=>photoRef.current.click()}>
+              {mf.photo?<img src={mf.photo} className="pp" alt=""/>:<><div style={{fontSize:'2.3em',marginBottom:8}}>📷</div><div style={{color:'var(--muted)',fontSize:'.89em'}}>Cliquez pour ajouter une photo</div></>}
+            </div>
+          </div>
+          <div className="fg"><label className="fl">Nom complet *</label><input className="fi" value={mf.name} onChange={e=>setMf({...mf,name:e.target.value})} placeholder="Jean Dupont"/></div>
+          <div className="fg"><label className="fl">Email *</label><input className="fi" type="email" value={mf.email} onChange={e=>setMf({...mf,email:e.target.value})} placeholder="jean@email.com"/></div>
+          <div className="fg"><label className="fl">Téléphone</label><input className="fi" type="tel" value={mf.phone} onChange={e=>setMf({...mf,phone:e.target.value})} placeholder="+509 1234 5678"/></div>
+          <div className="fg"><label className="fl">Adresse</label><textarea className="ft" value={mf.address} onChange={e=>setMf({...mf,address:e.target.value})} placeholder="123 Rue Example"/></div>
+          <div className="fgrid">
+            <div className="fg"><label className="fl">Date de naissance</label><input className="fi" type="date" value={mf.dateOfBirth} onChange={e=>setMf({...mf,dateOfBirth:e.target.value})}/></div>
+            <div className="fg"><label className="fl">N° d'identité</label><input className="fi" value={mf.idNumber} onChange={e=>setMf({...mf,idNumber:e.target.value})} placeholder="CIN/NIF"/></div>
+          </div>
+          <div className="fac">
+            <button className="btn btn-p" style={{flex:1}} onClick={saveMember}>✓ Enregistrer</button>
+            <button className="btn btn-2" onClick={close}>Annuler</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Book form */}
+    {modal==='book'&&(
+      <div className="ov" onClick={close}>
+        <div className="mc" onClick={e=>e.stopPropagation()}>
+          <div className="mh"><h2 className="mt">{editB?'✏️ Modifier livre':'➕ Nouveau livre'}</h2><button className="xb" onClick={close}>×</button></div>
+          <div className="fg"><label className="fl">Titre *</label><input className="fi" value={bf.title} onChange={e=>setBf({...bf,title:e.target.value})} placeholder="Titre du livre"/></div>
+          <div className="fg"><label className="fl">Auteur *</label><input className="fi" value={bf.author} onChange={e=>setBf({...bf,author:e.target.value})} placeholder="Nom de l'auteur"/></div>
+          <div className="fg"><label className="fl">ISBN</label><input className="fi" value={bf.isbn} onChange={e=>setBf({...bf,isbn:e.target.value})} placeholder="978-XXXXXXXXXX"/></div>
+          <div className="fgrid">
+            <div className="fg"><label className="fl">Année</label><input className="fi" value={bf.year} onChange={e=>setBf({...bf,year:e.target.value})} placeholder="2024"/></div>
+            <div className="fg"><label className="fl">Catégorie</label>
+              <select className="fsel" style={{width:'100%'}} value={bf.category} onChange={e=>setBf({...bf,category:e.target.value})}>
+                {CATS.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="fgrid">
+            <div className="fg"><label className="fl">Cote</label><input className="fi" value={bf.shelf} onChange={e=>setBf({...bf,shelf:e.target.value})} placeholder="A-12"/></div>
+            <div className="fg"><label className="fl">Exemplaires</label><input className="fi" type="number" min="1" value={bf.copies} onChange={e=>setBf({...bf,copies:e.target.value})}/></div>
+          </div>
+          <div className="fg"><label className="fl">Éditeur</label><input className="fi" value={bf.publisher} onChange={e=>setBf({...bf,publisher:e.target.value})} placeholder="Éditeur"/></div>
+          <div className="fg"><label className="fl">Description</label><textarea className="ft" value={bf.description} onChange={e=>setBf({...bf,description:e.target.value})} placeholder="Résumé"/></div>
+          <div className="fac">
+            <button className="btn btn-p" style={{flex:1}} onClick={saveBook}>✓ Enregistrer</button>
+            <button className="btn btn-2" onClick={close}>Annuler</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Zotero */}
+    {modal==='zotero'&&(
+      <div className="ov" onClick={()=>{close();setZp([]);setZst('');}}>
+        <div className="mc wide" onClick={e=>e.stopPropagation()}>
+          <div className="mh"><h2 className="mt">📥 Importer depuis Zotero</h2><button className="xb" onClick={()=>{close();setZp([]);setZst('');}}>×</button></div>
+          <div className="al al-i" style={{flexDirection:'column',alignItems:'start',gap:8}}>
+            <div style={{fontWeight:700}}>📋 Comment exporter depuis Zotero :</div>
+            <ol style={{paddingLeft:20,fontSize:'.89em',lineHeight:2.1}}>
+              <li>Ouvrez Zotero, sélectionnez vos références (<strong>Ctrl+A</strong> pour tout)</li>
+              <li>Clic droit → <strong>Exporter les éléments…</strong></li>
+              <li>Choisissez <strong>BibTeX</strong>, <strong>RIS</strong> ou <strong>CSV</strong></li>
+              <li>Importez le fichier ici</li>
+            </ol>
+            <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:4}}>
+              {['✅ BibTeX .bib','✅ RIS .ris','✅ CSV .csv'].map(t=><span key={t} style={{background:'#d6eaf8',color:'#1a5276',padding:'3px 11px',borderRadius:20,fontSize:'.8em',fontWeight:600}}>{t}</span>)}
+            </div>
+          </div>
+          <input ref={zRef} type="file" accept=".bib,.ris,.csv" style={{display:'none'}} onChange={handleZFile}/>
+          <div className="zdrop" onClick={()=>zRef.current.click()}>
+            <div style={{fontSize:'2.8em',marginBottom:9}}>📂</div>
+            <div style={{fontWeight:700,color:'var(--primary)',marginBottom:4}}>Cliquez pour choisir un fichier Zotero</div>
+            <div style={{fontSize:'.84em',color:'var(--muted)'}}>Formats : .bib · .ris · .csv</div>
+          </div>
+          {zst&&<div className={`al ${zst.startsWith('❌')?'al-w':'al-s'}`}>{zst}</div>}
+          {zp.length>0&&<>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:11}}>
+              <div style={{fontWeight:700}}>{zp.filter(b=>b._s).length} / {zp.length} sélectionnée(s)</div>
+              <div style={{display:'flex',gap:7}}>
+                <button className="btn btn-2 btn-sm" onClick={()=>setZp(p=>p.map(b=>({...b,_s:true})))}>Tout</button>
+                <button className="btn btn-g btn-sm" onClick={()=>setZp(p=>p.map(b=>({...b,_s:false})))}>Aucun</button>
+              </div>
+            </div>
+            <div className="zlist">
+              {zp.map((bk,i)=>(
+                <div key={i} className={`zrow${bk._s?' sel':''}`} onClick={()=>setZp(p=>p.map((b,j)=>j===i?{...b,_s:!b._s}:b))}>
+                  <input type="checkbox" checked={bk._s} onChange={()=>{}} onClick={e=>e.stopPropagation()} style={{width:16,height:16,marginTop:3,accentColor:'var(--accent)',flexShrink:0,cursor:'pointer'}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:600,color:'var(--primary)',fontSize:'.94em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bk.title}</div>
+                    <div style={{fontSize:'.82em',color:'var(--muted)',marginTop:2}}>{bk.author||'—'}{bk.year?` · ${bk.year}`:''}{bk.publisher?` · ${bk.publisher}`:''}</div>
+                    <div style={{marginTop:4,display:'flex',gap:5,flexWrap:'wrap'}}>
+                      <span className="b bb" style={{fontSize:'.74em'}}>{bk.category}</span>
+                      {bk.isbn&&<span className="b bk" style={{fontSize:'.74em'}}>ISBN: {bk.isbn}</span>}
+                    </div>
+                  </div>
+                  <select className="fsel" style={{width:125,padding:'5px 9px',fontSize:'.81em',flexShrink:0}} value={bk.category} onClick={e=>e.stopPropagation()} onChange={e=>setZp(p=>p.map((b,j)=>j===i?{...b,category:e.target.value}:b))}>
+                    {CATS.map(c=><option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div className="fac">
+              <button className="btn btn-p" style={{flex:1}} onClick={doZotero}>📥 Importer {zp.filter(b=>b._s).length} livre(s)</button>
+              <button className="btn btn-2" onClick={()=>{setZp([]);setZst('');}}>Annuler</button>
+            </div>
+          </>}
+        </div>
+      </div>
+    )}
+
+  </div>
+  );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
