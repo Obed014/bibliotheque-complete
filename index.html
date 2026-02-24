@@ -3,63 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bibliotheque Complete</title>
-    <script src="https://cdn.supabase.io/supabase-js/2.0/supabase.js"></script>
+    <title>Library Management Application</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-    <div id="auth">
-        <h2>Login</h2>
-        <input type="email" id="email" placeholder="Email">
-        <input type="password" id="password" placeholder="Password">
-        <button onclick="login()">Login</button>
-        <button onclick="signup()">Sign Up</button>
-    </div>
-    <div id="content" style="display: none;">
-        <!-- Your content here -->
-    </div>
-
+    <h1>Library Management Application</h1>
+    <div id="app"></div>
     <script>
-        const supabaseUrl = 'YOUR_SUPABASE_URL';
-        const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        // Initialize Supabase
+        const { createClient } = supabase;
+        const supabaseUrl = 'https://kokwzdfbypjvvqduuovk.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtva3d6ZGZieXBqdnZxZHV1b3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MDI1NTYsImV4cCI6MjA4NzQ3ODU1Nn0.fhPdFPa3Ap6SM6RK5bAs46bIBko3t-tBFm2w_fnKMn4';
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-        async function login() {
-            const { user, error } = await supabase.auth.signIn({
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value
-            });
-            if (error) console.log('Error logging in:', error);
-            else {
-                document.getElementById('auth').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
-                syncData(); // Call the function to sync data with Supabase
-            }
+        // Authentication and Database Synchronization Logic Here
+        async function authenticateUser(email, password) {
+            const { user, error } = await supabase.auth.signIn({ email, password });
+            if (error) console.error('Authentication Error:', error.message);
+            return user;
         }
 
-        async function signup() {
-            const { user, error } = await supabase.auth.signUp({
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value
-            });
-            if (error) console.log('Error signing up:', error);
-        }
-
-        async function syncData() {
+        async function fetchBooks() {
             const { data, error } = await supabase
-                .from('your_table')
+                .from('books')
                 .select('*');
-
-            // Handle syncing here...
+            if (error) console.error('Fetch Error:', error.message);
+            return data;
         }
 
-        // Add real-time subscription for changes
-        supabase
-            .from('your_table')
-            .on('*', payload => {
-                console.log('Change received!', payload);
-                // Update UI based on the changes
-            })
-            .subscribe();
+        // Call this function to start the app
+        (async () => {
+            const user = await authenticateUser('user@example.com', 'password');
+            const books = await fetchBooks();
+            console.log(books);
+        })();
     </script>
 </body>
 </html>
