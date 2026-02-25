@@ -493,6 +493,7 @@ body{
 <body>
 <div id="root"></div>
 <script type="text/babel">
+
 const { useState, useEffect, useRef } = React;
 
 // ══ LUCIDE SVG ICONS (inline, no dependency) ══════════
@@ -577,6 +578,36 @@ async function sbSignOut(token){
   await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${token}`}});
 }
 function getStoredSession(){ try{ return JSON.parse(localStorage.getItem('lib_session')||'null'); }catch{ return null; } }
+
+// ── Role management ────────────────────────────────────
+const ROLES = { admin: 'Administrateur', librarian: 'Bibliothécaire', readonly: 'Lecture seule' };
+
+async function getUserRole(userId, token){
+  try{
+    const rows = await sb('user_roles','GET',null,`?user_id=eq.${userId}&select=role`, token);
+    return rows.length ? rows[0].role : 'readonly';
+  }catch(e){ return 'readonly'; }
+}
+async function getTeamMembers(token){
+  try{ return await sb('user_roles','GET',null,'?order=created_at.desc&select=*', token); }
+  catch(e){ return []; }
+}
+async function setUserRole(userId, role, token){
+  // Upsert: delete then insert
+  try{
+    await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`,token);
+  }catch(e){}
+  await sb('user_roles','POST',{user_id:userId, role},{}, token);
+}
+async function removeUserRole(userId, token){
+  await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`,token);
+}
+// Invite via Supabase admin invite (needs service role — show instructions instead)
+async function inviteUser(email, token){
+  // We use the magic link / signup approach — just return the signup URL
+  return `${SB_URL}/auth/v1/signup`;
+}
+
 function storeSession(s){ localStorage.setItem('lib_session',JSON.stringify(s)); }
 function clearSession(){ localStorage.removeItem('lib_session'); }
 
@@ -785,6 +816,10 @@ function App(){
   const [zst,setZst]=useState('');
   const [emailSending,setEmailSending]=useState(false);
   const [theme,setTheme]=useState(()=>localStorage.getItem('lib_theme')||'light');
+  const [userRole,setUserRole]=useState('readonly');
+  const [teamMembers,setTeamMembers]=useState([]);
+  const [histSearch,setHistSearch]=useState('');
+
 
   const scanRef=useRef(),logoRef=useRef(),photoRef=useRef(),importRef=useRef(),zRef=useRef();
 
@@ -800,7 +835,13 @@ function App(){
     const s=gsettings(); if(s&&s.libraryName) setCfg(prev=>({...prev,...s}));
   },[]);
 
-  useEffect(()=>{ if(session) reload(); },[session]);
+  useEffect(()=>{
+    if(session){
+      reload();
+      // Fetch user role
+      getUserRole(session.user.id, session.access_token).then(r=>setUserRole(r));
+    }
+  },[session]);
   useEffect(()=>{ if(tab==='scanner'&&scanRef.current) scanRef.current.focus(); },[tab]);
 
   function handleLogin(data){ storeSession(data); setSession(data); }
@@ -1003,71 +1044,76 @@ function App(){
     }catch(e){ toast(e.message,'err'); }
   }
 
-  // ── Print card — format ID-1 (85.6×54mm) ──────────
+  // ── Print card — format portrait CR80 (54×85.6mm) ──
   function printCard(member){
-    const qr=`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(member.memberCode)}&bgcolor=ffffff&color=000000`;
-    const bar=`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128&dpi=150&bgcolor=FFFFFF&fgcolor=000000`;
+    const qr=`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(member.memberCode)}&bgcolor=ffffff&color=000000`;
+    const bar=`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128&dpi=200&bgcolor=FFFFFF&fgcolor=000000`;
     const lib=cfg.libraryName;
     const thC=theme==='green'?'#14532d':theme==='blue'?'#0f1d35':'#111827';
     const acC=theme==='green'?'#4ade80':theme==='blue'?'#60a5fa':theme==='dark'?'#e8c97a':'#2563eb';
+    const since=new Date(member.joinDate).toLocaleDateString('fr-FR');
     const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
-@page{size:85.6mm 54mm;margin:0}
+@page{size:54mm 85.6mm portrait;margin:0}
 *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
-html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
-.card{width:85.6mm;height:54mm;background:linear-gradient(135deg,${thC} 0%,#000 100%);display:flex;flex-direction:column;overflow:hidden}
-.top{padding:3.5mm 4mm 3mm;display:flex;align-items:center;gap:2.5mm;border-bottom:0.3mm solid rgba(255,255,255,.12);flex-shrink:0;background:rgba(255,255,255,.07)}
-.logo-box{width:6.5mm;height:6.5mm;border-radius:1.2mm;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:3.8mm;flex-shrink:0}
-.lib{font-size:3mm;font-weight:700;color:#fff;letter-spacing:.01em}
-.lib-sub{font-size:1.8mm;color:rgba(255,255,255,.45);letter-spacing:.07em;text-transform:uppercase;margin-top:.3mm}
-.body{display:flex;flex:1;padding:2.5mm 3.5mm;gap:2.5mm;overflow:hidden}
-.photo-col{display:flex;align-items:center;flex-shrink:0}
-.photo{width:11mm;height:11mm;border-radius:50%;border:0.4mm solid rgba(255,255,255,.3);object-fit:cover}
-.no-photo{width:11mm;height:11mm;border-radius:50%;border:0.4mm solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:5.5mm}
-.info{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;overflow:hidden}
-.fields{display:flex;flex-direction:column;gap:1.2mm}
-.f-label{font-size:1.5mm;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.06em;line-height:1}
-.f-val{font-size:2.4mm;color:rgba(255,255,255,.92);font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:33mm}
-.f-val.sm{font-size:2mm}
-.code-row{background:rgba(255,255,255,.07);border-radius:.8mm;padding:1.2mm 2mm;border:0.3mm solid rgba(255,255,255,.12);text-align:center}
-.code-val{font-size:2.6mm;font-weight:800;letter-spacing:2mm;color:${acC};font-family:'Courier New',monospace}
-.right{display:flex;flex-direction:column;align-items:center;gap:1.5mm;justify-content:center;flex-shrink:0;width:20mm}
-.qr-box{background:#fff;border-radius:1.2mm;padding:.8mm;line-height:0}
-.bar-box{background:#fff;border-radius:.8mm;padding:.8mm 1mm;line-height:0;width:100%}
+html,body{width:54mm;height:85.6mm;overflow:hidden}
+body{font-family:Arial,Helvetica,sans-serif}
+.card{width:54mm;height:85.6mm;background:linear-gradient(170deg,${thC} 0%,#000 100%);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.header{padding:3.5mm 3.5mm 2.5mm;display:flex;align-items:center;gap:2mm;border-bottom:0.3mm solid rgba(255,255,255,.12);flex-shrink:0;background:rgba(255,255,255,.07)}
+.logo-box{width:7mm;height:7mm;border-radius:1.5mm;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:4mm;flex-shrink:0}
+.lib-name{font-size:2.8mm;font-weight:700;color:#fff;line-height:1;letter-spacing:.01em}
+.lib-sub{font-size:1.7mm;color:rgba(255,255,255,.45);letter-spacing:.06em;text-transform:uppercase;margin-top:.4mm}
+.photo-section{display:flex;justify-content:center;align-items:center;padding:4mm 3.5mm 3mm;flex-shrink:0}
+.photo{width:22mm;height:22mm;border-radius:50%;border:0.6mm solid ${acC};object-fit:cover}
+.no-photo{width:22mm;height:22mm;border-radius:50%;border:0.6mm solid rgba(255,255,255,.25);background:rgba(255,255,255,.09);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:10mm}
+.info-section{flex:1;padding:0 3.5mm 2mm;display:flex;flex-direction:column;gap:2mm}
+.field{display:flex;flex-direction:column;gap:.5mm}
+.f-label{font-size:1.5mm;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.06em}
+.f-val{font-size:2.6mm;color:rgba(255,255,255,.92);font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46mm}
+.f-val.sm{font-size:2.1mm}
+.code-section{padding:0 3mm 2.5mm;display:flex;flex-direction:column;gap:1.5mm;flex-shrink:0}
+.member-code{background:rgba(255,255,255,.08);border:0.3mm solid rgba(255,255,255,.15);border-radius:1mm;padding:1.8mm 2.5mm;text-align:center}
+.code-val{font-size:3.2mm;font-weight:800;letter-spacing:2.5mm;color:${acC};font-family:'Courier New',monospace}
+.qr-section{display:flex;justify-content:center;padding:0 3mm 2mm;flex-shrink:0}
+.qr-box{background:#fff;border-radius:1.5mm;padding:1mm;display:inline-block;line-height:0}
+.bar-section{padding:0 3mm 2.5mm;flex-shrink:0}
+.bar-box{background:#fff;border-radius:1mm;padding:.8mm 1mm;line-height:0}
+.since{text-align:center;font-size:1.6mm;color:rgba(255,255,255,.28);padding-bottom:1.5mm;letter-spacing:.04em}
 </style></head><body>
 <div class="card">
-  <div class="top">
+  <div class="header">
     ${cfg.libraryLogo
-      ?`<img src="${cfg.libraryLogo}" class="logo-box" style="object-fit:cover;border-radius:1.2mm">`
+      ?`<img src="${cfg.libraryLogo}" class="logo-box" style="object-fit:cover;border-radius:1.5mm">`
       :`<div class="logo-box">&#128218;</div>`}
-    <div><div class="lib">${lib}</div><div class="lib-sub">Carte de membre</div></div>
+    <div><div class="lib-name">${lib}</div><div class="lib-sub">Carte de membre</div></div>
   </div>
-  <div class="body">
-    <div class="photo-col">
-      ${member.photo
-        ?`<img src="${member.photo}" class="photo">`
-        :`<div class="no-photo">&#128100;</div>`}
-    </div>
-    <div class="info">
-      <div class="fields">
-        <div><div class="f-label">Nom</div><div class="f-val">${member.name}</div></div>
-        <div><div class="f-label">Email</div><div class="f-val sm">${member.email}</div></div>
-        ${member.phone?`<div><div class="f-label">Tél</div><div class="f-val">${member.phone}</div></div>`:''}
-      </div>
-      <div class="code-row"><span class="code-val">${member.memberCode}</span></div>
-    </div>
-    <div class="right">
-      <div class="qr-box"><img src="${qr}" width="18mm" height="18mm"></div>
-      <div class="bar-box"><img src="${bar}" width="100%" height="7mm"></div>
-    </div>
+  <div class="photo-section">
+    ${member.photo
+      ?`<img src="${member.photo}" class="photo">`
+      :`<div class="no-photo">&#128100;</div>`}
   </div>
+  <div class="info-section">
+    <div class="field"><span class="f-label">Nom complet</span><span class="f-val">${member.name}</span></div>
+    <div class="field"><span class="f-label">Email</span><span class="f-val sm">${member.email}</span></div>
+    ${member.phone?`<div class="field"><span class="f-label">Téléphone</span><span class="f-val">${member.phone}</span></div>`:''}
+  </div>
+  <div class="code-section">
+    <div class="member-code"><span class="code-val">${member.memberCode}</span></div>
+  </div>
+  <div class="qr-section">
+    <div class="qr-box"><img src="${qr}" width="28mm" height="28mm"></div>
+  </div>
+  <div class="bar-section">
+    <div class="bar-box"><img src="${bar}" width="100%" height="8mm"></div>
+  </div>
+  <div class="since">Membre depuis ${since}</div>
 </div>
 </body></html>`;
     let iframe=document.getElementById('_pf');
     if(!iframe){
       iframe=document.createElement('iframe');
       iframe.id='_pf';
-      iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:340px;height:220px;border:none;';
+      iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:220px;height:340px;border:none;';
       document.body.appendChild(iframe);
     }
     iframe.onload=()=>{
@@ -1080,6 +1126,18 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
     iframe.srcdoc=html;
   }
 
+
+  // ── Helpers permissions ──
+  const isAdmin = userRole === 'admin';
+  const canEdit = userRole === 'admin' || userRole === 'librarian';
+
+  async function loadTeam(){
+    if(!isAdmin) return;
+    try{ const t=await getTeamMembers(session?.access_token); setTeamMembers(t); }
+    catch(e){}
+  }
+  useEffect(()=>{ if(isAdmin) loadTeam(); },[isAdmin]);
+
   // ── Computed ──
   const fMembers=members.filter(m=>(m.name||'').toLowerCase().includes(search.toLowerCase())||(m.email||'').toLowerCase().includes(search.toLowerCase())||(m.memberCode||'').toLowerCase().includes(search.toLowerCase()));
   const fBooks=books.filter(b=>{
@@ -1088,6 +1146,20 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
   });
   const cStats=CATS.reduce((a,c)=>({...a,[c]:books.filter(b=>b.category===c).length}),{});
   const overdue=loans.filter(l=>new Date(l.dueDate)<new Date());
+  const fHistory=[...history].reverse().filter(loan=>{
+    if(!histSearch) return true;
+    const mb=members.find(m=>m.id===loan.memberId);
+    const bk=books.find(b=>b.id===loan.bookId);
+    const q=histSearch.toLowerCase();
+    return (mb?.name||'').toLowerCase().includes(q)||(bk?.title||'').toLowerCase().includes(q);
+  });
+  // Top borrowed books
+  const bookBorrowCounts=books.map(b=>({...b,count:history.filter(l=>l.bookId===b.id).length})).sort((a,b)=>b.count-a.count).slice(0,5);
+  // Member loan stats
+  const memberLoanCounts=members.map(m=>({...m,active:loans.filter(l=>l.memberId===m.id).length,total:history.filter(l=>l.memberId===m.id).length}));
+  // New books this week
+  const oneWeekAgo=new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
+  const isNewBook=(b)=>b.addedDate&&new Date(b.addedDate)>oneWeekAgo;
 
   if(!authReady) return null;
   if(!session) return <Login onLogin={handleLogin}/>;
@@ -1155,6 +1227,16 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
             <span className="nbadge">{item.n}</span>
           </button>
         ))}
+        {isAdmin&&(
+          <>
+            <div className="sb-sec">Administration</div>
+            <button className={`nbtn${tab==='team'?' active':''}`} onClick={()=>setTab('team')}>
+              <span className="ni"><Icon name="users" size={15}/></span>
+              <span className="nl">Équipe &amp; Accès</span>
+              <span className="nbadge">{teamMembers.length}</span>
+            </button>
+          </>
+        )}
       </nav>
 
       <div className="sb-foot">
@@ -1166,7 +1248,10 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
         </div>
         <button className="sfbtn" onClick={()=>setModal('settings')} style={{width:'100%'}}><Icon name="settings" size={12}/>Paramètres</button>
         <button className="sfbtn zotero" onClick={()=>{setZp([]);setZst('');setModal('zotero');}} style={{width:'100%'}}><Icon name="download" size={12}/>Importer Zotero</button>
-        <div className="sb-user">{userEmail}</div>
+        <div className="sb-user">
+          <span>{userEmail}</span>
+          <span style={{marginLeft:6,padding:'1px 7px',borderRadius:20,fontSize:'.65em',fontWeight:700,background:'var(--accent-t)',color:'var(--sb-accent)',textTransform:'uppercase',letterSpacing:'.04em'}}>{ROLES[userRole]||userRole}</span>
+        </div>
         <button className="sfbtn logout" onClick={handleLogout} style={{width:'100%'}}><Icon name="log-out" size={12}/>Déconnexion</button>
       </div>
     </aside>
@@ -1175,6 +1260,63 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
     <main className="main">
 
       {/* DASHBOARD */}
+      {tab==='team'&&(
+        <div>
+          <div className="ph au">
+            <h1 className="pt">Équipe &amp; Accès</h1>
+            <button className="btn btn-primary btn-sm" onClick={()=>setModal('invite')}><Icon name="plus" size={13}/>Inviter un utilisateur</button>
+          </div>
+          <div className="al al-i au2" style={{flexDirection:'column',alignItems:'start',gap:6}}>
+            <div style={{fontWeight:700,fontSize:'.88em'}}>Gestion des accès</div>
+            <div style={{fontSize:'.82em',lineHeight:1.7,color:'var(--text2)'}}>
+              En tant qu'administrateur, vous contrôlez qui peut accéder à cette application.<br/>
+              <strong>Administrateur</strong> : accès complet, gestion des utilisateurs, suppression de données.<br/>
+              <strong>Bibliothécaire</strong> : peut ajouter, modifier, créer des prêts — ne peut pas supprimer ni gérer les accès.<br/>
+              <strong>Lecture seule</strong> : consulte uniquement sans pouvoir modifier.
+            </div>
+          </div>
+          <div style={{marginTop:16}} className="au3">
+            <div className="card" style={{marginBottom:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div className="av"><Icon name="user" size={22}/></div>
+                <div style={{flex:1}}>
+                  <div className="ct" style={{fontSize:'.98em'}}>{session?.user?.email}</div>
+                  <div className="cs">Votre compte</div>
+                </div>
+                <span className="b ba">Administrateur</span>
+              </div>
+            </div>
+            {teamMembers.length===0&&<div className="empty" style={{padding:'32px 20px'}}><div className="empty-i" style={{marginBottom:8}}><Icon name="users" size={36}/></div><div>Aucun membre d'équipe pour l'instant</div><div style={{fontSize:'.8em',marginTop:6}}>Invitez des bibliothécaires pour collaborer</div></div>}
+            <div className="grid">
+              {teamMembers.filter(t=>t.user_id!==session?.user?.id).map(t=>(
+                <div key={t.user_id} className="card">
+                  <div style={{display:'flex',alignItems:'center',gap:12}}>
+                    <div className="av"><Icon name="user" size={20}/></div>
+                    <div style={{flex:1}}>
+                      <div className="ct" style={{fontSize:'.95em'}}>{t.email||t.user_id}</div>
+                      <div className="cs">Ajouté le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR'):'-'}</div>
+                    </div>
+                    <select className="fsel" value={t.role} onChange={async e=>{
+                      try{ await setUserRole(t.user_id,e.target.value,session?.access_token); toast('Rôle mis à jour'); loadTeam(); }
+                      catch(err){ toast(err.message,'err'); }
+                    }} style={{fontSize:'.8em',padding:'5px 9px'}}>
+                      <option value="admin">Administrateur</option>
+                      <option value="librarian">Bibliothécaire</option>
+                      <option value="readonly">Lecture seule</option>
+                    </select>
+                    <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={async()=>{
+                      if(!confirm('Révoquer cet accès ?')) return;
+                      try{ await removeUserRole(t.user_id,session?.access_token); toast('Accès révoqué'); loadTeam(); }
+                      catch(err){ toast(err.message,'err'); }
+                    }}><Icon name="trash" size={12}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {tab==='dashboard'&&(
         <div>
           <div className="ph au">
@@ -1223,6 +1365,25 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
               })}
             </div>
           </>}
+          {bookBorrowCounts.some(b=>b.count>0)&&(
+            <div className="au4">
+              <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'1.15em',fontWeight:400,marginBottom:12,color:'var(--text2)',marginTop:20}}>Livres les plus empruntés</h2>
+              <div className="grid">
+                {bookBorrowCounts.filter(b=>b.count>0).map((bk,i)=>(
+                  <div key={bk.id} className="card" style={{padding:'14px 18px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <div style={{width:28,height:28,borderRadius:'50%',background:'var(--accent-t)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:"'Fraunces',serif",fontWeight:700,fontSize:'1em',color:'var(--accent)'}}>{i+1}</div>
+                      <div style={{flex:1}}>
+                        <div className="ct" style={{fontSize:'.95em'}}>{bk.title}</div>
+                        <div className="cs">{bk.author}</div>
+                      </div>
+                      <span className="b ba">{bk.count} prêt{bk.count>1?'s':''}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1275,7 +1436,7 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
         <div>
           <div className="ph au">
             <h1 className="pt">Membres</h1>
-            <button className="btn btn-primary" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}><Icon name="plus" size={14}/>Nouveau membre</button>
+            {canEdit&&<button className="btn btn-primary" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}><Icon name="plus" size={14}/>Nouveau membre</button>}
           </div>
           <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher nom, email, code…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
           {fMembers.length===0?<div className="empty au3"><div className="empty-i"><Icon name="users" size={48}/></div><div>Aucun membre</div></div>:
@@ -1292,7 +1453,8 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
                       {m.phone&&<div className="cs">{m.phone}</div>}
                       <div className="cm">
                         <span className="b ba">{m.memberCode}</span>
-                        {ml.length>0&&<span className="b bb">{ml.length} prêt(s)</span>}
+                        {ml.length>0&&<span className="b bb">{ml.length} prêt{ml.length>1?'s':''} actif{ml.length>1?'s':''}</span>}
+                        {(()=>{const stats=memberLoanCounts.find(x=>x.id===m.id);return stats&&stats.total>0?<span className="b bk">{stats.total} total</span>:null;})()}
                       </div>
                     </div>
                   </div>
@@ -1300,8 +1462,8 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
                 </div>
                 <div className="ca">
                   <button className="btn btn-primary btn-sm" onClick={()=>printCard(m)}><Icon name="printer" size={12}/>Carte</button>
-                  <button className="btn btn-secondary btn-sm" onClick={()=>openEditM(m)}><Icon name="pencil" size={12}/>Modifier</button>
-                  <button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--red)'}} onClick={()=>delMember(m.id)}><Icon name="trash" size={12}/></button>
+                  {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>openEditM(m)}><Icon name="pencil" size={12}/>Modifier</button>}
+                  {canEdit&&<button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--red)'}} onClick={()=>delMember(m.id)}><Icon name="trash" size={12}/></button>}
                 </div>
               </div>);
             })}
@@ -1316,7 +1478,7 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
             <h1 className="pt">Livres</h1>
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
-              <button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>
+              {canEdit&&<button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>}
             </div>
           </div>
           <div className="fbar au2">
@@ -1355,8 +1517,8 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
                       {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
                   )}
-                  <button className="btn btn-secondary btn-sm" onClick={()=>openEditB(bk)}><Icon name="pencil" size={12}/></button>
-                  <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={()=>delBook(bk.id)}><Icon name="trash" size={12}/></button>
+                  {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>openEditB(bk)}><Icon name="pencil" size={12}/></button>}
+                  {canEdit&&<button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={()=>delBook(bk.id)}><Icon name="trash" size={12}/></button>}
                 </div>
               </div>
             ))}
@@ -1400,11 +1562,15 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
         <div>
           <div className="ph au">
             <h1 className="pt">Historique</h1>
-            <button className="btn btn-secondary" onClick={exportCSV}><Icon name="bar-chart" size={13}/>Export CSV</button>
+            <div style={{display:'flex',gap:8}}>
+              <span style={{alignSelf:'center',fontSize:'.82em',color:'var(--text3)'}}>{history.length} prêt{history.length!==1?'s':''}</span>
+              <button className="btn btn-secondary btn-sm" onClick={exportCSV}><Icon name="bar-chart" size={13}/>Export CSV</button>
+            </div>
           </div>
-          {history.length===0?<div className="empty au2"><div className="empty-i"><Icon name="history" size={48}/></div><div>Aucun historique</div></div>:
+          <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher membre ou titre…" value={histSearch} onChange={e=>setHistSearch(e.target.value)}/></div>
+          {fHistory.length===0?<div className="empty au2"><div className="empty-i"><Icon name="history" size={48}/></div><div>Aucun résultat</div></div>:
           <div className="grid au2">
-            {[...history].reverse().map(loan=>{
+            {fHistory.map(loan=>{
               const mb=members.find(m=>m.id===loan.memberId),bk=books.find(b=>b.id===loan.bookId);
               return(<div key={loan.id} className="card">
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
@@ -1537,6 +1703,41 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
       </div>
     )}
 
+    {/* Invite user */}
+    {modal==='invite'&&isAdmin&&(
+      <div className="ov" onClick={close}>
+        <div className="mc" style={{maxWidth:460}} onClick={e=>e.stopPropagation()}>
+          <div className="mh"><h2 className="mt">Inviter un utilisateur</h2><button className="xb" onClick={close}><Icon name="x" size={14}/></button></div>
+          <div className="al al-i" style={{marginBottom:16,flexDirection:'column',alignItems:'start',gap:8}}>
+            <div style={{fontWeight:700,fontSize:'.88em'}}>Comment ça fonctionne :</div>
+            <ol style={{paddingLeft:16,fontSize:'.82em',lineHeight:2.2,color:'var(--text2)'}}>
+              <li>Partagez l'URL de l'application avec votre collaborateur</li>
+              <li>Il crée un compte avec son email et mot de passe</li>
+              <li>Vous revenez ici → vous verrez son compte apparaître</li>
+              <li>Assignez-lui le rôle <strong>Bibliothécaire</strong></li>
+            </ol>
+            <div style={{fontSize:'.8em',color:'var(--text3)',paddingTop:4,borderTop:'1px solid var(--border)',marginTop:4,width:'100%'}}>
+              Sans attribution de rôle, les nouveaux comptes sont en lecture seule.
+            </div>
+          </div>
+          <div className="fg">
+            <label className="fl">URL de l'application</label>
+            <div style={{display:'flex',gap:8}}>
+              <input className="fi" value={window.location.href} readOnly style={{fontSize:'.82em',flex:1}}/>
+              <button className="btn btn-secondary" onClick={()=>{navigator.clipboard.writeText(window.location.href);toast('URL copiée !');}}>
+                <Icon name="save" size={13}/>Copier
+              </button>
+            </div>
+          </div>
+          <div style={{marginTop:8}}>
+            <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={()=>{loadTeam();close();setTab('team');}}>
+              <Icon name="refresh" size={13}/>Actualiser la liste d'équipe
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* Zotero */}
     {modal==='zotero'&&(
       <div className="ov" onClick={()=>{close();setZp([]);setZst('');}}>
@@ -1593,6 +1794,7 @@ html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
 </script>
 </body>
 </html>
