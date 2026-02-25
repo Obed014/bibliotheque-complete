@@ -1708,7 +1708,21 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div className="ph au">
             <h1 className="pt">Livres</h1>
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
+              <button className="btn btn-secondary" onClick={() => setZp([])}>Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// INITIALISATION DU RENDU REACT
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
               {canEdit&&<button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>}
             </div>
           </div>
