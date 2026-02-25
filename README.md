@@ -585,6 +585,18 @@ const ROLES = { admin: 'Administrateur', librarian: 'Bibliothécaire', readonly:
 // Emails administrateurs — ajoutez les vôtres ici
 const ADMIN_EMAILS = ['obedsanon@gmail.com'];
 
+function getEmailFromSession(session){
+  // Try session.user.email first
+  if(session?.user?.email) return session.user.email;
+  // Fallback: decode JWT token to get email
+  try{
+    const token = session?.access_token;
+    if(!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email || payload.sub_email || null;
+  }catch(e){ return null; }
+}
+
 async function getUserRole(userId, userEmail){
   // 1. Check hardcoded admin emails first (always works)
   if(userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) return 'admin';
@@ -840,7 +852,15 @@ function App(){
 
   useEffect(()=>{
     const stored=getStoredSession();
-    if(stored&&stored.access_token) setSession(stored);
+    if(stored&&stored.access_token){
+      setSession(stored);
+      // Immediately check role from stored session
+      const email = getEmailFromSession(stored);
+      const uid = stored.user?.id;
+      if(uid||email){
+        getUserRole(uid, email).then(r=>setUserRole(r));
+      }
+    }
     setAuthReady(true);
     const s=gsettings(); if(s&&s.libraryName) setCfg(prev=>({...prev,...s}));
   },[]);
@@ -849,8 +869,8 @@ function App(){
     if(session&&session.user){
       reload();
       // Fetch user role
-      const uid = session.user.id;
-      const email = session.user.email;
+      const uid = session.user?.id || session.user;
+      const email = getEmailFromSession(session);
       getUserRole(uid, email).then(r=>{
         setUserRole(r);
       });
