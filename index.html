@@ -2234,6 +2234,7 @@ body{font-family:Arial,Helvetica,sans-serif}
             </div>
             <div className="fac">
              <button className="btn btn-primary" style={{flex:1}} onClick={doZotero}>
+                <button className="btn btn-primary" style={{flex:1}} onClick={doZotero}>
                 <Icon name="download" size={13}/>Importer {zp.filter(b=>b._s).length} livre(s)
               </button>
               <button className="btn btn-secondary" onClick={()=>{setZp([]); setZst('');}}>Annuler</button>
