@@ -1,412 +1,491 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bibliothèque</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,300&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-:root {
-  --bg:#0d0f14; --bg2:#13161e; --bg3:#1a1f2c;
-  --surf:rgba(255,255,255,.04); --surf2:rgba(255,255,255,.07);
-  --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.14);
-  --gold:#c9a84c; --gold2:#e8c97a; --gold3:rgba(201,168,76,.12);
-  --red:#e05252; --green:#4caf7d; --blue:#5b9cf6;
-  --purple:#9b7af5; --orange:#f09040;
-  --text:#eef0f6; --text2:#8b90a0; --text3:#555b6e;
-  --r:14px; --rs:9px;
-  --shadow:0 8px 32px rgba(0,0,0,.5);
-  --glow:0 0 40px rgba(201,168,76,.08);
+/* ══ THEMES ══════════════════════════════════════════ */
+:root,
+[data-theme="light"] {
+  --bg:      #f7f8fa;
+  --bg2:     #ffffff;
+  --bg3:     #f1f3f6;
+  --surf:    rgba(0,0,0,.03);
+  --surf2:   rgba(0,0,0,.055);
+  --border:  rgba(0,0,0,.09);
+  --border2: rgba(0,0,0,.14);
+  --accent:  #2563eb;
+  --accent2: #1d4ed8;
+  --accent-t:rgba(37,99,235,.1);
+  --accent-t2:rgba(37,99,235,.18);
+  --red:     #dc2626;
+  --green:   #16a34a;
+  --orange:  #ea580c;
+  --purple:  #7c3aed;
+  --blue:    #2563eb;
+  --text:    #111827;
+  --text2:   #4b5563;
+  --text3:   #9ca3af;
+  --shadow:  0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --r:       12px;
+  --rs:      8px;
+  --sb-bg:   #111827;
+  --sb-text: rgba(255,255,255,.75);
+  --sb-text2:rgba(255,255,255,.45);
+  --sb-border:rgba(255,255,255,.08);
+  --sb-active-bg:rgba(255,255,255,.1);
+  --sb-active:rgba(255,255,255,.95);
+  --sb-accent:#60a5fa;
 }
+
+[data-theme="blue"] {
+  --bg:      #0f1d35;
+  --bg2:     #162440;
+  --bg3:     #1e2f50;
+  --surf:    rgba(255,255,255,.04);
+  --surf2:   rgba(255,255,255,.07);
+  --border:  rgba(255,255,255,.08);
+  --border2: rgba(255,255,255,.14);
+  --accent:  #60a5fa;
+  --accent2: #93c5fd;
+  --accent-t:rgba(96,165,250,.12);
+  --accent-t2:rgba(96,165,250,.2);
+  --red:     #f87171;
+  --green:   #4ade80;
+  --orange:  #fb923c;
+  --purple:  #a78bfa;
+  --blue:    #60a5fa;
+  --text:    #f0f4ff;
+  --text2:   #94a3b8;
+  --text3:   #475569;
+  --shadow:  0 4px 20px rgba(0,0,0,.4);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.5);
+  --r:       12px;
+  --rs:      8px;
+  --sb-bg:   #0a1628;
+  --sb-text: rgba(255,255,255,.75);
+  --sb-text2:rgba(255,255,255,.4);
+  --sb-border:rgba(255,255,255,.06);
+  --sb-active-bg:rgba(96,165,250,.12);
+  --sb-active:#93c5fd;
+  --sb-accent:#60a5fa;
+}
+
+[data-theme="green"] {
+  --bg:      #f0faf4;
+  --bg2:     #ffffff;
+  --bg3:     #e8f5ee;
+  --surf:    rgba(0,0,0,.03);
+  --surf2:   rgba(0,0,0,.05);
+  --border:  rgba(0,0,0,.09);
+  --border2: rgba(0,0,0,.14);
+  --accent:  #16a34a;
+  --accent2: #15803d;
+  --accent-t:rgba(22,163,74,.1);
+  --accent-t2:rgba(22,163,74,.18);
+  --red:     #dc2626;
+  --green:   #16a34a;
+  --orange:  #ea580c;
+  --purple:  #7c3aed;
+  --blue:    #2563eb;
+  --text:    #14532d;
+  --text2:   #4b5563;
+  --text3:   #9ca3af;
+  --shadow:  0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.1);
+  --r:       12px;
+  --rs:      8px;
+  --sb-bg:   #14532d;
+  --sb-text: rgba(255,255,255,.8);
+  --sb-text2:rgba(255,255,255,.45);
+  --sb-border:rgba(255,255,255,.08);
+  --sb-active-bg:rgba(255,255,255,.12);
+  --sb-active:rgba(255,255,255,.95);
+  --sb-accent:#4ade80;
+}
+
+[data-theme="dark"] {
+  --bg:      #0d0f14;
+  --bg2:     #13161e;
+  --bg3:     #1a1f2c;
+  --surf:    rgba(255,255,255,.04);
+  --surf2:   rgba(255,255,255,.07);
+  --border:  rgba(255,255,255,.08);
+  --border2: rgba(255,255,255,.14);
+  --accent:  #c9a84c;
+  --accent2: #e8c97a;
+  --accent-t:rgba(201,168,76,.12);
+  --accent-t2:rgba(201,168,76,.2);
+  --red:     #f87171;
+  --green:   #4ade80;
+  --orange:  #fb923c;
+  --purple:  #a78bfa;
+  --blue:    #60a5fa;
+  --text:    #f0f4ff;
+  --text2:   #94a3b8;
+  --text3:   #475569;
+  --shadow:  0 4px 20px rgba(0,0,0,.5);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.6);
+  --r:       12px;
+  --rs:      8px;
+  --sb-bg:   #0a0c11;
+  --sb-text: rgba(255,255,255,.72);
+  --sb-text2:rgba(255,255,255,.38);
+  --sb-border:rgba(255,255,255,.06);
+  --sb-active-bg:rgba(201,168,76,.1);
+  --sb-active:#e8c97a;
+  --sb-accent:#c9a84c;
+}
+
+/* ══ RESET ═══════════════════════════════════════════ */
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
   font-family:'Plus Jakarta Sans',sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  min-height:100vh;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;transition:background .25s,color .25s;
 }
 
-/* ── Animations ── */
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+/* ══ ANIMATIONS ══════════════════════════════════════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.35)}50%{box-shadow:0 0 0 7px rgba(201,168,76,0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes toastIn{from{transform:translateX(70px);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes toastIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-.au{animation:fadeUp .35s ease both}
-.au2{animation:fadeUp .35s .07s ease both}
-.au3{animation:fadeUp .35s .14s ease both}
-.au4{animation:fadeUp .35s .21s ease both}
+.au{animation:fadeUp .3s ease both}
+.au2{animation:fadeUp .3s .06s ease both}
+.au3{animation:fadeUp .3s .12s ease both}
+.au4{animation:fadeUp .3s .18s ease both}
 
-/* ── Login Screen ── */
+/* ══ LOGIN ═══════════════════════════════════════════ */
 .login-wrap{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:radial-gradient(ellipse 80% 60% at 50% -10%, rgba(201,168,76,.12), transparent);
-  padding:20px;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);padding:20px;
 }
 .login-box{
-  width:100%;
-  max-width:420px;
-  background:var(--bg2);
-  border:1px solid var(--border2);
-  border-radius:24px;
-  padding:48px 40px;
-  box-shadow:var(--shadow),var(--glow);
-  animation:fadeUp .5s ease;
+  width:100%;max-width:400px;
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:20px;padding:44px 36px;
+  box-shadow:var(--shadow-lg);animation:fadeUp .4s ease;
 }
-.login-logo{
-  width:64px;height:64px;
-  border-radius:18px;
-  background:linear-gradient(135deg,rgba(201,168,76,.25),rgba(201,168,76,.06));
-  border:1px solid rgba(201,168,76,.3);
+.login-icon{
+  width:56px;height:56px;border-radius:14px;
+  background:var(--accent-t2);border:1px solid var(--accent-t2);
   display:flex;align-items:center;justify-content:center;
-  font-size:30px;margin:0 auto 24px;
+  margin:0 auto 22px;color:var(--accent);
 }
-.login-title{
-  font-family:'Fraunces',serif;
-  font-size:1.9em;
-  text-align:center;
-  color:var(--text);
-  margin-bottom:6px;
-}
-.login-sub{font-size:.85em;color:var(--text3);text-align:center;margin-bottom:32px}
-.login-tabs{display:flex;gap:8px;background:var(--surf);border-radius:var(--rs);padding:4px;margin-bottom:28px}
-.login-tab{flex:1;padding:9px;border:none;background:none;color:var(--text2);font-size:.86em;font-weight:600;cursor:pointer;border-radius:7px;font-family:inherit;transition:all .2s}
-.login-tab.active{background:var(--bg3);color:var(--gold2);box-shadow:0 2px 8px rgba(0,0,0,.3)}
-.login-err{background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.25);color:#f5a0a0;padding:11px 15px;border-radius:var(--rs);font-size:.84em;margin-bottom:16px;text-align:center}
+.login-title{font-family:'Fraunces',serif;font-size:1.75em;text-align:center;color:var(--text);margin-bottom:5px}
+.login-sub{font-size:.83em;color:var(--text3);text-align:center;margin-bottom:28px}
+.login-tabs{display:flex;gap:6px;background:var(--surf2);border-radius:var(--rs);padding:4px;margin-bottom:24px}
+.login-tab{flex:1;padding:8px;border:none;background:none;color:var(--text3);font-size:.84em;font-weight:600;cursor:pointer;border-radius:6px;font-family:inherit;transition:all .2s}
+.login-tab.active{background:var(--bg2);color:var(--accent);box-shadow:var(--shadow)}
+.login-err{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:var(--red);padding:10px 14px;border-radius:var(--rs);font-size:.83em;margin-bottom:14px;text-align:center}
 
-/* ── App Shell ── */
+/* ══ SHELL ════════════════════════════════════════════ */
 .shell{display:flex;min-height:100vh}
 
-/* ── Sidebar ── */
+/* ══ SIDEBAR ══════════════════════════════════════════ */
 .sidebar{
-  width:260px;
-  background:var(--bg2);
-  border-right:1px solid var(--border);
+  width:252px;background:var(--sb-bg);
   display:flex;flex-direction:column;
   position:fixed;height:100vh;z-index:100;
+  transition:background .25s;
 }
 .sb-head{
-  padding:24px 20px 18px;
-  border-bottom:1px solid var(--border);
-  position:relative;
+  padding:22px 18px 16px;
+  border-bottom:1px solid var(--sb-border);
 }
-.sb-head::after{
-  content:'';position:absolute;
-  bottom:-1px;left:20px;right:20px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent);
-  opacity:.25;
-}
-.sb-logo-row{display:flex;align-items:center;gap:12px;margin-bottom:3px}
+.sb-logo-row{display:flex;align-items:center;gap:11px}
 .sb-logo{
-  width:42px;height:42px;border-radius:11px;
-  background:linear-gradient(135deg,rgba(201,168,76,.2),rgba(201,168,76,.04));
-  border:1px solid rgba(201,168,76,.22);
-  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;object-fit:cover;
+  width:38px;height:38px;border-radius:10px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--sb-accent);flex-shrink:0;object-fit:cover;
 }
-.sb-libname{font-family:'Fraunces',serif;font-size:1.05em;font-weight:500;color:var(--text);line-height:1.2}
-.sb-dot{display:inline-flex;align-items:center;gap:5px;font-size:.68em;color:var(--text3);margin-top:2px;font-weight:500}
-.sb-dot span{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2.5s infinite;flex-shrink:0}
-.sb-dot span.off{background:var(--orange);animation:none}
+.sb-libname{font-family:'Fraunces',serif;font-size:1em;font-weight:500;color:var(--sb-active);line-height:1.2}
+.sb-status{display:inline-flex;align-items:center;gap:5px;font-size:.67em;color:var(--sb-text2);margin-top:2px}
+.sb-status-dot{width:5px;height:5px;border-radius:50%;background:#4ade80;flex-shrink:0;animation:pulse 2s infinite}
+.sb-status-dot.off{background:#fb923c;animation:none}
 
 .sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
 .sb-nav::-webkit-scrollbar{width:2px}
-.sb-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.sb-sec{font-size:.63em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:12px 12px 5px}
+.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.sb-sec{font-size:.62em;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--sb-text2);padding:12px 10px 5px}
 
 .nbtn{
-  display:flex;align-items:center;gap:10px;width:100%;
-  padding:9px 12px;background:none;border:none;
-  color:var(--text2);font-size:.86em;font-weight:500;
-  cursor:pointer;transition:all .16s;text-align:left;
-  font-family:inherit;border-radius:var(--rs);margin-bottom:2px;
+  display:flex;align-items:center;gap:9px;width:100%;
+  padding:8px 10px;background:none;border:none;
+  color:var(--sb-text);font-size:.85em;font-weight:500;
+  cursor:pointer;transition:all .15s;text-align:left;
+  font-family:inherit;border-radius:var(--rs);margin-bottom:1px;
 }
-.nbtn:hover{background:var(--surf2);color:var(--text)}
-.nbtn.active{
-  background:linear-gradient(135deg,rgba(201,168,76,.14),rgba(201,168,76,.04));
-  color:var(--gold2);border:1px solid rgba(201,168,76,.16);
-}
-.nbtn .ni{font-size:1.05em;width:20px;text-align:center;flex-shrink:0}
+.nbtn:hover{background:var(--sb-active-bg);color:var(--sb-active)}
+.nbtn.active{background:var(--sb-active-bg);color:var(--sb-accent);font-weight:600}
+.nbtn .ni{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .nbtn .nl{flex:1}
 .nbadge{
   background:rgba(255,255,255,.07);border-radius:20px;
-  padding:2px 7px;font-size:.7em;font-weight:700;
-  color:var(--text2);border:1px solid var(--border);
+  padding:2px 7px;font-size:.69em;font-weight:700;
+  color:var(--sb-text2);
 }
-.nbtn.active .nbadge{background:rgba(201,168,76,.15);color:var(--gold);border-color:rgba(201,168,76,.2)}
+.nbtn.active .nbadge{background:var(--accent-t);color:var(--sb-accent)}
 
-.sb-foot{
-  padding:14px 14px 20px;
-  border-top:1px solid var(--border);
-  display:flex;flex-direction:column;gap:7px;
+.sb-foot{padding:12px 12px 18px;border-top:1px solid var(--sb-border);display:flex;flex-direction:column;gap:6px}
+.sb-foot-row{display:flex;gap:5px}
+.sfbtn{
+  flex:1;padding:7px 5px;
+  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+  color:var(--sb-text);border-radius:var(--rs);
+  font-size:.74em;cursor:pointer;font-family:inherit;
+  transition:all .16s;text-align:center;font-weight:500;
+  display:flex;align-items:center;justify-content:center;gap:5px;
 }
-.sb-foot-row{display:flex;gap:6px}
-.sb-foot-btn{
-  flex:1;padding:8px 6px;
-  border:1px solid var(--border2);background:var(--surf);
-  color:var(--text2);border-radius:var(--rs);
-  font-size:.76em;cursor:pointer;font-family:inherit;
-  transition:all .18s;text-align:center;font-weight:500;
+.sfbtn:hover{background:rgba(255,255,255,.1);color:var(--sb-active)}
+.sfbtn.zotero{
+  background:var(--accent-t);border-color:rgba(255,255,255,.08);
+  color:var(--sb-accent);
 }
-.sb-foot-btn:hover{background:var(--surf2);color:var(--text);border-color:var(--border2)}
-.sb-foot-btn.zotero{
-  background:rgba(201,168,76,.08);border-color:rgba(201,168,76,.2);
-  color:var(--gold);width:100%;
-}
-.sb-foot-btn.zotero:hover{background:rgba(201,168,76,.15);color:var(--gold2)}
-.sb-foot-btn.logout{
-  background:rgba(224,82,82,.08);border-color:rgba(224,82,82,.18);
-  color:#e05252;
-}
-.sb-foot-btn.logout:hover{background:rgba(224,82,82,.15)}
+.sfbtn.zotero:hover{background:var(--accent-t2)}
+.sfbtn.logout{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.15);color:#f87171}
+.sfbtn.logout:hover{background:rgba(220,38,38,.15)}
+.sb-user{font-size:.68em;color:var(--sb-text2);text-align:center;padding:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ── Main ── */
-.main{flex:1;margin-left:260px;padding:32px 32px 64px;max-width:calc(100vw - 260px)}
+/* ══ MAIN ═════════════════════════════════════════════ */
+.main{flex:1;margin-left:252px;padding:30px 30px 60px;max-width:calc(100vw - 252px)}
 
-/* ── Page header ── */
-.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px}
-.pt{font-family:'Fraunces',serif;font-size:1.9em;font-weight:500;color:var(--text)}
+/* ══ PAGE HEADER ══════════════════════════════════════ */
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.pt{font-family:'Fraunces',serif;font-size:1.8em;font-weight:500;color:var(--text)}
 
-/* ── Stats ── */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px}
+/* ══ STATS ════════════════════════════════════════════ */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:26px}
 .sc{
   background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--r);padding:20px;
+  border-radius:var(--r);padding:18px;
   position:relative;overflow:hidden;
-  transition:border-color .2s,transform .2s;
+  transition:all .2s;
 }
-.sc:hover{border-color:var(--border2);transform:translateY(-2px)}
-.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.sc.blue::before{background:linear-gradient(90deg,var(--blue),transparent)}
-.sc.green::before{background:linear-gradient(90deg,var(--green),transparent)}
-.sc.purple::before{background:linear-gradient(90deg,var(--purple),transparent)}
-.sc.orange::before{background:linear-gradient(90deg,var(--orange),transparent)}
-.sc.red::before{background:linear-gradient(90deg,var(--red),transparent)}
-.sc.gold::before{background:linear-gradient(90deg,var(--gold),transparent)}
-.sn{font-size:2.5em;font-weight:700;color:var(--text);line-height:1;margin-bottom:5px;font-family:'Fraunces',serif}
-.sl{font-size:.78em;color:var(--text3);font-weight:500;letter-spacing:.02em}
+.sc:hover{box-shadow:var(--shadow);border-color:var(--border2)}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.sc.c-blue::before{background:var(--blue)}
+.sc.c-green::before{background:var(--green)}
+.sc.c-purple::before{background:var(--purple)}
+.sc.c-orange::before{background:var(--orange)}
+.sc.c-red::before{background:var(--red)}
+.sc.c-accent::before{background:var(--accent)}
+.sn{font-size:2.3em;font-weight:700;color:var(--text);line-height:1;margin-bottom:4px;font-family:'Fraunces',serif}
+.sl{font-size:.76em;color:var(--text3);font-weight:500}
 
-/* ── Buttons ── */
+/* ══ BUTTONS ══════════════════════════════════════════ */
 .btn{
-  padding:10px 20px;border:none;border-radius:var(--rs);
-  font-size:.88em;font-weight:600;cursor:pointer;
-  transition:all .18s;display:inline-flex;align-items:center;gap:7px;
-  font-family:inherit;letter-spacing:.01em;
+  padding:9px 18px;border:none;border-radius:var(--rs);
+  font-size:.86em;font-weight:600;cursor:pointer;
+  transition:all .16s;display:inline-flex;align-items:center;gap:6px;
+  font-family:inherit;
 }
 .btn:active{transform:scale(.97)}
-.btn-primary{
-  background:linear-gradient(135deg,var(--gold),#a8842a);
-  color:#0d0f14;box-shadow:0 3px 14px rgba(201,168,76,.28);
-}
-.btn-primary:hover{box-shadow:0 4px 20px rgba(201,168,76,.4);filter:brightness(1.08)}
-.btn-success{background:rgba(76,175,125,.15);color:var(--green);border:1px solid rgba(76,175,125,.25)}
-.btn-success:hover{background:rgba(76,175,125,.25)}
-.btn-danger{background:rgba(224,82,82,.12);color:var(--red);border:1px solid rgba(224,82,82,.2)}
-.btn-danger:hover{background:rgba(224,82,82,.22)}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 40%,transparent)}
+.btn-primary:hover{background:var(--accent2);box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 35%,transparent)}
+.btn-success{background:var(--accent-t);color:var(--green);border:1px solid rgba(22,163,74,.2)}
+.btn-success:hover{background:rgba(22,163,74,.18)}
+.btn-danger{background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.18)}
+.btn-danger:hover{background:rgba(220,38,38,.15)}
 .btn-secondary{background:var(--surf2);color:var(--text2);border:1px solid var(--border2)}
 .btn-secondary:hover{background:var(--bg3);color:var(--text)}
 .btn-ghost{background:transparent;color:var(--text3);border:1px solid var(--border)}
 .btn-ghost:hover{background:var(--surf);color:var(--text2)}
-.btn-sm{padding:6px 13px;font-size:.8em}
-.btn-email{background:rgba(91,156,246,.12);color:var(--blue);border:1px solid rgba(91,156,246,.22)}
-.btn-email:hover{background:rgba(91,156,246,.22)}
+.btn-email{background:rgba(37,99,235,.08);color:var(--blue);border:1px solid rgba(37,99,235,.18)}
+.btn-email:hover{background:rgba(37,99,235,.15)}
+.btn-sm{padding:6px 12px;font-size:.79em}
 
-/* ── Search / Filter ── */
-.sw{position:relative;margin-bottom:16px}
-.sw-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;font-size:.95em}
+/* ══ SEARCH / FILTER ══════════════════════════════════ */
+.sw{position:relative;margin-bottom:14px}
+.sw-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
 .sbar{
-  width:100%;padding:10px 14px 10px 38px;
+  width:100%;padding:9px 13px 9px 36px;
   border:1px solid var(--border);border-radius:var(--rs);
-  font-size:.9em;background:var(--bg2);color:var(--text);
+  font-size:.88em;background:var(--bg2);color:var(--text);
   font-family:inherit;transition:border-color .18s,box-shadow .18s;
 }
-.sbar:focus{outline:none;border-color:rgba(201,168,76,.4);box-shadow:0 0 0 3px rgba(201,168,76,.08)}
-.fbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.sbar:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
+.fbar{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .fsel{
-  padding:9px 13px;border:1px solid var(--border);border-radius:var(--rs);
-  font-size:.86em;background:var(--bg2);color:var(--text2);
+  padding:8px 12px;border:1px solid var(--border);border-radius:var(--rs);
+  font-size:.84em;background:var(--bg2);color:var(--text2);
   cursor:pointer;font-family:inherit;transition:border-color .18s;
 }
-.fsel:focus{outline:none;border-color:rgba(201,168,76,.35)}
+.fsel:focus{outline:none;border-color:var(--accent)}
 
-/* ── Cards ── */
-.grid{display:grid;gap:13px}
+/* ══ CARDS ════════════════════════════════════════════ */
+.grid{display:grid;gap:12px}
 .card{
   background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--r);padding:20px;
-  transition:border-color .2s,box-shadow .2s,transform .2s;
+  border-radius:var(--r);padding:18px;
+  transition:all .18s;
 }
-.card:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.3);transform:translateY(-1px)}
-.card.late{border-color:rgba(224,82,82,.25);background:rgba(224,82,82,.03)}
-.ct{font-size:1.05em;font-weight:700;color:var(--text);margin-bottom:3px}
-.cs{color:var(--text3);font-size:.85em;margin-bottom:2px;line-height:1.5}
-.cm{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.ca{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px;padding-top:13px;border-top:1px solid var(--border)}
+.card:hover{border-color:var(--border2);box-shadow:var(--shadow)}
+.card.late{border-color:rgba(220,38,38,.25);background:rgba(220,38,38,.02)}
+.ct{font-size:1.02em;font-weight:700;color:var(--text);margin-bottom:3px}
+.cs{color:var(--text3);font-size:.83em;margin-bottom:2px;line-height:1.5}
+.cm{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.ca{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
 
-/* ── Badges ── */
-.b{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.74em;font-weight:600;gap:4px}
-.bg{background:rgba(76,175,125,.12);color:var(--green);border:1px solid rgba(76,175,125,.2)}
-.br{background:rgba(224,82,82,.12);color:var(--red);border:1px solid rgba(224,82,82,.2)}
-.bp{background:rgba(155,122,245,.12);color:var(--purple);border:1px solid rgba(155,122,245,.2)}
-.bb{background:rgba(91,156,246,.12);color:var(--blue);border:1px solid rgba(91,156,246,.2)}
-.bo{background:rgba(240,144,64,.12);color:var(--orange);border:1px solid rgba(240,144,64,.2)}
-.bk{background:var(--surf2);color:var(--text3);border:1px solid var(--border)}
-.bgold{background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+/* ══ BADGES ═══════════════════════════════════════════ */
+.b{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.72em;font-weight:600}
+.bg{background:rgba(22,163,74,.1);color:var(--green)}
+.br{background:rgba(220,38,38,.1);color:var(--red)}
+.bp{background:rgba(124,58,237,.1);color:var(--purple)}
+.bb{background:rgba(37,99,235,.1);color:var(--blue)}
+.bo{background:rgba(234,88,12,.1);color:var(--orange)}
+.bk{background:var(--surf2);color:var(--text3)}
+.ba{background:var(--accent-t);color:var(--accent)}
 
-/* ── Modals ── */
+/* ══ MODAL ════════════════════════════════════════════ */
 .ov{
   position:fixed;top:0;left:0;right:0;bottom:0;
-  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
   display:flex;align-items:center;justify-content:center;
   z-index:1000;animation:fadeIn .15s;
 }
 .mc{
   background:var(--bg2);border:1px solid var(--border2);
-  border-radius:20px;padding:32px;
-  max-width:600px;width:93%;max-height:90vh;overflow-y:auto;
-  animation:fadeUp .22s ease;box-shadow:var(--shadow);
+  border-radius:18px;padding:30px;
+  max-width:580px;width:93%;max-height:90vh;overflow-y:auto;
+  animation:fadeUp .2s ease;box-shadow:var(--shadow-lg);
 }
-.mc.wide{max-width:740px}
+.mc.wide{max-width:720px}
 .mc::-webkit-scrollbar{width:3px}
 .mc::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
-.mt{font-family:'Fraunces',serif;font-size:1.5em;font-weight:500;color:var(--text)}
+.mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.mt{font-family:'Fraunces',serif;font-size:1.4em;font-weight:500;color:var(--text)}
 .xb{
-  background:var(--surf2);border:none;font-size:1.1em;
-  cursor:pointer;color:var(--text3);width:32px;height:32px;
+  background:var(--surf2);border:none;cursor:pointer;
+  color:var(--text3);width:30px;height:30px;
   display:flex;align-items:center;justify-content:center;
-  border-radius:50%;transition:all .18s;
+  border-radius:50%;transition:all .16s;
 }
 .xb:hover{background:var(--bg3);color:var(--text)}
 
-/* ── Forms ── */
-.fg{margin-bottom:15px}
-.fl{display:block;font-weight:600;color:var(--text2);margin-bottom:5px;font-size:.82em;letter-spacing:.02em;text-transform:uppercase}
+/* ══ FORMS ════════════════════════════════════════════ */
+.fg{margin-bottom:14px}
+.fl{display:block;font-weight:600;color:var(--text3);margin-bottom:4px;font-size:.78em;letter-spacing:.03em;text-transform:uppercase}
 .fi,.ft{
-  width:100%;padding:10px 13px;
+  width:100%;padding:9px 12px;
   border:1px solid var(--border);border-radius:var(--rs);
-  font-size:.9em;background:var(--bg3);color:var(--text);
+  font-size:.88em;background:var(--bg3);color:var(--text);
   font-family:inherit;transition:border-color .18s,box-shadow .18s;
 }
-.fi:focus,.ft:focus{outline:none;border-color:rgba(201,168,76,.4);box-shadow:0 0 0 3px rgba(201,168,76,.08)}
-.ft{resize:vertical;min-height:80px}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.fac{display:flex;gap:10px;margin-top:24px}
-.fsel{background:var(--bg3);color:var(--text)}
+.fi:focus,.ft:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
+.ft{resize:vertical;min-height:78px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.fac{display:flex;gap:9px;margin-top:22px}
 
-/* ── Photo upload ── */
+/* ══ PHOTO UPLOAD ═════════════════════════════════════ */
 .pu{
   border:2px dashed var(--border2);border-radius:var(--r);
   padding:20px;text-align:center;cursor:pointer;
   transition:all .2s;background:var(--surf);
 }
-.pu:hover{border-color:rgba(201,168,76,.35);background:var(--gold3)}
-.pp{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid rgba(201,168,76,.4);margin:12px auto;display:block}
+.pu:hover{border-color:var(--accent);background:var(--accent-t)}
+.pp{width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--accent);margin:10px auto;display:block}
 
-/* ── Scanner ── */
+/* ══ SCANNER ══════════════════════════════════════════ */
 .scan-box{
-  background:linear-gradient(135deg,var(--bg2),var(--bg3));
-  border:1px solid var(--border2);
-  padding:24px;border-radius:var(--r);color:var(--text);margin-bottom:24px;
-  box-shadow:var(--glow);
+  background:var(--bg2);border:1px solid var(--border2);
+  padding:22px;border-radius:var(--r);margin-bottom:22px;
+  box-shadow:var(--shadow);
 }
 .scan-in{
-  width:100%;padding:14px 18px;
-  border:1px solid rgba(201,168,76,.25);border-radius:var(--rs);
-  font-size:1.05em;font-weight:500;font-family:inherit;
-  background:var(--bg);color:var(--text);
+  width:100%;padding:12px 16px;
+  border:1.5px solid var(--border2);border-radius:var(--rs);
+  font-size:1em;font-weight:500;font-family:inherit;
+  background:var(--bg3);color:var(--text);
   transition:border-color .2s,box-shadow .2s;
 }
-.scan-in:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.1)}
-.scan-st{
-  margin-top:12px;padding:10px 16px;
-  background:rgba(255,255,255,.05);border-radius:var(--rs);
-  font-size:.9em;border:1px solid var(--border);
-}
+.scan-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
+.scan-st{margin-top:11px;padding:9px 14px;background:var(--surf2);border-radius:var(--rs);font-size:.87em;border:1px solid var(--border)}
 
-/* ── Cat grid ── */
-.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-bottom:28px}
+/* ══ CAT GRID ═════════════════════════════════════════ */
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:11px;margin-bottom:26px}
 .cc{
   background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;
-  transition:all .2s;
+  border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;
+  transition:all .18s;
 }
-.cc:hover{border-color:rgba(201,168,76,.3);box-shadow:var(--glow);transform:translateY(-2px)}
-.cn{font-size:2.2em;font-weight:700;color:var(--gold2);font-family:'Fraunces',serif}
-.cl{font-size:.76em;color:var(--text3);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.cc:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-2px)}
+.cn{font-size:2em;font-weight:700;color:var(--accent);font-family:'Fraunces',serif}
+.cl{font-size:.73em;color:var(--text3);margin-top:3px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
 
-/* ── Alerts ── */
-.al{padding:12px 16px;border-radius:var(--rs);margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:.87em;flex-wrap:wrap}
-.al-w{background:rgba(240,144,64,.1);color:#f0b464;border:1px solid rgba(240,144,64,.2)}
-.al-s{background:rgba(76,175,125,.1);color:var(--green);border:1px solid rgba(76,175,125,.2)}
-.al-i{background:rgba(91,156,246,.1);color:var(--blue);border:1px solid rgba(91,156,246,.2)}
-.al-e{background:rgba(224,82,82,.1);color:var(--red);border:1px solid rgba(224,82,82,.2)}
+/* ══ ALERTS ═══════════════════════════════════════════ */
+.al{padding:11px 15px;border-radius:var(--rs);margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:.85em;flex-wrap:wrap}
+.al-w{background:rgba(234,88,12,.08);color:var(--orange);border:1px solid rgba(234,88,12,.18)}
+.al-s{background:rgba(22,163,74,.08);color:var(--green);border:1px solid rgba(22,163,74,.18)}
+.al-i{background:var(--accent-t);color:var(--accent);border:1px solid var(--accent-t2)}
+.al-e{background:rgba(220,38,38,.08);color:var(--red);border:1px solid rgba(220,38,38,.18)}
 
-/* ── Empty ── */
-.empty{text-align:center;padding:60px 20px;color:var(--text3)}
-.empty-i{font-size:3.2em;margin-bottom:12px;opacity:.3}
+/* ══ EMPTY ════════════════════════════════════════════ */
+.empty{text-align:center;padding:56px 20px;color:var(--text3)}
+.empty-i{margin-bottom:12px;opacity:.3;display:flex;justify-content:center}
 
-/* ── Settings section ── */
-.ss{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
-.ss h3{font-size:.82em;font-weight:700;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);padding-bottom:8px}
+/* ══ SETTINGS SECTION ════════════════════════════════ */
+.ss{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.ss h3{font-size:.78em;font-weight:700;color:var(--text2);margin-bottom:13px;text-transform:uppercase;letter-spacing:.07em;padding-bottom:8px;border-bottom:1px solid var(--border)}
 
-/* ── QR ── */
-.qr{width:90px;height:90px;border-radius:var(--rs);flex-shrink:0;border:1px solid var(--border);background:white;padding:4px}
+/* ══ QR / AVATAR ══════════════════════════════════════ */
+.qr{width:82px;height:82px;border-radius:var(--rs);flex-shrink:0;background:white;padding:3px;border:1px solid var(--border)}
+.av{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--bg3);color:var(--text3)}
 
-/* ── Avatar ── */
-.av{
-  width:58px;height:58px;border-radius:50%;
-  object-fit:cover;border:2px solid var(--border2);flex-shrink:0;
-  font-size:26px;display:flex;align-items:center;justify-content:center;
-  background:var(--bg3);
-}
-
-/* ── Toasts ── */
-.tc{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+/* ══ TOAST ════════════════════════════════════════════ */
+.tc{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:7px;z-index:9999;pointer-events:none}
 .toast{
   background:var(--bg2);color:var(--text);border:1px solid var(--border2);
-  padding:12px 17px;border-radius:var(--rs);
-  box-shadow:var(--shadow);font-size:.87em;font-weight:500;
-  animation:toastIn .22s ease;min-width:220px;
-  display:flex;align-items:center;gap:9px;
+  padding:11px 16px;border-radius:var(--rs);
+  box-shadow:var(--shadow-lg);font-size:.85em;font-weight:500;
+  animation:toastIn .2s ease;min-width:200px;
+  display:flex;align-items:center;gap:8px;
 }
-.toast.ok{border-color:rgba(76,175,125,.3);background:rgba(76,175,125,.08)}
-.toast.err{border-color:rgba(224,82,82,.3);background:rgba(224,82,82,.08)}
-.toast.warn{border-color:rgba(240,144,64,.3);background:rgba(240,144,64,.08)}
+.toast.ok{border-left:3px solid var(--green)}
+.toast.err{border-left:3px solid var(--red)}
+.toast.warn{border-left:3px solid var(--orange)}
 
-/* ── Zotero ── */
+/* ══ ZOTERO ═══════════════════════════════════════════ */
 .zdrop{
   border:2px dashed var(--border2);border-radius:var(--r);
-  padding:28px;text-align:center;cursor:pointer;
-  background:var(--surf);transition:border-color .2s,background .2s;
-  margin-bottom:16px;
+  padding:26px;text-align:center;cursor:pointer;
+  background:var(--surf);transition:all .2s;margin-bottom:14px;
 }
-.zdrop:hover{border-color:rgba(201,168,76,.35);background:var(--gold3)}
-.zlist{max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--rs);margin-bottom:16px}
+.zdrop:hover{border-color:var(--accent);background:var(--accent-t)}
+.zlist{max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--rs);margin-bottom:14px}
 .zlist::-webkit-scrollbar{width:3px}
 .zlist::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-.zrow{display:flex;align-items:start;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .14s}
+.zrow{display:flex;align-items:start;gap:11px;padding:11px 13px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .13s}
 .zrow:last-child{border-bottom:none}
-.zrow:hover,.zrow.sel{background:var(--gold3)}
+.zrow:hover,.zrow.sel{background:var(--accent-t)}
 
-/* ── Divider ── */
-.divider{height:1px;background:var(--border);margin:20px 0}
+/* ══ DIVIDER / SPINNER ════════════════════════════════ */
+.divider{height:1px;background:var(--border);margin:18px 0}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
 
-/* ── Spinner ── */
-.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+/* ══ THEME SWATCHES ═══════════════════════════════════ */
+.theme-swatches{display:flex;gap:9px;flex-wrap:wrap}
+.theme-swatch{
+  cursor:pointer;border-radius:var(--rs);padding:9px 13px;
+  display:flex;align-items:center;gap:7px;
+  transition:all .18s;border:2px solid transparent;
+  font-size:.82em;font-weight:600;
+}
 
-/* ── Responsive ── */
+/* ══ RESPONSIVE ═══════════════════════════════════════ */
 @media(max-width:768px){
   .sidebar{width:100%;height:auto;position:relative}
-  .main{margin-left:0;padding:18px;max-width:100%}
+  .main{margin-left:0;padding:16px;max-width:100%}
   .fgrid{grid-template-columns:1fr}
 }
 </style>
@@ -414,18 +493,59 @@ body{
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef } = React;
 
-// ════════════════════════════════════════════════
-//  CONFIG SUPABASE
-// ════════════════════════════════════════════════
+// ══ LUCIDE SVG ICONS (inline, no dependency) ══════════
+const Icon = ({ name, size=16, color='currentColor', strokeWidth=1.75 }) => {
+  const paths = {
+    home: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10",
+    users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
+    book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
+    'book-open': "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z",
+    scan: "M3 7V5a2 2 0 0 1 2-2h2 M17 3h2a2 2 0 0 1 2 2v2 M21 17v2a2 2 0 0 1-2 2h-2 M7 21H5a2 2 0 0 1-2-2v-2",
+    history: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5 M12 7v5l4 2",
+    settings: "M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+    download: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3",
+    upload: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12",
+    save: "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M17 21v-8H7v8 M7 3v5h8",
+    'log-out': "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9",
+    printer: "M6 9V2h12v7 M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2 M6 14h12v8H6z",
+    pencil: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
+    trash: "M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2",
+    plus: "M12 5v14 M5 12h14",
+    search: "M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M21 21l-4.35-4.35",
+    'bar-chart': "M18 20V10 M12 20V4 M6 20v-6",
+    mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6",
+    refresh: "M23 4v6h-6 M1 20v-6h6 M3.51 9a9 9 0 0 1 14.85-3.36L23 10 M1 14l4.64 4.36A9 9 0 0 0 20.49 15",
+    alert: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01",
+    check: "M20 6L9 17l-5-5",
+    x: "M18 6L6 18 M6 6l12 12",
+    user: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+    'book-marked': "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z M9 2v7l2.5-1.5L14 9V2",
+    library: "M2 5a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5z M9 5a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2V5z M16 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4",
+    camera: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+    grid: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
+    filter: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
+    cloud: "M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z",
+    palette: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c.55 0 1-.45 1-1 0-.27-.1-.52-.26-.72-.17-.2-.26-.45-.26-.72 0-.55.45-1 1-1h1.18c3.17 0 5.34-2.17 5.34-5.34C20.99 5.58 16.97 2 12 2zM7 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2-4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm6 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2 4c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z",
+    'chevron-right': "M9 18l6-6-6-6",
+    dot: "M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0",
+  };
+  const d = paths[name] || paths['dot'];
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      {d.split(' M').map((seg,i) => <path key={i} d={i===0?seg:'M'+seg}/>)}
+    </svg>
+  );
+};
+
+// ══ CONFIG ════════════════════════════════════════════
 const SB_URL = 'https://kokwzdfbypjvvqduuovk.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtva3d6ZGZieXBqdnZxZHV1b3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MDI1NTYsImV4cCI6MjA4NzQ3ODU1Nn0.fhPdFPa3Ap6SM6RK5bAs46bIBko3t-tBFm2w_fnKMn4';
-
 const CATS = ['Fiction','Science','Histoire','Biographie','Enfants','Religion','Technologie','Art','Cuisine','Autre'];
 const USE_SB = !!(SB_URL && SB_KEY && SB_KEY.startsWith('eyJ'));
 
-// ── Helpers ──────────────────────────────────────
+// ══ HELPERS ═══════════════════════════════════════════
 function gd(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch{ return []; } }
 function sd(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
 function gsettings(){ try{ return JSON.parse(localStorage.getItem('lib_cfg')||'{}'); }catch{ return {}; } }
@@ -433,52 +553,34 @@ function gid(){ return Date.now()+Math.floor(Math.random()*9999); }
 function today(){ return new Date().toISOString().split('T')[0]; }
 function dlBlob(blob,name){ const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u); }
 
-// ── Supabase REST ────────────────────────────────
+// ══ SUPABASE REST ══════════════════════════════════════
 async function sb(table, method='GET', body=null, qs='', token=null){
   const url=`${SB_URL}/rest/v1/${table}${qs}`;
-  const h={
-    'apikey':SB_KEY,
-    'Authorization':`Bearer ${token||SB_KEY}`,
-    'Content-Type':'application/json',
-    'Prefer':'return=representation'
-  };
+  const h={'apikey':SB_KEY,'Authorization':`Bearer ${token||SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'};
   const r=await fetch(url,{method,headers:h,body:body?JSON.stringify(body):null});
   if(!r.ok){ const e=await r.text(); throw new Error(e); }
   const t=await r.text(); return t?JSON.parse(t):[];
 }
 
-// ── Supabase Auth ────────────────────────────────
-async function sbSignIn(email, password){
-  const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{
-    method:'POST',
-    headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-    body:JSON.stringify({email,password})
-  });
+// ══ SUPABASE AUTH ══════════════════════════════════════
+async function sbSignIn(email,password){
+  const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
   if(!r.ok){ const e=await r.json(); throw new Error(e.error_description||e.msg||'Erreur de connexion'); }
   return r.json();
 }
-async function sbSignUp(email, password){
-  const r=await fetch(`${SB_URL}/auth/v1/signup`,{
-    method:'POST',
-    headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-    body:JSON.stringify({email,password})
-  });
+async function sbSignUp(email,password){
+  const r=await fetch(`${SB_URL}/auth/v1/signup`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
   if(!r.ok){ const e=await r.json(); throw new Error(e.error_description||e.msg||'Erreur inscription'); }
   return r.json();
 }
 async function sbSignOut(token){
-  await fetch(`${SB_URL}/auth/v1/logout`,{
-    method:'POST',
-    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${token}`}
-  });
+  await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${token}`}});
 }
-function getStoredSession(){
-  try{ return JSON.parse(localStorage.getItem('lib_session')||'null'); }catch{ return null; }
-}
+function getStoredSession(){ try{ return JSON.parse(localStorage.getItem('lib_session')||'null'); }catch{ return null; } }
 function storeSession(s){ localStorage.setItem('lib_session',JSON.stringify(s)); }
 function clearSession(){ localStorage.removeItem('lib_session'); }
 
-// ── Mappers ──────────────────────────────────────
+// ══ MAPPERS ════════════════════════════════════════════
 const toM = r=>({id:r.id,memberCode:r.member_code,name:r.name,email:r.email,phone:r.phone||'',address:r.address||'',dateOfBirth:r.date_of_birth||'',idNumber:r.id_number||'',photo:r.photo||'',joinDate:r.join_date});
 const fromM = m=>{
   const o={member_code:m.memberCode,name:m.name,email:m.email};
@@ -493,7 +595,7 @@ const toB = r=>({id:r.id,barcode:r.barcode,title:r.title,author:r.author,isbn:r.
 const fromB = b=>({barcode:b.barcode,title:b.title,author:b.author,isbn:b.isbn||null,year:b.year||null,category:b.category,publisher:b.publisher||null,shelf:b.shelf||null,copies:b.copies,available:b.available,description:b.description||null});
 const toL = r=>({id:r.id,bookId:r.book_id,memberId:r.member_id,loanDate:r.loan_date,dueDate:r.due_date,returnDate:r.return_date||null,daysLate:r.days_late||0,lateFee:r.late_fee||0});
 
-// ── DB layer ─────────────────────────────────────
+// ══ DB LAYER ═══════════════════════════════════════════
 const DB = {
   async getMembers(){
     if(!USE_SB) return gd('lib_members');
@@ -504,17 +606,13 @@ const DB = {
     return (await sb('books','GET',null,'?order=added_date.desc')).map(toB);
   },
   async getLoans(activeOnly=true){
-    if(!USE_SB){
-      const all=gd('lib_loans');
-      return activeOnly?all.filter(l=>!l.returnDate):all;
-    }
+    if(!USE_SB){ const all=gd('lib_loans'); return activeOnly?all.filter(l=>!l.returnDate):all; }
     const qs=activeOnly?'?return_date=is.null&order=loan_date.desc':'?order=loan_date.desc';
     return (await sb('loans','GET',null,qs)).map(toL);
   },
   async addMember(m){
     if(!USE_SB){ sd('lib_members',[...gd('lib_members'),m]); return m; }
-    const r=await sb('members','POST',fromM(m));
-    return toM(Array.isArray(r)?r[0]:r);
+    const r=await sb('members','POST',fromM(m)); return toM(Array.isArray(r)?r[0]:r);
   },
   async updateMember(id,m){
     if(!USE_SB){ sd('lib_members',gd('lib_members').map(x=>x.id===id?{...x,...m}:x)); return; }
@@ -526,8 +624,7 @@ const DB = {
   },
   async addBook(b){
     if(!USE_SB){ sd('lib_books',[...gd('lib_books'),b]); return b; }
-    const r=await sb('books','POST',fromB(b));
-    return toB(Array.isArray(r)?r[0]:r);
+    const r=await sb('books','POST',fromB(b)); return toB(Array.isArray(r)?r[0]:r);
   },
   async updateBook(id,b){
     if(!USE_SB){ sd('lib_books',gd('lib_books').map(x=>x.id===id?{...x,...b}:x)); return; }
@@ -562,7 +659,7 @@ const DB = {
   }
 };
 
-// ── BibTeX parser (no { } in regex) ─────────────
+// ══ PARSERS ════════════════════════════════════════════
 function parseBib(txt){
   const res=[],lines=txt.split('\n');
   const cm={book:'Autre',article:'Science',inproceedings:'Science',phdthesis:'Science',mastersthesis:'Science',techreport:'Technologie',manual:'Technologie'};
@@ -571,11 +668,9 @@ function parseBib(txt){
     const line=raw.trim();
     if(/^@\w+\s*\x7B/.test(line)){
       const t=(line.match(/^@(\w+)/)||[])[1]||'misc';
-      cur={type:t.toLowerCase(),fields:{}};
-      res.push(cur);
+      cur={type:t.toLowerCase(),fields:{}};res.push(cur);
     } else if(cur&&line.includes('=')){
-      const eq=line.indexOf('=');
-      const key=line.slice(0,eq).trim().toLowerCase();
+      const eq=line.indexOf('=');const key=line.slice(0,eq).trim().toLowerCase();
       let val=line.slice(eq+1).trim();
       if(val.charAt(0)==='\x7B') val=val.slice(1);
       if(val.slice(-2)==='\x7D,') val=val.slice(0,-2);
@@ -608,8 +703,7 @@ function parseCSV(txt){
   const col=(...ns)=>{for(const n of ns){const i=hdrs.indexOf(n);if(i!==-1)return i;}return -1;};
   const res=[];
   for(let i=1;i<lines.length;i++){
-    const v=pl(lines[i]);
-    const g=(...ns)=>{const idx=col(...ns);return idx!==-1?(v[idx]||'').trim():'';};
+    const v=pl(lines[i]);const g=(...ns)=>{const idx=col(...ns);return idx!==-1?(v[idx]||'').trim():'';};
     const title=g('title');if(!title)continue;
     const ty=g('item type','type','itemtype').toLowerCase().replace(/\s/g,'');
     const cm={book:'Autre',journalarticle:'Science',conferencepaper:'Science',thesis:'Science',report:'Technologie',computerprogram:'Technologie',artwork:'Art'};
@@ -618,14 +712,12 @@ function parseCSV(txt){
   return res;
 }
 
-// ── Toast component ───────────────────────────────
+// ══ TOAST ══════════════════════════════════════════════
 function Toasts({list}){
-  return <div className="tc">{list.map(t=><div key={t.id} className={`toast ${t.cls}`}><span>{t.icon}</span><span>{t.msg}</span></div>)}</div>;
+  return <div className="tc">{list.map(t=><div key={t.id} className={`toast ${t.cls}`}><Icon name={t.cls==='ok'?'check':t.cls==='err'?'x':'alert'} size={14} color="currentColor"/><span>{t.msg}</span></div>)}</div>;
 }
 
-// ════════════════════════════════════════════════
-//  LOGIN COMPONENT
-// ════════════════════════════════════════════════
+// ══ LOGIN ══════════════════════════════════════════════
 function Login({onLogin}){
   const [mode,setMode]=useState('login');
   const [email,setEmail]=useState('');
@@ -640,13 +732,8 @@ function Login({onLogin}){
       let data;
       if(mode==='login') data=await sbSignIn(email,pwd);
       else data=await sbSignUp(email,pwd);
-      if(data.access_token){
-        storeSession(data);
-        onLogin(data);
-      } else if(mode==='register'){
-        setErr('Compte créé ! Vérifiez votre email pour confirmer, puis connectez-vous.');
-        setMode('login');
-      }
+      if(data.access_token){ storeSession(data); onLogin(data); }
+      else if(mode==='register'){ setErr('Compte créé ! Vérifiez votre email puis connectez-vous.'); setMode('login'); }
     }catch(e){ setErr(e.message); }
     finally{ setLoading(false); }
   }
@@ -654,7 +741,7 @@ function Login({onLogin}){
   return(
     <div className="login-wrap">
       <div className="login-box">
-        <div className="login-logo">📚</div>
+        <div className="login-icon"><Icon name="library" size={26}/></div>
         <div className="login-title">Bibliothèque</div>
         <div className="login-sub">Système de gestion professionnel</div>
         <div className="login-tabs">
@@ -662,28 +749,17 @@ function Login({onLogin}){
           <button className={`login-tab${mode==='register'?' active':''}`} onClick={()=>{setMode('register');setErr('');}}>Inscription</button>
         </div>
         {err&&<div className="login-err">{err}</div>}
-        <div className="fg">
-          <label className="fl">Email</label>
-          <input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="admin@bibliotheque.com" onKeyPress={e=>e.key==='Enter'&&handle()}/>
-        </div>
-        <div className="fg">
-          <label className="fl">Mot de passe</label>
-          <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handle()}/>
-        </div>
-        <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'13px'}} onClick={handle} disabled={loading}>
-          {loading?<span className="spinner"/>:mode==='login'?'Se connecter →':'Créer le compte →'}
+        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="admin@bibliotheque.com" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
+        <div className="fg"><label className="fl">Mot de passe</label><input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
+        <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:6,padding:'12px'}} onClick={handle} disabled={loading}>
+          {loading?<span className="spinner"/>:<><Icon name={mode==='login'?'log-out':'user'} size={15}/>{mode==='login'?'Se connecter':'Créer le compte'}</>}
         </button>
-        {mode==='login'&&<div style={{textAlign:'center',marginTop:16,fontSize:'.78em',color:'var(--text3)'}}>
-          Première utilisation ? Créez un compte administrateur ci-dessus.
-        </div>}
       </div>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════
-//  MAIN APP
-// ════════════════════════════════════════════════
+// ══ APP ════════════════════════════════════════════════
 function App(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
@@ -708,15 +784,18 @@ function App(){
   const [zp,setZp]=useState([]);
   const [zst,setZst]=useState('');
   const [emailSending,setEmailSending]=useState(false);
+  const [theme,setTheme]=useState(()=>localStorage.getItem('lib_theme')||'light');
 
   const scanRef=useRef(),logoRef=useRef(),photoRef=useRef(),importRef=useRef(),zRef=useRef();
 
-  // ── Auth init ──
+  useEffect(()=>{
+    document.documentElement.setAttribute('data-theme',theme);
+    localStorage.setItem('lib_theme',theme);
+  },[theme]);
+
   useEffect(()=>{
     const stored=getStoredSession();
-    if(stored&&stored.access_token){
-      setSession(stored);
-    }
+    if(stored&&stored.access_token) setSession(stored);
     setAuthReady(true);
     const s=gsettings(); if(s&&s.libraryName) setCfg(prev=>({...prev,...s}));
   },[]);
@@ -730,30 +809,26 @@ function App(){
     clearSession(); setSession(null); setMembers([]); setBooks([]); setLoans([]); setHistory([]);
   }
 
-  // ── Reload ──
   async function reload(){
     setLoading(true);
     try{
       const[m,b,l,h]=await Promise.all([DB.getMembers(),DB.getBooks(),DB.getLoans(true),DB.getLoans(false)]);
       setMembers(m);setBooks(b);setLoans(l);setHistory(h);
-    }catch(e){ toast(e.message,'err','❌'); }
+    }catch(e){ toast(e.message,'err'); }
     finally{ setLoading(false); }
   }
 
-  // ── Toast ──
-  function toast(msg,cls='ok',icon='✅'){
+  function toast(msg,cls='ok'){
     const id=gid();
-    setToasts(p=>[...p,{id,msg,cls,icon}]);
-    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3800);
+    setToasts(p=>[...p,{id,msg,cls}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3600);
   }
   const close=()=>setModal(null);
 
-  // ── Settings ──
   function saveCfg(s){ setCfg(s); localStorage.setItem('lib_cfg',JSON.stringify(s)); toast('Paramètres sauvegardés'); close(); }
 
-  // ── Members ──
   async function saveMember(){
-    if(!mf.name||!mf.email){ toast('Nom et email requis','err','⚠️'); return; }
+    if(!mf.name||!mf.email){ toast('Nom et email requis','err'); return; }
     try{
       if(editM){ await DB.updateMember(editM.id,mf); toast('Membre mis à jour'); }
       else{
@@ -764,19 +839,18 @@ function App(){
       }
       setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});
       setEditM(null); close(); reload();
-    }catch(e){ toast(e.message,'err','❌'); }
+    }catch(e){ toast(e.message,'err'); }
   }
   async function delMember(id){
     if(!confirm('Supprimer ce membre ?')) return;
-    if(loans.some(l=>l.memberId===id)){ toast('Membre avec prêts actifs','err','❌'); return; }
+    if(loans.some(l=>l.memberId===id)){ toast('Membre avec prêts actifs','err'); return; }
     try{ await DB.deleteMember(id); toast('Membre supprimé'); reload(); }
-    catch(e){ toast(e.message,'err','❌'); }
+    catch(e){ toast(e.message,'err'); }
   }
   function openEditM(m){ setMf({...m}); setEditM(m); setModal('member'); }
 
-  // ── Books ──
   async function saveBook(){
-    if(!bf.title||!bf.author){ toast('Titre et auteur requis','err','⚠️'); return; }
+    if(!bf.title||!bf.author){ toast('Titre et auteur requis','err'); return; }
     try{
       const copies=parseInt(bf.copies)||1;
       if(editB){ await DB.updateBook(editB.id,{...bf,copies}); toast('Livre mis à jour'); }
@@ -788,27 +862,26 @@ function App(){
       }
       setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});
       setEditB(null); close(); reload();
-    }catch(e){ toast(e.message,'err','❌'); }
+    }catch(e){ toast(e.message,'err'); }
   }
   async function delBook(id){
     if(!confirm('Supprimer ce livre ?')) return;
-    if(loans.some(l=>l.bookId===id)){ toast('Livre actuellement prêté','err','❌'); return; }
+    if(loans.some(l=>l.bookId===id)){ toast('Livre actuellement prêté','err'); return; }
     try{ await DB.deleteBook(id); toast('Livre supprimé'); reload(); }
-    catch(e){ toast(e.message,'err','❌'); }
+    catch(e){ toast(e.message,'err'); }
   }
   function openEditB(b){ setBf({...b}); setEditB(b); setModal('book'); }
 
-  // ── Loans ──
   async function createLoan(bookId,memberId){
     const bk=books.find(b=>b.id===bookId);
-    if(!bk||bk.available<=0){ toast('Livre non disponible','err','❌'); return; }
+    if(!bk||bk.available<=0){ toast('Livre non disponible','err'); return; }
     try{
       const due=new Date(); due.setDate(due.getDate()+(cfg.loanDays||14));
       await DB.addLoan({id:gid(),bookId,memberId,loanDate:new Date().toISOString(),dueDate:due.toISOString(),returnDate:null});
       await DB.setAvail(bookId,-1);
-      toast('Prêt créé !'); setScanVal(''); setScanSt('✅ Prêt enregistré !');
+      toast('Prêt créé !'); setScanVal(''); setScanSt('Prêt enregistré avec succès');
       setTimeout(()=>setScanSt(''),3000); reload();
-    }catch(e){ toast(e.message,'err','❌'); }
+    }catch(e){ toast(e.message,'err'); }
   }
   async function returnLoan(loanId){
     const loan=loans.find(l=>l.id===loanId); if(!loan) return;
@@ -818,34 +891,32 @@ function App(){
     try{
       await DB.returnLoan(loanId,daysLate,lateFee);
       await DB.setAvail(loan.bookId,+1);
-      if(daysLate>0) toast(`${daysLate}j retard — ${lateFee} HTG`,'warn','⚠️');
-      else toast('Retour enregistré !');
+      if(daysLate>0) toast(`${daysLate}j retard — ${lateFee} HTG`,'warn');
+      else toast('Retour enregistré');
       reload();
-    }catch(e){ toast(e.message,'err','❌'); }
+    }catch(e){ toast(e.message,'err'); }
   }
 
-  // ── Scanner ──
   function handleScan(e){
     if(e.key!=='Enter'||!scanVal.trim()) return;
     const code=scanVal.trim().toUpperCase();
     if(code.startsWith('MBR-')){
       const m=members.find(x=>x.memberCode===code);
-      if(m){ setScanItem({type:'member',data:m}); setScanSt(`✅ Membre: ${m.name}`); }
-      else setScanSt('❌ Membre non trouvé');
+      if(m){ setScanItem({type:'member',data:m}); setScanSt(`Membre trouvé : ${m.name}`); }
+      else setScanSt('Membre non trouvé');
     } else {
       const b=books.find(x=>x.barcode===code||x.isbn===code||(x.isbn||'').replace(/-/g,'')===code);
       if(b){
         if(scanItem&&scanItem.type==='member'){ createLoan(b.id,scanItem.data.id); setScanItem(null); }
-        else{ setScanItem({type:'book',data:b}); setScanSt(`✅ Livre: ${b.title}`); }
-      } else setScanSt('❌ Code non trouvé');
+        else{ setScanItem({type:'book',data:b}); setScanSt(`Livre trouvé : ${b.title}`); }
+      } else setScanSt('Code non trouvé');
     }
     setScanVal('');
   }
 
-  // ── Email notifications ──
   async function sendLateEmails(){
     const overdueLoans=loans.filter(l=>new Date(l.dueDate)<new Date());
-    if(!overdueLoans.length){ toast('Aucun retard à notifier','warn','ℹ️'); return; }
+    if(!overdueLoans.length){ toast('Aucun retard à notifier','warn'); return; }
     setEmailSending(true);
     let sent=0,failed=0;
     for(const loan of overdueLoans){
@@ -853,30 +924,20 @@ function App(){
       const bk=books.find(b=>b.id===loan.bookId);
       if(!mb||!mb.email) continue;
       const daysLate=Math.ceil((new Date()-new Date(loan.dueDate))/86400000);
-      const fee=daysLate*(cfg.feePerDay||10);
       try{
         const res=await fetch(`${SB_URL}/functions/v1/send-late-email`,{
           method:'POST',
           headers:{'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
-          body:JSON.stringify({
-            to:mb.email,
-            memberName:mb.name,
-            bookTitle:bk?.title||'?',
-            daysLate,
-            fee,
-            libraryName:cfg.libraryName
-          })
+          body:JSON.stringify({to:mb.email,memberName:mb.name,bookTitle:bk?.title||'?',daysLate,fee:daysLate*(cfg.feePerDay||10),libraryName:cfg.libraryName})
         });
-        if(res.ok) sent++;
-        else failed++;
-      }catch(err){ failed++; }
+        if(res.ok) sent++; else failed++;
+      }catch{ failed++; }
     }
     setEmailSending(false);
-    if(sent>0) toast(`${sent} email(s) envoyé(s) !`,'ok','📧');
-    if(failed>0) toast(`${failed} échec(s) — configurez la fonction Edge`,'warn','⚠️');
+    if(sent>0) toast(`${sent} email(s) envoyé(s)`);
+    if(failed>0) toast(`${failed} échec(s) — configurez la fonction Edge Supabase`,'warn');
   }
 
-  // ── Export ──
   async function exportCSV(){
     const bom='\ufeff';
     let csv=bom+'Type,Code,Nom/Titre,Email/Auteur,Tél/ISBN,Statut,Date\n';
@@ -887,12 +948,12 @@ function App(){
       csv+=`Prêt,"${l.id}","${bk?.title||''}","${mb?.name||''}","${new Date(l.dueDate).toLocaleDateString('fr-FR')}","${l.returnDate?'Retourné':'En cours'}",${new Date(l.loanDate).toLocaleDateString('fr-FR')}\n`;
     });
     dlBlob(new Blob([csv],{type:'text/csv;charset=utf-8;'}),`bibliotheque-${today()}.csv`);
-    toast('Export CSV téléchargé !');
+    toast('Export CSV téléchargé');
   }
   async function exportJSON(){
     const data={members,books,loans:history,settings:cfg,exportDate:new Date().toISOString()};
     dlBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),`backup-${today()}.json`);
-    toast('Sauvegarde téléchargée !');
+    toast('Sauvegarde téléchargée');
   }
   function importJSON(e){
     const file=e.target.files[0]; if(!file) return;
@@ -903,15 +964,14 @@ function App(){
       if(d.books) sd('lib_books',d.books);
       if(d.loans) sd('lib_loans',d.loans);
       if(d.settings) localStorage.setItem('lib_cfg',JSON.stringify(d.settings));
-      reload(); toast('Données importées !');
-    }catch{ toast('Fichier invalide','err','❌'); } };
+      reload(); toast('Données importées');
+    }catch{ toast('Fichier invalide','err'); } };
     r.readAsText(file,'UTF-8'); e.target.value='';
   }
 
-  // ── Zotero ──
   function handleZFile(e){
     const file=e.target.files[0]; if(!file) return;
-    setZst('Analyse en cours...'); setZp([]);
+    setZst('Analyse en cours…'); setZp([]);
     const r=new FileReader();
     r.onload=ev=>{
       const txt=ev.target.result,ext=file.name.split('.').pop().toLowerCase();
@@ -919,15 +979,15 @@ function App(){
       if(ext==='bib') parsed=parseBib(txt);
       else if(ext==='ris') parsed=parseRIS(txt);
       else if(ext==='csv') parsed=parseCSV(txt);
-      else{ setZst('❌ Format non supporté (.bib, .ris, .csv)'); return; }
-      if(!parsed.length) setZst('❌ Aucune référence trouvée.');
-      else{ setZp(parsed.map((b,i)=>({...b,_s:true,_i:i}))); setZst(`✅ ${parsed.length} référence(s) trouvée(s)`); }
+      else{ setZst('Format non supporté (.bib, .ris, .csv)'); return; }
+      if(!parsed.length) setZst('Aucune référence trouvée');
+      else{ setZp(parsed.map((b,i)=>({...b,_s:true,_i:i}))); setZst(`${parsed.length} référence(s) trouvée(s)`); }
     };
     r.readAsText(file,'UTF-8'); e.target.value='';
   }
   async function doZotero(){
     const toImport=zp.filter(b=>b._s);
-    if(!toImport.length){ toast('Sélectionnez au moins un livre','err','⚠️'); return; }
+    if(!toImport.length){ toast('Sélectionnez au moins un livre','err'); return; }
     try{
       const all=await DB.getBooks();
       let maxN=all.reduce((mx,b)=>Math.max(mx,parseInt((b.barcode||'').replace('BOOK-','')||0)),0);
@@ -939,54 +999,66 @@ function App(){
       });
       if(nb.length) await DB.bulkAddBooks(nb);
       reload(); setZp([]); setZst(''); close();
-      toast(skip>0?`${nb.length} importé(s), ${skip} doublon(s)`:`${nb.length} livre(s) importé(s) !`,skip>0?'warn':'ok','📚');
-    }catch(e){ toast(e.message,'err','❌'); }
+      toast(skip>0?`${nb.length} importé(s), ${skip} doublon(s)`:`${nb.length} livre(s) importé(s)`,skip>0?'warn':'ok');
+    }catch(e){ toast(e.message,'err'); }
   }
 
-  // ── Print card (iframe — identique à l'aperçu) ──
+  // ── Print card — format ID-1 (85.6×54mm) ──────────
   function printCard(member){
-    const qr=`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(member.memberCode)}&bgcolor=ffffff&color=000000`;
-    const bar=`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128&dpi=200&bgcolor=FFFFFF`;
+    const qr=`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(member.memberCode)}&bgcolor=ffffff&color=000000`;
+    const bar=`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(member.memberCode)}&code=Code128&dpi=150&bgcolor=FFFFFF&fgcolor=000000`;
     const lib=cfg.libraryName;
+    const thC=theme==='green'?'#14532d':theme==='blue'?'#0f1d35':'#111827';
+    const acC=theme==='green'?'#4ade80':theme==='blue'?'#60a5fa':theme==='dark'?'#e8c97a':'#2563eb';
     const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
+@page{size:85.6mm 54mm;margin:0}
 *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-content:center;padding:30px;min-height:100vh}
-@page{size:90mm 145mm;margin:0}
-@media print{body{background:#1a1f2c!important;padding:6mm}}
+html,body{width:85.6mm;height:54mm;overflow:hidden;background:#e5e7eb}
+.card{width:85.6mm;height:54mm;background:linear-gradient(135deg,${thC} 0%,#000 100%);display:flex;flex-direction:column;overflow:hidden}
+.top{padding:3.5mm 4mm 3mm;display:flex;align-items:center;gap:2.5mm;border-bottom:0.3mm solid rgba(255,255,255,.12);flex-shrink:0;background:rgba(255,255,255,.07)}
+.logo-box{width:6.5mm;height:6.5mm;border-radius:1.2mm;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:3.8mm;flex-shrink:0}
+.lib{font-size:3mm;font-weight:700;color:#fff;letter-spacing:.01em}
+.lib-sub{font-size:1.8mm;color:rgba(255,255,255,.45);letter-spacing:.07em;text-transform:uppercase;margin-top:.3mm}
+.body{display:flex;flex:1;padding:2.5mm 3.5mm;gap:2.5mm;overflow:hidden}
+.photo-col{display:flex;align-items:center;flex-shrink:0}
+.photo{width:11mm;height:11mm;border-radius:50%;border:0.4mm solid rgba(255,255,255,.3);object-fit:cover}
+.no-photo{width:11mm;height:11mm;border-radius:50%;border:0.4mm solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:5.5mm}
+.info{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-width:0;overflow:hidden}
+.fields{display:flex;flex-direction:column;gap:1.2mm}
+.f-label{font-size:1.5mm;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.06em;line-height:1}
+.f-val{font-size:2.4mm;color:rgba(255,255,255,.92);font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:33mm}
+.f-val.sm{font-size:2mm}
+.code-row{background:rgba(255,255,255,.07);border-radius:.8mm;padding:1.2mm 2mm;border:0.3mm solid rgba(255,255,255,.12);text-align:center}
+.code-val{font-size:2.6mm;font-weight:800;letter-spacing:2mm;color:${acC};font-family:'Courier New',monospace}
+.right{display:flex;flex-direction:column;align-items:center;gap:1.5mm;justify-content:center;flex-shrink:0;width:20mm}
+.qr-box{background:#fff;border-radius:1.2mm;padding:.8mm;line-height:0}
+.bar-box{background:#fff;border-radius:.8mm;padding:.8mm 1mm;line-height:0;width:100%}
 </style></head><body>
-<div style="width:340px;background:linear-gradient(145deg,#1a1f2c,#0d0f14);border-radius:18px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.6);border:1px solid rgba(201,168,76,.2)">
-  <div style="background:linear-gradient(135deg,rgba(201,168,76,.18),rgba(201,168,76,.06));padding:18px 22px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(201,168,76,.15)">
+<div class="card">
+  <div class="top">
     ${cfg.libraryLogo
-      ?`<img src="${cfg.libraryLogo}" style="width:46px;height:46px;border-radius:10px;object-fit:cover;border:1px solid rgba(201,168,76,.3)">`
-      :`<div style="width:46px;height:46px;border-radius:10px;background:rgba(201,168,76,.15);display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid rgba(201,168,76,.25)">📚</div>`
-    }
-    <div>
-      <div style="font-size:16px;font-weight:700;color:#e8c97a;letter-spacing:.02em">${lib}</div>
-      <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;letter-spacing:.08em;text-transform:uppercase">Carte de Membre</div>
-    </div>
+      ?`<img src="${cfg.libraryLogo}" class="logo-box" style="object-fit:cover;border-radius:1.2mm">`
+      :`<div class="logo-box">&#128218;</div>`}
+    <div><div class="lib">${lib}</div><div class="lib-sub">Carte de membre</div></div>
   </div>
-  <div style="padding:20px 22px">
-    <div style="display:flex;gap:16px;align-items:center;margin-bottom:18px">
+  <div class="body">
+    <div class="photo-col">
       ${member.photo
-        ?`<img src="${member.photo}" style="width:88px;height:88px;border-radius:50%;border:3px solid rgba(201,168,76,.4);object-fit:cover;flex-shrink:0">`
-        :`<div style="width:88px;height:88px;border-radius:50%;border:3px solid rgba(201,168,76,.3);background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0">👤</div>`
-      }
-      <div style="flex:1;background:white;border-radius:10px;padding:8px;text-align:center">
-        <img src="${qr}" style="width:100px;height:100px;display:block;margin:0 auto">
-        <div style="font-size:9px;color:#555;margin-top:4px;letter-spacing:.04em">SCAN RAPIDE</div>
+        ?`<img src="${member.photo}" class="photo">`
+        :`<div class="no-photo">&#128100;</div>`}
+    </div>
+    <div class="info">
+      <div class="fields">
+        <div><div class="f-label">Nom</div><div class="f-val">${member.name}</div></div>
+        <div><div class="f-label">Email</div><div class="f-val sm">${member.email}</div></div>
+        ${member.phone?`<div><div class="f-label">Tél</div><div class="f-val">${member.phone}</div></div>`:''}
       </div>
+      <div class="code-row"><span class="code-val">${member.memberCode}</span></div>
     </div>
-    <div style="background:rgba(255,255,255,.06);border-radius:10px;padding:12px 15px;margin-bottom:14px;border:1px solid rgba(255,255,255,.08)">
-      <div style="font-size:13px;margin:5px 0;color:rgba(255,255,255,.9)"><span style="color:rgba(201,168,76,.8);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Nom</span><br>${member.name}</div>
-      <div style="font-size:12px;margin:5px 0;color:rgba(255,255,255,.65)"><span style="color:rgba(201,168,76,.7);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Email</span><br>${member.email}</div>
-      ${member.phone?`<div style="font-size:12px;margin:5px 0;color:rgba(255,255,255,.65)"><span style="color:rgba(201,168,76,.7);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Tél</span><br>${member.phone}</div>`:''}
-      <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:6px">Membre depuis ${new Date(member.joinDate).toLocaleDateString('fr-FR')}</div>
-    </div>
-    <div style="text-align:center;font-size:17px;font-weight:700;letter-spacing:4px;padding:11px;background:linear-gradient(135deg,rgba(201,168,76,.2),rgba(201,168,76,.08));border-radius:9px;border:1px solid rgba(201,168,76,.25);color:#e8c97a;margin-bottom:12px">${member.memberCode}</div>
-    <div style="background:white;border-radius:9px;padding:10px;text-align:center">
-      <img src="${bar}" style="height:50px;max-width:100%;display:block;margin:0 auto">
-      <div style="font-size:9px;color:#666;margin-top:4px;letter-spacing:3px">${member.memberCode}</div>
+    <div class="right">
+      <div class="qr-box"><img src="${qr}" width="18mm" height="18mm"></div>
+      <div class="bar-box"><img src="${bar}" width="100%" height="7mm"></div>
     </div>
   </div>
 </div>
@@ -995,14 +1067,14 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
     if(!iframe){
       iframe=document.createElement('iframe');
       iframe.id='_pf';
-      iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:480px;height:700px;border:none;';
+      iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:340px;height:220px;border:none;';
       document.body.appendChild(iframe);
     }
     iframe.onload=()=>{
       const imgs=iframe.contentDocument.querySelectorAll('img');
       let done=0;
-      const tryPrint=()=>{ if(++done>=imgs.length) setTimeout(()=>iframe.contentWindow.print(),300); };
-      if(!imgs.length) setTimeout(()=>iframe.contentWindow.print(),300);
+      const tryPrint=()=>{ if(++done>=imgs.length) setTimeout(()=>iframe.contentWindow.print(),500); };
+      if(!imgs.length) setTimeout(()=>iframe.contentWindow.print(),500);
       else imgs.forEach(img=>{ if(img.complete) tryPrint(); else{ img.onload=tryPrint; img.onerror=tryPrint; } });
     };
     iframe.srcdoc=html;
@@ -1017,40 +1089,43 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
   const cStats=CATS.reduce((a,c)=>({...a,[c]:books.filter(b=>b.category===c).length}),{});
   const overdue=loans.filter(l=>new Date(l.dueDate)<new Date());
 
-  // ── Auth gate ──
   if(!authReady) return null;
   if(!session) return <Login onLogin={handleLogin}/>;
 
-  // ── Loading ──
   if(loading) return(
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:18,background:'var(--bg)'}}>
-      <div style={{fontSize:'2.8em'}}>📚</div>
-      <div style={{display:'flex',alignItems:'center',gap:12,color:'var(--text3)',fontSize:'.9em'}}>
-        <span className="spinner"/>Chargement{USE_SB?' depuis Supabase':''}…
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:16,background:'var(--bg)'}}>
+      <Icon name="library" size={40} color="var(--accent)"/>
+      <div style={{display:'flex',alignItems:'center',gap:10,color:'var(--text3)',fontSize:'.88em'}}>
+        <span className="spinner"/>Chargement…
       </div>
     </div>
   );
 
-  const userEmail=session?.user?.email||'Admin';
+  const userEmail=session?.user?.email||'';
+  const THEMES=[
+    {id:'light',label:'Clair',bg:'#f7f8fa',accent:'#2563eb'},
+    {id:'blue',label:'Bleu',bg:'#0f1d35',accent:'#60a5fa'},
+    {id:'green',label:'Vert',bg:'#f0faf4',accent:'#16a34a'},
+    {id:'dark',label:'Sombre',bg:'#0d0f14',accent:'#c9a84c'},
+  ];
 
-  // ════════════════════════════════════════════════
   return(
   <div className="shell">
     <Toasts list={toasts}/>
 
-    {/* ── Sidebar ── */}
+    {/* ── SIDEBAR ── */}
     <aside className="sidebar">
       <div className="sb-head">
         <div className="sb-logo-row">
           {cfg.libraryLogo
             ?<img src={cfg.libraryLogo} className="sb-logo" style={{display:'block'}} alt=""/>
-            :<div className="sb-logo">📚</div>
+            :<div className="sb-logo"><Icon name="library" size={18} color="var(--sb-accent)"/></div>
           }
           <div>
             <div className="sb-libname">{cfg.libraryName}</div>
-            <div className="sb-dot">
-              <span className={USE_SB?'':'off'}/>
-              {USE_SB?'Cloud Supabase':'Mode local'}
+            <div className="sb-status">
+              <span className={`sb-status-dot${USE_SB?'':' off'}`}/>
+              {USE_SB?'Supabase':'Local'}
             </div>
           </div>
         </div>
@@ -1059,88 +1134,90 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
       <nav className="sb-nav">
         <div className="sb-sec">Navigation</div>
         {[
-          {k:'dashboard',i:'📊',l:'Tableau de bord'},
-          {k:'scanner',i:'🔍',l:'Scanner USB'},
+          {k:'dashboard',i:'home',l:'Tableau de bord'},
+          {k:'scanner',i:'scan',l:'Scanner'},
         ].map(item=>(
           <button key={item.k} className={`nbtn${tab===item.k?' active':''}`} onClick={()=>{setTab(item.k);setSearch('');setCatF('all');}}>
-            <span className="ni">{item.i}</span><span className="nl">{item.l}</span>
+            <span className="ni"><Icon name={item.i} size={15}/></span>
+            <span className="nl">{item.l}</span>
           </button>
         ))}
         <div className="sb-sec">Gestion</div>
         {[
-          {k:'members',i:'👥',l:'Membres',n:members.length},
-          {k:'books',i:'📚',l:'Livres',n:books.length},
-          {k:'loans',i:'📖',l:'Prêts actifs',n:loans.length},
-          {k:'history',i:'🗂️',l:'Historique',n:history.length},
+          {k:'members',i:'users',l:'Membres',n:members.length},
+          {k:'books',i:'book',l:'Livres',n:books.length},
+          {k:'loans',i:'book-open',l:'Prêts actifs',n:loans.length},
+          {k:'history',i:'history',l:'Historique',n:history.length},
         ].map(item=>(
           <button key={item.k} className={`nbtn${tab===item.k?' active':''}`} onClick={()=>{setTab(item.k);setSearch('');setCatF('all');}}>
-            <span className="ni">{item.i}</span>
+            <span className="ni"><Icon name={item.i} size={15}/></span>
             <span className="nl">{item.l}</span>
-            <span className={`nbadge${tab===item.k?' active':''}`}>{item.n}</span>
+            <span className="nbadge">{item.n}</span>
           </button>
         ))}
       </nav>
 
       <div className="sb-foot">
         <div className="sb-foot-row">
-          <button className="sb-foot-btn" onClick={exportCSV}>📊 CSV</button>
-          <button className="sb-foot-btn" onClick={exportJSON}>💾 Backup</button>
+          <button className="sfbtn" onClick={exportCSV}><Icon name="bar-chart" size={12}/>CSV</button>
+          <button className="sfbtn" onClick={exportJSON}><Icon name="save" size={12}/>Backup</button>
           <input type="file" accept=".json" ref={importRef} style={{display:'none'}} onChange={importJSON}/>
-          <button className="sb-foot-btn" onClick={()=>importRef.current.click()}>📥</button>
+          <button className="sfbtn" onClick={()=>importRef.current.click()}><Icon name="upload" size={12}/>Import</button>
         </div>
-        <button className="sb-foot-btn" onClick={()=>setModal('settings')}>⚙️ Paramètres</button>
-        <button className="sb-foot-btn zotero" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}>📥 Importer depuis Zotero</button>
-        <div style={{fontSize:'.7em',color:'var(--text3)',textAlign:'center',padding:'4px 0'}}>
-          {userEmail}
-        </div>
-        <button className="sb-foot-btn logout" onClick={handleLogout}>🚪 Déconnexion</button>
+        <button className="sfbtn" onClick={()=>setModal('settings')} style={{width:'100%'}}><Icon name="settings" size={12}/>Paramètres</button>
+        <button className="sfbtn zotero" onClick={()=>{setZp([]);setZst('');setModal('zotero');}} style={{width:'100%'}}><Icon name="download" size={12}/>Importer Zotero</button>
+        <div className="sb-user">{userEmail}</div>
+        <button className="sfbtn logout" onClick={handleLogout} style={{width:'100%'}}><Icon name="log-out" size={12}/>Déconnexion</button>
       </div>
     </aside>
 
-    {/* ── Main ── */}
+    {/* ── MAIN ── */}
     <main className="main">
 
-      {/* ── DASHBOARD ── */}
+      {/* DASHBOARD */}
       {tab==='dashboard'&&(
         <div>
           <div className="ph au">
             <h1 className="pt">Tableau de bord</h1>
-            <div style={{display:'flex',gap:9}}>
-              {overdue.length>0&&<button className={`btn btn-email btn-sm${emailSending?' disabled':''}`} onClick={sendLateEmails} disabled={emailSending}>
-                {emailSending?<span className="spinner"/>:'📧'} Notifier retards ({overdue.length})
-              </button>}
-              <button className="btn btn-secondary btn-sm" onClick={reload}>🔄 Actualiser</button>
+            <div style={{display:'flex',gap:8}}>
+              {overdue.length>0&&(
+                <button className="btn btn-email btn-sm" onClick={sendLateEmails} disabled={emailSending}>
+                  {emailSending?<span className="spinner"/>:<Icon name="mail" size={13}/>}
+                  Notifier retards ({overdue.length})
+                </button>
+              )}
+              <button className="btn btn-secondary btn-sm" onClick={reload}><Icon name="refresh" size={13}/>Actualiser</button>
             </div>
           </div>
-          {overdue.length>0&&<div className="al al-w au2">⚠️ <strong>{overdue.length} prêt(s) en retard</strong> — cliquez "Notifier retards" pour envoyer des emails</div>}
+          {overdue.length>0&&<div className="al al-w au2"><Icon name="alert" size={14}/><strong>{overdue.length} prêt(s) en retard</strong></div>}
           <div className="stats au2">
-            <div className="sc blue"><div className="sn">{members.length}</div><div className="sl">Membres</div></div>
-            <div className="sc green"><div className="sn">{books.length}</div><div className="sl">Livres</div></div>
-            <div className="sc purple"><div className="sn">{loans.length}</div><div className="sl">Prêts actifs</div></div>
-            <div className="sc orange"><div className="sn">{books.reduce((s,b)=>s+(b.available||0),0)}</div><div className="sl">Disponibles</div></div>
-            <div className="sc red"><div className="sn">{overdue.length}</div><div className="sl">En retard</div></div>
-            <div className="sc gold"><div className="sn">{history.length}</div><div className="sl">Total prêts</div></div>
+            <div className="sc c-blue"><div className="sn">{members.length}</div><div className="sl">Membres</div></div>
+            <div className="sc c-accent"><div className="sn">{books.length}</div><div className="sl">Livres</div></div>
+            <div className="sc c-purple"><div className="sn">{loans.length}</div><div className="sl">Prêts actifs</div></div>
+            <div className="sc c-green"><div className="sn">{books.reduce((s,b)=>s+(b.available||0),0)}</div><div className="sl">Disponibles</div></div>
+            <div className="sc c-red"><div className="sn">{overdue.length}</div><div className="sl">En retard</div></div>
+            <div className="sc c-orange"><div className="sn">{history.length}</div><div className="sl">Total prêts</div></div>
           </div>
-          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'1.25em',marginBottom:14,color:'var(--text2)',fontWeight:400}} className="au3">Par catégorie</h2>
+          <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'1.15em',fontWeight:400,marginBottom:12,color:'var(--text2)'}} className="au3">Par catégorie</h2>
           <div className="cg au3">
             {CATS.map(c=><div key={c} className="cc" onClick={()=>{setTab('books');setCatF(c);}}>
               <div className="cn">{cStats[c]||0}</div><div className="cl">{c}</div>
             </div>)}
           </div>
           {overdue.length>0&&<>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'1.25em',marginBottom:14,color:'var(--red)',fontWeight:400}} className="au4">⚠️ Prêts en retard</h2>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'1.15em',fontWeight:400,marginBottom:12,color:'var(--red)'}} className="au4">Prêts en retard</h2>
             <div className="grid au4">
               {overdue.map(loan=>{
                 const mb=members.find(m=>m.id===loan.memberId),bk=books.find(b=>b.id===loan.bookId);
                 const dl=Math.ceil((new Date()-new Date(loan.dueDate))/86400000);
                 return(<div key={loan.id} className="card late">
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
                     <div>
                       <div className="ct">{bk?.title||'?'}</div>
-                      <div className="cs">👤 {mb?.name} — {mb?.email}</div>
-                      <div style={{color:'var(--red)',fontWeight:700,marginTop:6,fontSize:'.88em'}}>⚠️ {dl}j de retard — {dl*(cfg.feePerDay||10)} HTG</div>
+                      <div className="cs">{mb?.name} — {mb?.email}</div>
+                      <div style={{color:'var(--red)',fontWeight:700,marginTop:5,fontSize:'.84em'}}>{dl}j de retard — {dl*(cfg.feePerDay||10)} HTG</div>
                     </div>
-                    <button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}>✓ Retourner</button>
+                    <button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}><Icon name="check" size={13}/>Retourner</button>
                   </div>
                 </div>);
               })}
@@ -1149,77 +1226,82 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
         </div>
       )}
 
-      {/* ── SCANNER ── */}
+      {/* SCANNER */}
       {tab==='scanner'&&(
         <div>
           <div className="ph au"><h1 className="pt">Scanner USB</h1></div>
           <div className="scan-box au2">
-            <h2 style={{fontSize:'1.2em',marginBottom:8,color:'var(--gold2)'}}>🔍 Zone de scan</h2>
-            <p style={{color:'var(--text3)',marginBottom:14,fontSize:'.87em'}}>Scannez la carte membre puis le livre pour créer un prêt automatiquement</p>
-            <input ref={scanRef} type="text" className="scan-in" value={scanVal} onChange={e=>setScanVal(e.target.value)} onKeyPress={handleScan} placeholder="Pointez votre scanner ici et appuyez Entrée…" autoFocus/>
+            <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:8}}>
+              <Icon name="scan" size={18} color="var(--accent)"/>
+              <h2 style={{fontSize:'1.05em',fontWeight:700,color:'var(--text)'}}>Zone de scan</h2>
+            </div>
+            <p style={{color:'var(--text3)',marginBottom:13,fontSize:'.84em'}}>Scannez la carte membre puis le livre pour créer un prêt</p>
+            <input ref={scanRef} type="text" className="scan-in" value={scanVal} onChange={e=>setScanVal(e.target.value)} onKeyPress={handleScan} placeholder="Pointez votre scanner ici…" autoFocus/>
             {scanSt&&<div className="scan-st">{scanSt}</div>}
           </div>
           {scanItem&&<div className="al al-s au">
-            {scanItem.type==='member'
-              ?<><strong>👤 {scanItem.data.name}</strong> — Scannez maintenant un livre</>
-              :<><strong>📚 {scanItem.data.title}</strong> — Scannez la carte membre</>
-            }
+            <Icon name={scanItem.type==='member'?'user':'book'} size={14}/>
+            <strong>{scanItem.type==='member'?scanItem.data.name:scanItem.data.title}</strong>
+            — {scanItem.type==='member'?'Scannez maintenant un livre':'Scannez la carte membre'}
             <button className="btn btn-secondary btn-sm" style={{marginLeft:'auto'}} onClick={()=>setScanItem(null)}>Annuler</button>
           </div>}
           <div className="card au3">
-            <h3 style={{fontWeight:700,marginBottom:14,color:'var(--text2)',fontSize:'.9em',textTransform:'uppercase',letterSpacing:'.05em'}}>💡 Prêt manuel</h3>
-            <div style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:13}}>
+              <Icon name="pencil" size={14} color="var(--text3)"/>
+              <h3 style={{fontWeight:700,fontSize:'.86em',color:'var(--text2)',textTransform:'uppercase',letterSpacing:'.05em'}}>Prêt manuel</h3>
+            </div>
+            <div style={{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center'}}>
               <select className="fsel" id="man-m" style={{flex:1}}>
-                <option value="">— Sélectionner un membre —</option>
+                <option value="">Sélectionner un membre</option>
                 {members.map(m=><option key={m.id} value={m.id}>{m.name} ({m.memberCode})</option>)}
               </select>
               <select className="fsel" id="man-b" style={{flex:1}}>
-                <option value="">— Sélectionner un livre disponible —</option>
+                <option value="">Sélectionner un livre disponible</option>
                 {books.filter(b=>b.available>0).map(b=><option key={b.id} value={b.id}>{b.title} ({b.available} dispo)</option>)}
               </select>
               <button className="btn btn-primary" onClick={()=>{
                 const mId=parseInt(document.getElementById('man-m').value);
                 const bId=parseInt(document.getElementById('man-b').value);
-                if(!mId||!bId){toast('Sélectionnez un membre et un livre','err','⚠️');return;}
+                if(!mId||!bId){toast('Sélectionnez un membre et un livre','err');return;}
                 createLoan(bId,mId);
-              }}>📖 Créer le prêt</button>
+              }}><Icon name="plus" size={14}/>Créer le prêt</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MEMBERS ── */}
+      {/* MEMBERS */}
       {tab==='members'&&(
         <div>
           <div className="ph au">
             <h1 className="pt">Membres</h1>
-            <button className="btn btn-primary" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}>➕ Nouveau membre</button>
+            <button className="btn btn-primary" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}><Icon name="plus" size={14}/>Nouveau membre</button>
           </div>
-          <div className="sw au2"><span className="sw-icon">🔍</span><input type="text" className="sbar" placeholder="Rechercher nom, email, code…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
-          {fMembers.length===0?<div className="empty au3"><div className="empty-i">👥</div><div>Aucun membre trouvé</div></div>:
+          <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher nom, email, code…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
+          {fMembers.length===0?<div className="empty au3"><div className="empty-i"><Icon name="users" size={48}/></div><div>Aucun membre</div></div>:
           <div className="grid au3">
             {fMembers.map(m=>{
               const ml=loans.filter(l=>l.memberId===m.id);
               return(<div key={m.id} className="card">
-                <div style={{display:'flex',justifyContent:'space-between',gap:16}}>
-                  <div style={{display:'flex',gap:14,alignItems:'center',flex:1}}>
-                    {m.photo?<img src={m.photo} className="av" style={{display:'block'}} alt=""/>:<div className="av">👤</div>}
+                <div style={{display:'flex',justifyContent:'space-between',gap:14}}>
+                  <div style={{display:'flex',gap:12,alignItems:'center',flex:1}}>
+                    {m.photo?<img src={m.photo} className="av" style={{display:'block'}} alt=""/>:<div className="av"><Icon name="user" size={22}/></div>}
                     <div style={{flex:1}}>
                       <div className="ct">{m.name}</div>
-                      <div className="cs">📧 {m.email}</div>
-                      {m.phone&&<div className="cs">📞 {m.phone}</div>}
+                      <div className="cs">{m.email}</div>
+                      {m.phone&&<div className="cs">{m.phone}</div>}
                       <div className="cm">
-                        <span className="b bgold">{m.memberCode}</span>
+                        <span className="b ba">{m.memberCode}</span>
                         {ml.length>0&&<span className="b bb">{ml.length} prêt(s)</span>}
                       </div>
                     </div>
                   </div>
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(m.memberCode)}&bgcolor=ffffff`} className="qr" alt="QR"/>
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=82x82&data=${encodeURIComponent(m.memberCode)}&bgcolor=ffffff`} className="qr" alt="QR"/>
                 </div>
                 <div className="ca">
-                  <button className="btn btn-primary btn-sm" onClick={()=>printCard(m)}>🖨️ Carte</button>
-                  <button className="btn btn-secondary btn-sm" onClick={()=>openEditM(m)}>✏️ Modifier</button>
-                  <button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--red)'}} onClick={()=>delMember(m.id)}>🗑️</button>
+                  <button className="btn btn-primary btn-sm" onClick={()=>printCard(m)}><Icon name="printer" size={12}/>Carte</button>
+                  <button className="btn btn-secondary btn-sm" onClick={()=>openEditM(m)}><Icon name="pencil" size={12}/>Modifier</button>
+                  <button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--red)'}} onClick={()=>delMember(m.id)}><Icon name="trash" size={12}/></button>
                 </div>
               </div>);
             })}
@@ -1227,54 +1309,54 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
         </div>
       )}
 
-      {/* ── BOOKS ── */}
+      {/* BOOKS */}
       {tab==='books'&&(
         <div>
           <div className="ph au">
             <h1 className="pt">Livres</h1>
-            <div style={{display:'flex',gap:9}}>
-              <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}>📥 Zotero</button>
-              <button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}>➕ Nouveau livre</button>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
+              <button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>
             </div>
           </div>
           <div className="fbar au2">
             <div className="sw" style={{flex:1,marginBottom:0}}>
-              <span className="sw-icon">🔍</span>
+              <span className="sw-icon"><Icon name="search" size={14}/></span>
               <input type="text" className="sbar" style={{marginBottom:0}} placeholder="Titre, auteur, ISBN, code-barres…" value={search} onChange={e=>setSearch(e.target.value)}/>
             </div>
             <select className="fsel" value={catF} onChange={e=>setCatF(e.target.value)}>
-              <option value="all">🏷️ Toutes catégories</option>
+              <option value="all">Toutes catégories</option>
               {CATS.map(c=><option key={c} value={c}>{c} ({cStats[c]||0})</option>)}
             </select>
           </div>
-          {fBooks.length===0?<div className="empty au3"><div className="empty-i">📚</div><div>Aucun livre trouvé</div></div>:
+          {fBooks.length===0?<div className="empty au3"><div className="empty-i"><Icon name="book" size={48}/></div><div>Aucun livre</div></div>:
           <div className="grid au3">
             {fBooks.map(bk=>(
               <div key={bk.id} className="card">
-                <div style={{display:'flex',justifyContent:'space-between',gap:16}}>
+                <div style={{display:'flex',justifyContent:'space-between',gap:14}}>
                   <div style={{flex:1}}>
                     <div className="ct">{bk.title}</div>
-                    <div className="cs">✍️ {bk.author}{bk.year?` · ${bk.year}`:''}</div>
-                    {bk.isbn&&<div className="cs">ISBN: {bk.isbn}</div>}
+                    <div className="cs">{bk.author}{bk.year?` · ${bk.year}`:''}</div>
+                    {bk.isbn&&<div className="cs" style={{fontSize:'.78em'}}>ISBN: {bk.isbn}</div>}
                     <div className="cm">
                       {bk.category&&<span className="b bb">{bk.category}</span>}
-                      {bk.shelf&&<span className="b bo">📍 {bk.shelf}</span>}
+                      {bk.shelf&&<span className="b bo">{bk.shelf}</span>}
                       <span className={`b ${bk.available>0?'bg':'br'}`}>{bk.available}/{bk.copies} dispo</span>
                       <span className="b bk">{bk.barcode}</span>
                     </div>
-                    {bk.description&&<div style={{fontSize:'.82em',color:'var(--text3)',marginTop:8,lineHeight:1.5}}>{bk.description.substring(0,110)}{bk.description.length>110?'…':''}</div>}
+                    {bk.description&&<div style={{fontSize:'.8em',color:'var(--text3)',marginTop:7,lineHeight:1.5}}>{bk.description.substring(0,110)}{bk.description.length>110?'…':''}</div>}
                   </div>
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(bk.barcode)}&bgcolor=ffffff`} className="qr" alt="QR"/>
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=82x82&data=${encodeURIComponent(bk.barcode)}&bgcolor=ffffff`} className="qr" alt="QR"/>
                 </div>
                 <div className="ca">
                   {bk.available>0&&members.length>0&&(
                     <select className="fsel" style={{flex:1}} onChange={e=>{if(e.target.value){createLoan(bk.id,parseInt(e.target.value));e.target.value=''}}}>
-                      <option value="">📖 Prêter à…</option>
+                      <option value="">Prêter à…</option>
                       {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
                   )}
-                  <button className="btn btn-secondary btn-sm" onClick={()=>openEditB(bk)}>✏️</button>
-                  <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={()=>delBook(bk.id)}>🗑️</button>
+                  <button className="btn btn-secondary btn-sm" onClick={()=>openEditB(bk)}><Icon name="pencil" size={12}/></button>
+                  <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={()=>delBook(bk.id)}><Icon name="trash" size={12}/></button>
                 </div>
               </div>
             ))}
@@ -1282,30 +1364,30 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
         </div>
       )}
 
-      {/* ── LOANS ── */}
+      {/* LOANS */}
       {tab==='loans'&&(
         <div>
           <div className="ph au">
             <h1 className="pt">Prêts actifs</h1>
-            {overdue.length>0&&<span className="b br" style={{fontSize:'.9em',padding:'6px 14px'}}>⚠️ {overdue.length} en retard</span>}
+            {overdue.length>0&&<span className="b br">{overdue.length} en retard</span>}
           </div>
-          {loans.length===0?<div className="empty au2"><div className="empty-i">📖</div><div>Aucun prêt actif</div></div>:
+          {loans.length===0?<div className="empty au2"><div className="empty-i"><Icon name="book-open" size={48}/></div><div>Aucun prêt actif</div></div>:
           <div className="grid au2">
             {loans.map(loan=>{
               const mb=members.find(m=>m.id===loan.memberId),bk=books.find(b=>b.id===loan.bookId);
               const dud=Math.ceil((new Date(loan.dueDate)-new Date())/86400000);
               const late=dud<0;
               return(<div key={loan.id} className={`card${late?' late':''}`}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:14}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',gap:12}}>
                   <div style={{flex:1}}>
                     <div className="ct">{bk?.title||'?'}</div>
-                    <div className="cs">👤 {mb?.name||'?'} — {mb?.email}</div>
-                    <div className="cs">📅 Prêt: {new Date(loan.loanDate).toLocaleDateString('fr-FR')}</div>
-                    <div style={{marginTop:7,fontWeight:700,fontSize:'.88em',color:late?'var(--red)':'var(--green)'}}>
-                      {late?`⚠️ ${Math.abs(dud)}j retard — ${Math.abs(dud)*(cfg.feePerDay||10)} HTG`:`✅ Retour: ${new Date(loan.dueDate).toLocaleDateString('fr-FR')} (${dud}j restants)`}
+                    <div className="cs">{mb?.name||'?'} — {mb?.email}</div>
+                    <div className="cs">Prêt le {new Date(loan.loanDate).toLocaleDateString('fr-FR')}</div>
+                    <div style={{marginTop:6,fontWeight:700,fontSize:'.84em',color:late?'var(--red)':'var(--green)'}}>
+                      {late?`${Math.abs(dud)}j retard — ${Math.abs(dud)*(cfg.feePerDay||10)} HTG`:`Retour: ${new Date(loan.dueDate).toLocaleDateString('fr-FR')} (${dud}j)`}
                     </div>
                   </div>
-                  <button className="btn btn-success" onClick={()=>returnLoan(loan.id)}>✓ Retourner</button>
+                  <button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}><Icon name="check" size={12}/>Retourner</button>
                 </div>
               </div>);
             })}
@@ -1313,26 +1395,26 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
         </div>
       )}
 
-      {/* ── HISTORY ── */}
+      {/* HISTORY */}
       {tab==='history'&&(
         <div>
           <div className="ph au">
             <h1 className="pt">Historique</h1>
-            <button className="btn btn-secondary" onClick={exportCSV}>📊 Export CSV</button>
+            <button className="btn btn-secondary" onClick={exportCSV}><Icon name="bar-chart" size={13}/>Export CSV</button>
           </div>
-          {history.length===0?<div className="empty au2"><div className="empty-i">🗂️</div><div>Aucun historique</div></div>:
+          {history.length===0?<div className="empty au2"><div className="empty-i"><Icon name="history" size={48}/></div><div>Aucun historique</div></div>:
           <div className="grid au2">
             {[...history].reverse().map(loan=>{
               const mb=members.find(m=>m.id===loan.memberId),bk=books.find(b=>b.id===loan.bookId);
               return(<div key={loan.id} className="card">
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
                   <div>
-                    <div className="ct" style={{fontSize:'1em'}}>{bk?.title||'?'}</div>
-                    <div className="cs">👤 {mb?.name||'?'}</div>
-                    <div className="cs">📅 {new Date(loan.loanDate).toLocaleDateString('fr-FR')}{loan.returnDate?` → ${new Date(loan.returnDate).toLocaleDateString('fr-FR')}`:''}</div>
-                    {loan.daysLate>0&&<div style={{fontSize:'.82em',color:'var(--red)',fontWeight:600,marginTop:4}}>{loan.daysLate}j retard — {loan.lateFee} HTG</div>}
+                    <div className="ct" style={{fontSize:'.98em'}}>{bk?.title||'?'}</div>
+                    <div className="cs">{mb?.name||'?'}</div>
+                    <div className="cs">{new Date(loan.loanDate).toLocaleDateString('fr-FR')}{loan.returnDate?' → '+new Date(loan.returnDate).toLocaleDateString('fr-FR'):''}</div>
+                    {loan.daysLate>0&&<div style={{fontSize:'.8em',color:'var(--red)',fontWeight:600,marginTop:3}}>{loan.daysLate}j retard — {loan.lateFee} HTG</div>}
                   </div>
-                  <span className={`b ${loan.returnDate?'bg':'bb'}`}>{loan.returnDate?'✓ Retourné':'📖 En cours'}</span>
+                  <span className={`b ${loan.returnDate?'bg':'bb'}`}>{loan.returnDate?'Retourné':'En cours'}</span>
                 </div>
               </div>);
             })}
@@ -1348,44 +1430,44 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
     {modal==='settings'&&(
       <div className="ov" onClick={close}>
         <div className="mc" onClick={e=>e.stopPropagation()}>
-          <div className="mh"><h2 className="mt">⚙️ Paramètres</h2><button className="xb" onClick={close}>×</button></div>
+          <div className="mh"><h2 className="mt">Paramètres</h2><button className="xb" onClick={close}><Icon name="x" size={14}/></button></div>
           <div className="ss">
-            <h3>🏛️ Bibliothèque</h3>
-            <div className="fg"><label className="fl">Nom</label><input className="fi" value={cfg.libraryName} onChange={e=>setCfg({...cfg,libraryName:e.target.value})}/></div>
-            <div className="fg"><label className="fl">Logo</label>
-              <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setCfg(s=>({...s,libraryLogo:r.result}));r.readAsDataURL(f);}}/>
-              <button className="btn btn-secondary" style={{width:'100%'}} onClick={()=>logoRef.current.click()}>📷 Choisir logo</button>
-              {cfg.libraryLogo&&<img src={cfg.libraryLogo} style={{width:70,height:70,borderRadius:'50%',objectFit:'cover',marginTop:10,border:'2px solid rgba(201,168,76,.4)'}} alt=""/>}
+            <h3>Thème</h3>
+            <div className="theme-swatches">
+              {THEMES.map(t=>(
+                <div key={t.id} className="theme-swatch" onClick={()=>setTheme(t.id)} style={{background:t.bg,border:`2px solid ${theme===t.id?t.accent:'transparent'}`,boxShadow:theme===t.id?`0 0 0 1px ${t.accent}40`:'none'}}>
+                  <div style={{width:10,height:10,borderRadius:'50%',background:t.accent,flexShrink:0}}/>
+                  <span style={{fontSize:'.8em',fontWeight:600,color:theme===t.id?t.accent:'#888'}}>{t.label}</span>
+                </div>
+              ))}
             </div>
           </div>
           <div className="ss">
-            <h3>📖 Règles de prêt</h3>
+            <h3>Bibliothèque</h3>
+            <div className="fg"><label className="fl">Nom</label><input className="fi" value={cfg.libraryName} onChange={e=>setCfg({...cfg,libraryName:e.target.value})}/></div>
+            <div className="fg"><label className="fl">Logo</label>
+              <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setCfg(s=>({...s,libraryLogo:r.result}));r.readAsDataURL(f);}}/>
+              <button className="btn btn-secondary" style={{width:'100%'}} onClick={()=>logoRef.current.click()}><Icon name="camera" size={13}/>Choisir logo</button>
+              {cfg.libraryLogo&&<img src={cfg.libraryLogo} style={{width:64,height:64,borderRadius:'50%',objectFit:'cover',marginTop:10,border:'2px solid var(--accent)'}} alt=""/>}
+            </div>
+          </div>
+          <div className="ss">
+            <h3>Règles de prêt</h3>
             <div className="fgrid">
               <div className="fg"><label className="fl">Durée (jours)</label><input className="fi" type="number" min="1" value={cfg.loanDays||14} onChange={e=>setCfg({...cfg,loanDays:parseInt(e.target.value)})}/></div>
               <div className="fg"><label className="fl">Pénalité/jour (HTG)</label><input className="fi" type="number" min="0" value={cfg.feePerDay||10} onChange={e=>setCfg({...cfg,feePerDay:parseInt(e.target.value)})}/></div>
             </div>
           </div>
           <div className="ss">
-            <h3>☁️ Base de données</h3>
-            <div style={{padding:'10px 14px',background:USE_SB?'rgba(76,175,125,.08)':'rgba(240,144,64,.08)',border:`1px solid ${USE_SB?'rgba(76,175,125,.2)':'rgba(240,144,64,.2)'}`,borderRadius:'var(--rs)',marginBottom:13,fontSize:'.85em',color:USE_SB?'var(--green)':'var(--orange)'}}>
-              {USE_SB?'🟢 Supabase connecté — données dans le cloud':'🟡 Mode local (localStorage)'}
-            </div>
+            <h3>Données</h3>
             <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-              <button className="btn btn-secondary btn-sm" onClick={exportJSON}>💾 Sauvegarder</button>
-              <button className="btn btn-secondary btn-sm" onClick={()=>importRef.current.click()}>📥 Restaurer</button>
-              <button className="btn btn-danger btn-sm" style={{marginLeft:'auto'}} onClick={()=>{if(confirm('Supprimer TOUTES les données ?')){['lib_members','lib_books','lib_loans'].forEach(k=>localStorage.removeItem(k));reload();close();toast('Données effacées','warn','🗑️');}}}>🗑️ Tout effacer</button>
+              <button className="btn btn-secondary btn-sm" onClick={exportJSON}><Icon name="save" size={12}/>Sauvegarder</button>
+              <button className="btn btn-secondary btn-sm" onClick={()=>importRef.current.click()}><Icon name="upload" size={12}/>Restaurer</button>
+              <button className="btn btn-danger btn-sm" style={{marginLeft:'auto'}} onClick={()=>{if(confirm('Supprimer TOUTES les données localStorage ?')){['lib_members','lib_books','lib_loans'].forEach(k=>localStorage.removeItem(k));reload();close();toast('Données effacées','warn');}}}><Icon name="trash" size={12}/>Effacer</button>
             </div>
-          </div>
-          <div className="ss">
-            <h3>📧 Notifications email</h3>
-            <div style={{fontSize:'.83em',color:'var(--text3)',lineHeight:1.6,marginBottom:12}}>
-              Pour activer les emails automatiques, configurez une <strong style={{color:'var(--text2)'}}>Edge Function Supabase</strong> nommée <code style={{background:'var(--surf2)',padding:'1px 6px',borderRadius:4,color:'var(--blue)'}}>send-late-email</code> avec Resend ou SendGrid.
-              <br/>Le bouton "Notifier retards" sur le tableau de bord fonctionne manuellement dès maintenant.
-            </div>
-            <button className="btn btn-email btn-sm" onClick={()=>{close();sendLateEmails();}}>📧 Tester l'envoi d'emails</button>
           </div>
           <div className="fac">
-            <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveCfg(cfg)}>💾 Sauvegarder</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveCfg(cfg)}><Icon name="save" size={13}/>Sauvegarder</button>
             <button className="btn btn-secondary" onClick={close}>Annuler</button>
           </div>
         </div>
@@ -1396,11 +1478,11 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
     {modal==='member'&&(
       <div className="ov" onClick={close}>
         <div className="mc" onClick={e=>e.stopPropagation()}>
-          <div className="mh"><h2 className="mt">{editM?'✏️ Modifier membre':'➕ Nouveau membre'}</h2><button className="xb" onClick={close}>×</button></div>
+          <div className="mh"><h2 className="mt">{editM?'Modifier membre':'Nouveau membre'}</h2><button className="xb" onClick={close}><Icon name="x" size={14}/></button></div>
           <div className="fg"><label className="fl">Photo</label>
             <input ref={photoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setMf(prev=>({...prev,photo:r.result}));r.readAsDataURL(f);}}/>
             <div className="pu" onClick={()=>photoRef.current.click()}>
-              {mf.photo?<img src={mf.photo} className="pp" alt=""/>:<><div style={{fontSize:'2em',marginBottom:7}}>📷</div><div style={{color:'var(--text3)',fontSize:'.84em'}}>Cliquez pour ajouter une photo</div></>}
+              {mf.photo?<img src={mf.photo} className="pp" alt=""/>:<><Icon name="camera" size={24} color="var(--text3)"/><div style={{color:'var(--text3)',fontSize:'.82em',marginTop:6}}>Cliquez pour ajouter une photo</div></>}
             </div>
           </div>
           <div className="fgrid">
@@ -1409,12 +1491,12 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
           </div>
           <div className="fgrid">
             <div className="fg"><label className="fl">Téléphone</label><input className="fi" type="tel" value={mf.phone} onChange={e=>setMf({...mf,phone:e.target.value})} placeholder="+509 1234 5678"/></div>
-            <div className="fg"><label className="fl">N° d'identité</label><input className="fi" value={mf.idNumber} onChange={e=>setMf({...mf,idNumber:e.target.value})} placeholder="CIN/NIF"/></div>
+            <div className="fg"><label className="fl">N° identité</label><input className="fi" value={mf.idNumber} onChange={e=>setMf({...mf,idNumber:e.target.value})} placeholder="CIN/NIF"/></div>
           </div>
-          <div className="fg"><label className="fl">Adresse</label><textarea className="ft" value={mf.address} onChange={e=>setMf({...mf,address:e.target.value})} placeholder="123 Rue Example"/></div>
+          <div className="fg"><label className="fl">Adresse</label><textarea className="ft" value={mf.address} onChange={e=>setMf({...mf,address:e.target.value})} placeholder="Adresse"/></div>
           <div className="fg"><label className="fl">Date de naissance</label><input className="fi" type="date" value={mf.dateOfBirth} onChange={e=>setMf({...mf,dateOfBirth:e.target.value})}/></div>
           <div className="fac">
-            <button className="btn btn-primary" style={{flex:1}} onClick={saveMember}>✓ Enregistrer</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={saveMember}><Icon name="check" size={13}/>Enregistrer</button>
             <button className="btn btn-secondary" onClick={close}>Annuler</button>
           </div>
         </div>
@@ -1425,9 +1507,9 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
     {modal==='book'&&(
       <div className="ov" onClick={close}>
         <div className="mc" onClick={e=>e.stopPropagation()}>
-          <div className="mh"><h2 className="mt">{editB?'✏️ Modifier livre':'➕ Nouveau livre'}</h2><button className="xb" onClick={close}>×</button></div>
+          <div className="mh"><h2 className="mt">{editB?'Modifier livre':'Nouveau livre'}</h2><button className="xb" onClick={close}><Icon name="x" size={14}/></button></div>
           <div className="fgrid">
-            <div className="fg"><label className="fl">Titre *</label><input className="fi" value={bf.title} onChange={e=>setBf({...bf,title:e.target.value})} placeholder="Titre du livre"/></div>
+            <div className="fg"><label className="fl">Titre *</label><input className="fi" value={bf.title} onChange={e=>setBf({...bf,title:e.target.value})} placeholder="Titre"/></div>
             <div className="fg"><label className="fl">Auteur *</label><input className="fi" value={bf.author} onChange={e=>setBf({...bf,author:e.target.value})} placeholder="Auteur"/></div>
           </div>
           <div className="fgrid">
@@ -1446,9 +1528,9 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
             <div className="fg"><label className="fl">Éditeur</label><input className="fi" value={bf.publisher} onChange={e=>setBf({...bf,publisher:e.target.value})} placeholder="Éditeur"/></div>
             <div className="fg"><label className="fl">Exemplaires</label><input className="fi" type="number" min="1" value={bf.copies} onChange={e=>setBf({...bf,copies:e.target.value})}/></div>
           </div>
-          <div className="fg"><label className="fl">Description</label><textarea className="ft" value={bf.description} onChange={e=>setBf({...bf,description:e.target.value})} placeholder="Résumé du livre…"/></div>
+          <div className="fg"><label className="fl">Description</label><textarea className="ft" value={bf.description} onChange={e=>setBf({...bf,description:e.target.value})} placeholder="Résumé…"/></div>
           <div className="fac">
-            <button className="btn btn-primary" style={{flex:1}} onClick={saveBook}>✓ Enregistrer</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={saveBook}><Icon name="check" size={13}/>Enregistrer</button>
             <button className="btn btn-secondary" onClick={close}>Annuler</button>
           </div>
         </div>
@@ -1459,27 +1541,26 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
     {modal==='zotero'&&(
       <div className="ov" onClick={()=>{close();setZp([]);setZst('');}}>
         <div className="mc wide" onClick={e=>e.stopPropagation()}>
-          <div className="mh"><h2 className="mt">📥 Importer depuis Zotero</h2><button className="xb" onClick={()=>{close();setZp([]);setZst('');}}>×</button></div>
-          <div className="al al-i" style={{flexDirection:'column',alignItems:'start',gap:7}}>
-            <div style={{fontWeight:700,fontSize:'.9em'}}>Comment exporter depuis Zotero :</div>
-            <ol style={{paddingLeft:18,fontSize:'.83em',lineHeight:2.2,color:'var(--text2)'}}>
-              <li>Sélectionnez vos références (<strong>Ctrl+A</strong> pour tout)</li>
-              <li>Clic droit → <strong>Exporter les éléments…</strong></li>
-              <li>Choisissez <strong>BibTeX</strong>, <strong>RIS</strong> ou <strong>CSV</strong></li>
-              <li>Importez le fichier ici</li>
+          <div className="mh"><h2 className="mt">Importer depuis Zotero</h2><button className="xb" onClick={()=>{close();setZp([]);setZst('');}}>×</button></div>
+          <div className="al al-i" style={{flexDirection:'column',alignItems:'start',gap:6,marginBottom:14}}>
+            <div style={{fontWeight:700,fontSize:'.86em'}}>Comment exporter depuis Zotero :</div>
+            <ol style={{paddingLeft:16,fontSize:'.82em',lineHeight:2.1,color:'var(--text2)'}}>
+              <li>Sélectionnez vos références (Ctrl+A pour tout)</li>
+              <li>Clic droit → Exporter les éléments…</li>
+              <li>Choisissez BibTeX, RIS ou CSV</li>
             </ol>
           </div>
           <input ref={zRef} type="file" accept=".bib,.ris,.csv" style={{display:'none'}} onChange={handleZFile}/>
           <div className="zdrop" onClick={()=>zRef.current.click()}>
-            <div style={{fontSize:'2.4em',marginBottom:8}}>📂</div>
-            <div style={{fontWeight:700,color:'var(--text)',marginBottom:3}}>Cliquez pour choisir un fichier</div>
-            <div style={{fontSize:'.8em',color:'var(--text3)'}}>Formats acceptés : .bib · .ris · .csv</div>
+            <Icon name="download" size={28} color="var(--accent)"/>
+            <div style={{fontWeight:700,color:'var(--text)',marginTop:8,marginBottom:3}}>Cliquez pour choisir un fichier</div>
+            <div style={{fontSize:'.78em',color:'var(--text3)'}}>Formats : .bib · .ris · .csv</div>
           </div>
-          {zst&&<div className={`al ${zst.startsWith('❌')?'al-w':'al-s'}`}>{zst}</div>}
+          {zst&&<div className={`al ${zst.includes('Aucune')||zst.includes('non')?'al-w':'al-s'}`}>{zst}</div>}
           {zp.length>0&&<>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-              <div style={{fontWeight:700,fontSize:'.9em',color:'var(--text2)'}}>{zp.filter(b=>b._s).length} / {zp.length} sélectionnée(s)</div>
-              <div style={{display:'flex',gap:7}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:9}}>
+              <div style={{fontWeight:600,fontSize:'.86em',color:'var(--text2)'}}>{zp.filter(b=>b._s).length} / {zp.length} sélectionnée(s)</div>
+              <div style={{display:'flex',gap:6}}>
                 <button className="btn btn-secondary btn-sm" onClick={()=>setZp(p=>p.map(b=>({...b,_s:true})))}>Tout</button>
                 <button className="btn btn-ghost btn-sm" onClick={()=>setZp(p=>p.map(b=>({...b,_s:false})))}>Aucun</button>
               </div>
@@ -1487,20 +1568,19 @@ body{font-family:Arial,sans-serif;background:#1a1f2c;display:flex;justify-conten
             <div className="zlist">
               {zp.map((bk,i)=>(
                 <div key={i} className={`zrow${bk._s?' sel':''}`} onClick={()=>setZp(p=>p.map((b,j)=>j===i?{...b,_s:!b._s}:b))}>
-                  <input type="checkbox" checked={bk._s} onChange={()=>{}} style={{width:15,height:15,marginTop:3,accentColor:'var(--gold)',flexShrink:0,cursor:'pointer'}} onClick={e=>e.stopPropagation()}/>
+                  <input type="checkbox" checked={bk._s} onChange={()=>{}} style={{width:14,height:14,marginTop:3,accentColor:'var(--accent)',flexShrink:0,cursor:'pointer'}} onClick={e=>e.stopPropagation()}/>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,color:'var(--text)',fontSize:'.9em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bk.title}</div>
-                    <div style={{fontSize:'.78em',color:'var(--text3)',marginTop:2}}>{bk.author||'—'}{bk.year?` · ${bk.year}`:''}</div>
-                    <div style={{marginTop:4,display:'flex',gap:5}}><span className="b bb" style={{fontSize:'.7em'}}>{bk.category}</span></div>
+                    <div style={{fontWeight:600,color:'var(--text)',fontSize:'.88em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bk.title}</div>
+                    <div style={{fontSize:'.76em',color:'var(--text3)',marginTop:2}}>{bk.author||'—'}{bk.year?` · ${bk.year}`:''}</div>
                   </div>
-                  <select className="fsel" style={{width:120,padding:'4px 8px',fontSize:'.78em',flexShrink:0}} value={bk.category} onClick={e=>e.stopPropagation()} onChange={e=>setZp(p=>p.map((b,j)=>j===i?{...b,category:e.target.value}:b))}>
+                  <select className="fsel" style={{width:115,padding:'4px 8px',fontSize:'.76em',flexShrink:0}} value={bk.category} onClick={e=>e.stopPropagation()} onChange={e=>setZp(p=>p.map((b,j)=>j===i?{...b,category:e.target.value}:b))}>
                     {CATS.map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               ))}
             </div>
             <div className="fac">
-              <button className="btn btn-primary" style={{flex:1}} onClick={doZotero}>📥 Importer {zp.filter(b=>b._s).length} livre(s)</button>
+              <button className="btn btn-primary" style={{flex:1}} onClick={doZotero}><Icon name="download" size={13}/>Importer {zp.filter(b=>b._s).length} livre(s)</button>
               <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');}}>Annuler</button>
             </div>
           </>}
