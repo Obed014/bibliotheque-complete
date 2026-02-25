@@ -582,25 +582,47 @@ function getStoredSession(){ try{ return JSON.parse(localStorage.getItem('lib_se
 // ── Role management ────────────────────────────────────
 const ROLES = { admin: 'Administrateur', librarian: 'Bibliothécaire', readonly: 'Lecture seule' };
 
-async function getUserRole(userId, token){
+// Emails administrateurs — ajoutez les vôtres ici
+const ADMIN_EMAILS = ['obedsanon@gmail.com'];
+
+function getEmailFromSession(session){
+  // Try session.user.email first
+  if(session?.user?.email) return session.user.email;
+  // Fallback: decode JWT token to get email
   try{
-    const rows = await sb('user_roles','GET',null,`?user_id=eq.${userId}&select=role`, token);
+    const token = session?.access_token;
+    if(!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email || payload.sub_email || null;
+  }catch(e){ return null; }
+}
+
+async function getUserRole(userId, userEmail){
+  // 1. Check hardcoded admin emails first (always works)
+  if(userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) return 'admin';
+  // 2. Then try database
+  try{
+    const url=`${SB_URL}/rest/v1/user_roles?user_id=eq.${userId}&select=role`;
+    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    if(!r.ok) return 'readonly';
+    const rows=await r.json();
     return rows.length ? rows[0].role : 'readonly';
   }catch(e){ return 'readonly'; }
 }
-async function getTeamMembers(token){
-  try{ return await sb('user_roles','GET',null,'?order=created_at.desc&select=*', token); }
-  catch(e){ return []; }
-}
-async function setUserRole(userId, role, token){
-  // Upsert: delete then insert
+async function getTeamMembers(){
   try{
-    await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`,token);
-  }catch(e){}
-  await sb('user_roles','POST',{user_id:userId, role},{}, token);
+    const url=`${SB_URL}/rest/v1/user_roles?order=created_at.desc&select=*`;
+    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    if(!r.ok) return [];
+    return r.json();
+  }catch(e){ return []; }
 }
-async function removeUserRole(userId, token){
-  await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`,token);
+async function setUserRole(userId, role){
+  try{ await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`); }catch(e){}
+  await sb('user_roles','POST',{user_id:userId, role});
+}
+async function removeUserRole(userId){
+  await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`);
 }
 // Invite via Supabase admin invite (needs service role — show instructions instead)
 async function inviteUser(email, token){
@@ -830,16 +852,28 @@ function App(){
 
   useEffect(()=>{
     const stored=getStoredSession();
-    if(stored&&stored.access_token) setSession(stored);
+    if(stored&&stored.access_token){
+      setSession(stored);
+      // Immediately check role from stored session
+      const email = getEmailFromSession(stored);
+      const uid = stored.user?.id;
+      if(uid||email){
+        getUserRole(uid, email).then(r=>setUserRole(r));
+      }
+    }
     setAuthReady(true);
     const s=gsettings(); if(s&&s.libraryName) setCfg(prev=>({...prev,...s}));
   },[]);
 
   useEffect(()=>{
-    if(session){
+    if(session&&session.user){
       reload();
       // Fetch user role
-      getUserRole(session.user.id, session.access_token).then(r=>setUserRole(r));
+      const uid = session.user?.id || session.user;
+      const email = getEmailFromSession(session);
+      getUserRole(uid, email).then(r=>{
+        setUserRole(r);
+      });
     }
   },[session]);
   useEffect(()=>{ if(tab==='scanner'&&scanRef.current) scanRef.current.focus(); },[tab]);
@@ -1133,7 +1167,7 @@ body{font-family:Arial,Helvetica,sans-serif}
 
   async function loadTeam(){
     if(!isAdmin) return;
-    try{ const t=await getTeamMembers(session?.access_token); setTeamMembers(t); }
+    try{ const t=await getTeamMembers(); setTeamMembers(t); }
     catch(e){}
   }
   useEffect(()=>{ if(isAdmin) loadTeam(); },[isAdmin]);
@@ -1297,7 +1331,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                       <div className="cs">Ajouté le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR'):'-'}</div>
                     </div>
                     <select className="fsel" value={t.role} onChange={async e=>{
-                      try{ await setUserRole(t.user_id,e.target.value,session?.access_token); toast('Rôle mis à jour'); loadTeam(); }
+                      try{ await setUserRole(t.user_id,e.target.value); toast('Rôle mis à jour'); loadTeam(); }
                       catch(err){ toast(err.message,'err'); }
                     }} style={{fontSize:'.8em',padding:'5px 9px'}}>
                       <option value="admin">Administrateur</option>
@@ -1306,7 +1340,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                     </select>
                     <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={async()=>{
                       if(!confirm('Révoquer cet accès ?')) return;
-                      try{ await removeUserRole(t.user_id,session?.access_token); toast('Accès révoqué'); loadTeam(); }
+                      try{ await removeUserRole(t.user_id); toast('Accès révoqué'); loadTeam(); }
                       catch(err){ toast(err.message,'err'); }
                     }}><Icon name="trash" size={12}/></button>
                   </div>
