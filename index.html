@@ -1708,21 +1708,7 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div className="ph au">
             <h1 className="pt">Livres</h1>
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-secondary" onClick={() => setZp([])}>Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// INITIALISATION DU RENDU REACT
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
-</script>
-</body>
-</html>
+              <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
               {canEdit&&<button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>}
             </div>
           </div>
@@ -2247,20 +2233,19 @@ root.render(<App />);
               ))}
             </div>
             <div className="fac">
-             <button className="btn btn-secondary" onClick={() => { setZp([]); setZst(''); }}>Annuler</button>
+              <button className="btn btn-primary" style={{flex:1}} onClick={doZotero}><Icon name="download" size={13}/>Importer {zp.filter(b=>b._s).length} livre(s)</button>
+              <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');}}>Annuler</button>
             </div>
-          </>
-        )}
+          </>}
+        </div>
       </div>
-    </div>
-  )}
+    )}
 
-</div>
-);
-}; // <--- Cette accolade ferme la fonction "const App = () => {"
+  </div>
+  );
+}
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 
 </script>
 </body>
