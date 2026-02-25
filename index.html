@@ -693,8 +693,18 @@ const DB = {
       if(b){b.available=Math.min(b.copies,Math.max(0,b.available+delta));sd('lib_books',all);}
       return;
     }
-    const rows=await sb('books','GET',null,`?id=eq.${id}&select=available,copies`);
-    if(rows.length) await sb('books','PATCH',{available:Math.min(rows[0].copies,Math.max(0,rows[0].available+delta))},`?id=eq.${id}`);
+    const rows = mLoans.slice(0, 20).map(l => {
+      const mb = members.find(m => m.id === l.memberId);
+      const bk = books.find(b => b.id === l.bookId);
+      const color = l.daysLate > 0 ? '#dc2626' : '#16a34a';
+      const status = l.daysLate > 0 ? `${l.daysLate}j / ${l.lateFee} HTG` : 'OK';
+      
+      return "<tr><td>"+(bk?.title||'?')+"</td><td>"+(mb?.name||'?')+"</td><td>"+new Date(l.loanDate).toLocaleDateString('fr-FR')+"</td><td>"+(l.returnDate?new Date(l.returnDate).toLocaleDateString('fr-FR'):'En cours')+"</td><td style='color:"+color+"'>"+status+"</td></tr>";
+    }).join('');
+
+    const topRows = topBooks.filter(b => b.cnt > 0).map((b, i) => 
+      "<tr><td>"+(i + 1)+"</td><td>"+b.title+"</td><td>"+b.author+"</td><td>"+b.cnt+"</td></tr>"
+    ).join('');
   },
   async addLoan(l){
     if(!USE_SB){ sd('lib_loans',[...gd('lib_loans'),l]); return l; }
