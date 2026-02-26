@@ -1271,7 +1271,7 @@ body{font-family:Arial,Helvetica,sans-serif}
 .right{display:flex;flex-direction:column;align-items:center;gap:1.5mm;flex-shrink:0;width:22mm}
 .qr-box{background:#fff;border-radius:1mm;padding:.8mm;line-height:0}
 .bar-box{background:#fff;border-radius:.8mm;padding:.8mm 1mm;width:100%;line-height:0}
-</style></head><body>
+<\/style><\/head><body>
 <div class="card">
   <div class="top"><div><div class="lib">${cfg.libraryName}</div><div class="sub">Étiquette livre</div></div></div>
   <div class="body">
@@ -1286,7 +1286,7 @@ body{font-family:Arial,Helvetica,sans-serif}
       <div class="bar-box"><img src="${bar}" width="100%" height="7mm"></div>
     </div>
   </div>
-</div></body></html>`;
+</div><\/body><\/html>`;
     let iframe=document.getElementById('_pb');
     if(!iframe){ iframe=document.createElement('iframe'); iframe.id='_pb'; iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:350px;height:230px;border:none;'; document.body.appendChild(iframe); }
     iframe.onload=()=>{ const imgs=iframe.contentDocument.querySelectorAll('img'); let done=0; const tryPrint=()=>{ if(++done>=imgs.length) setTimeout(()=>iframe.contentWindow.print(),500); }; if(!imgs.length) setTimeout(()=>iframe.contentWindow.print(),500); else imgs.forEach(img=>{ if(img.complete) tryPrint(); else{ img.onload=tryPrint; img.onerror=tryPrint; } }); };
@@ -1326,7 +1326,7 @@ th{background:#f3f4f6;padding:2.5mm 3mm;text-align:left;font-weight:600;border-b
 td{padding:2mm 3mm;border-bottom:0.2mm solid #f3f4f6}
 tr:last-child td{border-bottom:none}
 .footer{margin-top:10mm;padding-top:4mm;border-top:0.3mm solid #e5e7eb;font-size:8pt;color:#9ca3af;display:flex;justify-content:space-between}
-</style></head><body>
+<\/style><\/head><body>
 <div class="header">
   <div><div class="lib-name">${cfg.libraryName}</div><div class="lib-sub">Rapport mensuel de bibliothèque</div></div>
   <div class="report-title"><h1>Rapport — ${monthName}</h1><p>Généré le ${now.toLocaleDateString('fr-FR')}</p></div>
@@ -1344,7 +1344,7 @@ tr:last-child td{border-bottom:none}
 ${rows?`<div class="section"><h2>Prêts du mois</h2><table><thead><tr><th>Livre</th><th>Membre</th><th>Prêt</th><th>Retour</th><th>Retard</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
 ${topRows?`<div class="section"><h2>Top livres empruntés</h2><table><thead><tr><th>#</th><th>Titre</th><th>Auteur</th><th>Prêts</th></tr></thead><tbody>${topRows}</tbody></table></div>`:''}
 <div class="footer"><span>${cfg.libraryName} — Confidentiel</span><span>${now.toLocaleDateString('fr-FR')}</span></div>
-</body></html>`;
+<\/body><\/html>`;
     const w=window.open('','_blank','width=820,height=1100');
     if(!w){ toast('Autorisez les popups pour imprimer','warn'); return; }
     w.document.write(html); w.document.close(); setTimeout(()=>w.print(),800);
@@ -1385,7 +1385,7 @@ body{font-family:Arial,Helvetica,sans-serif}
 .bar-section{padding:0 3mm 2.5mm;flex-shrink:0}
 .bar-box{background:#fff;border-radius:1mm;padding:.8mm 1mm;line-height:0}
 .since{text-align:center;font-size:1.6mm;color:rgba(255,255,255,.28);padding-bottom:1.5mm;letter-spacing:.04em}
-</style></head><body>
+<\/style><\/head><body>
 <div class="card">
   <div class="header">
     ${cfg.libraryLogo
@@ -1414,7 +1414,7 @@ body{font-family:Arial,Helvetica,sans-serif}
   </div>
   <div class="since">Membre depuis ${since}</div>
 </div>
-</body></html>`;
+<\/body><\/html>`;
     let iframe=document.getElementById('_pf');
     if(!iframe){
       iframe=document.createElement('iframe');
