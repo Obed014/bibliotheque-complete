@@ -733,6 +733,18 @@ const DB = {
     if(!USE_SB){ sd('lib_reservations',gd('lib_reservations').filter(r=>r.id!==id)); return; }
     try{ await sb('reservations','DELETE',null,`?id=eq.${id}`); }
     catch(e){ sd('lib_reservations',gd('lib_reservations').filter(r=>r.id!==id)); }
+  },
+  async addLoanNote(id, note){
+    if(!USE_SB){ sd('lib_loans',gd('lib_loans').map(l=>l.id===id?{...l,note}:l)); return; }
+    await sb('loans','PATCH',{note},`?id=eq.${id}`);
+  },
+  async setAvailManual(id, available, status){
+    if(!USE_SB){ sd('lib_books',gd('lib_books').map(b=>b.id===id?{...b,available,status}:b)); return; }
+    await sb('books','PATCH',{available,status},`?id=eq.${id}`);
+  },
+  async deleteManyBooks(ids){
+    if(!USE_SB){ sd('lib_books',gd('lib_books').filter(b=>!ids.includes(b.id))); return; }
+    await sb('books','DELETE',null,`?id=in.(${ids.join(',')})`);
   }
 };
 
@@ -869,6 +881,13 @@ function App(){
   const [selectedMember,setSelectedMember]=useState(null);
   const [selectedBook,setSelectedBook]=useState(null);
   const [renewLoanId,setRenewLoanId]=useState(null);
+  const [selectedBooks,setSelectedBooks]=useState(new Set());
+  const [selectMode,setSelectMode]=useState(false);
+  const [globalSearch,setGlobalSearch]=useState('');
+  const [showGlobalSearch,setShowGlobalSearch]=useState(false);
+  const [dashWidgets,setDashWidgets]=useState(()=>JSON.parse(localStorage.getItem('lib_widgets')||'["stats","overdue","categories","topbooks"]'));
+  const [isbnLoading,setIsbnLoading]=useState(false);
+  const [noteModal,setNoteModal]=useState(null);
 
   const scanRef=useRef(),logoRef=useRef(),photoRef=useRef(),importRef=useRef(),zRef=useRef();
 
@@ -876,6 +895,27 @@ function App(){
     document.documentElement.setAttribute('data-theme',theme);
     localStorage.setItem('lib_theme',theme);
   },[theme]);
+
+  // ── Keyboard shortcuts ──────────────────────────────
+  useEffect(()=>{
+    const handler=(e)=>{
+      if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+      if(e.key==='/'){ e.preventDefault(); setShowGlobalSearch(s=>!s); return; }
+      if(e.key==='Escape'){ setShowGlobalSearch(false); setSelectMode(false); return; }
+      if(!session) return;
+      if(e.key==='m'||e.key==='M') setTab('members');
+      if(e.key==='l'||e.key==='L') setTab('loans');
+      if(e.key==='b'||e.key==='B') setTab('books');
+      if(e.key==='d'||e.key==='D') setTab('dashboard');
+      if(e.key==='h'||e.key==='H') setTab('history');
+      if(e.key==='n'||e.key==='N'){
+        if(tab==='books'&&canEdit) setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''})||setModal('book');
+        if(tab==='members'&&canEdit) setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''})||setModal('member');
+      }
+    };
+    window.addEventListener('keydown',handler);
+    return()=>window.removeEventListener('keydown',handler);
+  },[session,tab,canEdit]);
 
   useEffect(()=>{
     const stored=getStoredSession();
@@ -1105,6 +1145,85 @@ function App(){
     }catch(e){ toast(e.message,'err'); }
   }
 
+  // ── ISBN lookup ──────────────────────────────────────
+  async function lookupISBN(isbn){
+    if(!isbn||isbn.length<10){ toast('ISBN invalide','err'); return null; }
+    setIsbnLoading(true);
+    try{
+      const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+      const d=await r.json();
+      const book=d[`ISBN:${isbn}`];
+      if(!book){ toast('Livre non trouvé pour cet ISBN','warn'); return null; }
+      return {
+        title: book.title||'',
+        author: (book.authors||[]).map(a=>a.name).join(', '),
+        year: book.publish_date?(book.publish_date.match(/\d{4}/)||[''])[0]:'',
+        publisher: (book.publishers||[]).map(p=>p.name).join(', '),
+        isbn
+      };
+    }catch(e){ toast('Erreur de recherche ISBN','err'); return null; }
+    finally{ setIsbnLoading(false); }
+  }
+
+  // ── Bulk delete books ─────────────────────────────────
+  async function deleteBulkBooks(){
+    if(!selectedBooks.size) return;
+    if(!confirm(`Supprimer ${selectedBooks.size} livre(s) sélectionné(s) ?`)) return;
+    try{
+      await DB.deleteManyBooks([...selectedBooks]);
+      toast(`${selectedBooks.size} livre(s) supprimé(s)`);
+      setSelectedBooks(new Set());
+      setSelectMode(false);
+      reload();
+    }catch(e){ toast(e.message,'err'); }
+  }
+
+  // ── Duplicate book ────────────────────────────────────
+  async function duplicateBook(bk){
+    const newBook={...bk, id:gid(), barcode:'BK-'+Date.now().toString(36).toUpperCase(), available:bk.copies, addedDate:new Date().toISOString()};
+    try{ await DB.addBook(newBook); toast('Livre dupliqué !'); reload(); }
+    catch(e){ toast(e.message,'err'); }
+  }
+
+  // ── Set availability manually ─────────────────────────
+  async function setAvailManual(bookId, available, status){
+    try{ await DB.setAvailManual(bookId, parseInt(available), status); toast('Disponibilité mise à jour'); reload(); }
+    catch(e){ toast(e.message,'err'); }
+  }
+
+  // ── Send individual reminder ──────────────────────────
+  async function sendReminderEmail(loan){
+    const mb=members.find(m=>m.id===loan.memberId);
+    const bk=books.find(b=>b.id===loan.bookId);
+    if(!mb?.email){ toast('Membre sans email','err'); return; }
+    const daysLeft=Math.ceil((new Date(loan.dueDate)-new Date())/86400000);
+    const subject=`Rappel: retour de "${bk?.title||'livre'}"`;
+    const body=`Bonjour ${mb.name},
+
+Ce message est un rappel pour le retour du livre "${bk?.title||'?'}" emprunté à ${cfg.libraryName}.
+
+Date de retour prévue : ${new Date(loan.dueDate).toLocaleDateString('fr-FR')}${daysLeft<0?' ('+Math.abs(daysLeft)+' jours de retard)':''}.
+
+Merci.
+${cfg.libraryName}`;
+    const mailto=`mailto:${mb.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto);
+    toast('Client email ouvert');
+  }
+
+  // ── Save loan note ────────────────────────────────────
+  async function saveLoanNote(loanId, note){
+    try{ await DB.addLoanNote(loanId,note); toast('Note enregistrée'); setNoteModal(null); reload(); }
+    catch(e){ toast(e.message,'err'); }
+  }
+
+  // ── Toggle widget on dashboard ────────────────────────
+  function toggleWidget(key){
+    const next=dashWidgets.includes(key)?dashWidgets.filter(w=>w!==key):[...dashWidgets,key];
+    setDashWidgets(next);
+    localStorage.setItem('lib_widgets',JSON.stringify(next));
+  }
+
   // ── Renew loan ──────────────────────────────────────
   async function renewLoan(loanId){
     const loan=loans.find(l=>l.id===loanId); if(!loan) return;
@@ -1321,6 +1440,13 @@ body{font-family:Arial,Helvetica,sans-serif}
   }
   useEffect(()=>{ if(isAdmin) loadTeam(); },[isAdmin]);
 
+  // ── Global search ──
+  const globalResults = globalSearch.length>=2 ? [
+    ...members.filter(m=>(m.name||'').toLowerCase().includes(globalSearch.toLowerCase())||(m.email||'').toLowerCase().includes(globalSearch.toLowerCase())).map(m=>({type:'member',label:m.name,sub:m.email,action:()=>{setTab('members');setShowGlobalSearch(false);setSelectedMember(m);}})),
+    ...books.filter(b=>(b.title||'').toLowerCase().includes(globalSearch.toLowerCase())||(b.author||'').toLowerCase().includes(globalSearch.toLowerCase())||(b.isbn||'').includes(globalSearch)||(b.barcode||'').includes(globalSearch)).map(b=>({type:'book',label:b.title,sub:b.author,action:()=>{setTab('books');setShowGlobalSearch(false);setSelectedBook(b);}})),
+    ...loans.filter(l=>{const m=members.find(x=>x.id===l.memberId),b=books.find(x=>x.id===l.bookId);return(m?.name||'').toLowerCase().includes(globalSearch.toLowerCase())||(b?.title||'').toLowerCase().includes(globalSearch.toLowerCase());}).map(l=>{const m=members.find(x=>x.id===l.memberId),b=books.find(x=>x.id===l.bookId);return({type:'loan',label:b?.title||'?',sub:m?.name+' — en cours',action:()=>{setTab('loans');setShowGlobalSearch(false);}});})
+  ].slice(0,12) : [];
+
   // ── Computed ──
   const fMembers=members.filter(m=>(m.name||'').toLowerCase().includes(search.toLowerCase())||(m.email||'').toLowerCase().includes(search.toLowerCase())||(m.memberCode||'').toLowerCase().includes(search.toLowerCase()));
   const fBooks=books.filter(b=>{
@@ -1343,6 +1469,8 @@ body{font-family:Arial,Helvetica,sans-serif}
   const totalFinesPaid=paidFines.reduce((s,l)=>s+(l.lateFee||0),0);
   // Member loan stats
   const memberLoanCounts=members.map(m=>({...m,active:loans.filter(l=>l.memberId===m.id).length,total:history.filter(l=>l.memberId===m.id).length}));
+  const maxLoans=cfg.maxLoansPerMember||0;
+  const memberAtLimit=(mId)=>maxLoans>0&&loans.filter(l=>l.memberId===mId).length>=maxLoans;
   // New books this week
   const oneWeekAgo=new Date(); oneWeekAgo.setDate(oneWeekAgo.getDate()-7);
   const isNewBook=(b)=>b.addedDate&&new Date(b.addedDate)>oneWeekAgo;
@@ -1441,6 +1569,7 @@ body{font-family:Arial,Helvetica,sans-serif}
           <span>{userEmail}</span>
           <span style={{marginLeft:6,padding:'1px 7px',borderRadius:20,fontSize:'.65em',fontWeight:700,background:'var(--accent-t)',color:'var(--sb-accent)',textTransform:'uppercase',letterSpacing:'.04em'}}>{ROLES[userRole]||userRole}</span>
         </div>
+        <button className="sfbtn" onClick={()=>setShowGlobalSearch(s=>!s)} style={{width:'100%'}} title="Raccourci: /"><Icon name="search" size={12}/>Recherche globale</button>
         <button className="sfbtn logout" onClick={handleLogout} style={{width:'100%'}}><Icon name="log-out" size={12}/>Déconnexion</button>
       </div>
     </aside>
@@ -1551,7 +1680,8 @@ body{font-family:Arial,Helvetica,sans-serif}
         <div>
           <div className="ph au">
             <h1 className="pt">Tableau de bord</h1>
-            <div style={{display:'flex',gap:8}}>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+              <div style={{display:'flex',gap:4}}>
               {overdue.length>0&&(
                 <button className="btn btn-email btn-sm" onClick={sendLateEmails} disabled={emailSending}>
                   {emailSending?<span className="spinner"/>:<Icon name="mail" size={13}/>}
@@ -1561,15 +1691,15 @@ body{font-family:Arial,Helvetica,sans-serif}
               <button className="btn btn-secondary btn-sm" onClick={reload}><Icon name="refresh" size={13}/>Actualiser</button>
             </div>
           </div>
-          {overdue.length>0&&<div className="al al-w au2"><Icon name="alert" size={14}/><strong>{overdue.length} prêt(s) en retard</strong></div>}
-          <div className="stats au2">
+          {dashWidgets.includes('overdue')&&overdue.length>0&&<div className="al al-w au2"><Icon name="alert" size={14}/><strong>{overdue.length} prêt(s) en retard</strong></div>}
+          {dashWidgets.includes('stats')&&<div className="stats au2">
             <div className="sc c-blue"><div className="sn">{members.length}</div><div className="sl">Membres</div></div>
             <div className="sc c-accent"><div className="sn">{books.length}</div><div className="sl">Livres</div></div>
             <div className="sc c-purple"><div className="sn">{loans.length}</div><div className="sl">Prêts actifs</div></div>
             <div className="sc c-green"><div className="sn">{books.reduce((s,b)=>s+(b.available||0),0)}</div><div className="sl">Disponibles</div></div>
             <div className="sc c-red"><div className="sn">{overdue.length}</div><div className="sl">En retard</div></div>
             <div className="sc c-orange"><div className="sn">{history.length}</div><div className="sl">Total prêts</div></div>
-          </div>
+          </div>}
           <h2 style={{fontFamily:"'Fraunces',serif",fontSize:'1.15em',fontWeight:400,marginBottom:12,color:'var(--text2)'}} className="au3">Par catégorie</h2>
           <div className="cg au3">
             {CATS.map(c=><div key={c} className="cc" onClick={()=>{setTab('books');setCatF(c);}}>
@@ -1707,8 +1837,11 @@ body{font-family:Arial,Helvetica,sans-serif}
         <div>
           <div className="ph au">
             <h1 className="pt">Livres</h1>
-            <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-secondary" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+              {selectMode&&selectedBooks.size>0&&<button className="btn btn-danger btn-sm" onClick={deleteBulkBooks}><Icon name="trash" size={13}/>Supprimer ({selectedBooks.size})</button>}
+              {selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>{setSelectMode(false);setSelectedBooks(new Set());}}><Icon name="x" size={13}/>Annuler</button>}
+              {canEdit&&!selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>setSelectMode(true)}><Icon name="check" size={13}/>Sélectionner</button>}
+              <button className="btn btn-secondary btn-sm" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
               {canEdit&&<button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>}
             </div>
           </div>
@@ -1725,7 +1858,8 @@ body{font-family:Arial,Helvetica,sans-serif}
           {fBooks.length===0?<div className="empty au3"><div className="empty-i"><Icon name="book" size={48}/></div><div>Aucun livre</div></div>:
           <div className="grid au3">
             {fBooks.map(bk=>(
-              <div key={bk.id} className="card">
+              <div key={bk.id} className={`card${selectedBooks.has(bk.id)?' selected-card':''}`} style={{position:'relative',cursor:selectMode?'pointer':'default'}} onClick={selectMode?()=>setSelectedBooks(prev=>{const n=new Set(prev);n.has(bk.id)?n.delete(bk.id):n.add(bk.id);return n;}):undefined}>
+                {selectMode&&<div style={{position:'absolute',top:8,left:8,zIndex:2}}><input type="checkbox" readOnly checked={selectedBooks.has(bk.id)} style={{width:16,height:16,accentColor:'var(--accent)'}}/></div>}
                 <div style={{display:'flex',justifyContent:'space-between',gap:14}}>
                   <div style={{flex:1}}>
                     <div className="ct">{bk.title}</div>
@@ -1734,7 +1868,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                     <div className="cm">
                       {bk.category&&<span className="b bb">{bk.category}</span>}
                       {bk.shelf&&<span className="b bo">{bk.shelf}</span>}
-                      <span className={`b ${bk.available>0?'bg':'br'}`}>{bk.available}/{bk.copies} dispo</span>
+                      <span className={`b ${bk.available>0?'bg':bk.status==='lost'?'br':'br'}`}>{bk.available}/{bk.copies} dispo{bk.status==='lost'?' 🔴 perdu':bk.status==='damaged'?' 🟡 abîmé':''}</span>
                       <span className="b bk">{bk.barcode}</span>
                     </div>
                     {bk.description&&<div style={{fontSize:'.8em',color:'var(--text3)',marginTop:7,lineHeight:1.5}}>{bk.description.substring(0,110)}{bk.description.length>110?'…':''}</div>}
@@ -1743,9 +1877,9 @@ body{font-family:Arial,Helvetica,sans-serif}
                 </div>
                 <div className="ca">
                   {bk.available>0&&members.length>0&&(
-                    <select className="fsel" style={{flex:1}} onChange={e=>{if(e.target.value){createLoan(bk.id,parseInt(e.target.value));e.target.value=''}}}>
+                    <select className="fsel" style={{flex:1}} onChange={e=>{if(e.target.value){if(memberAtLimit(e.target.value)){if(!confirm(`Ce membre a atteint la limite de ${maxLoans} prêts. Continuer quand même ?`)){e.target.value='';return;}}createLoan(bk.id,e.target.value);e.target.value=''}}}>
                       <option value="">Prêter à…</option>
-                      {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+                      {members.map(m=><option key={m.id} value={m.id}>{m.name}{memberAtLimit(m.id)?' ⚠️ limite':''}</option>)}
                     </select>
                   )}
               {bk.available===0&&members.length>0&&(
@@ -1757,6 +1891,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                   <button className="btn btn-ghost btn-sm" onClick={()=>printBookBarcode(bk)} title="Imprimer étiquette"><Icon name="printer" size={12}/></button>
                   <button className="btn btn-ghost btn-sm" onClick={()=>setSelectedBook(bk)}><Icon name="book-open" size={12}/>Fiche</button>
                   {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>openEditB(bk)}><Icon name="pencil" size={12}/></button>}
+                  {canEdit&&<button className="btn btn-ghost btn-sm" title="Dupliquer" onClick={()=>duplicateBook(bk)}><Icon name="copy" size={12}/></button>}
                   {canEdit&&<button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={()=>delBook(bk.id)}><Icon name="trash" size={12}/></button>}
                 </div>
               </div>
@@ -1791,6 +1926,8 @@ body{font-family:Arial,Helvetica,sans-serif}
                   <div style={{display:'flex',flexDirection:'column',gap:5,flexShrink:0}}>
                     <button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}><Icon name="check" size={12}/>Retourner</button>
                     <button className="btn btn-secondary btn-sm" onClick={()=>setRenewLoanId(loan.id)}><Icon name="refresh" size={12}/>Renouveler</button>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>sendReminderEmail(loan)} title="Envoyer rappel"><Icon name="mail" size={12}/></button>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>setNoteModal(loan)} title="Ajouter note"><Icon name="pencil" size={12}/>{loan.note&&<span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',display:'inline-block',marginLeft:3}}/>}</button>
                   </div>
                 </div>
               </div>);
@@ -1900,6 +2037,9 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div className="ss">
             <h3>Règles de prêt</h3>
             <div className="fgrid">
+              <div className="fg"><label className="fl">Max prêts/membre (0=illimité)</label><input className="fi" type="number" min="0" max="20" value={cfg.maxLoansPerMember||0} onChange={e=>setCfg(f=>({...f,maxLoansPerMember:parseInt(e.target.value)||0}))}/></div>
+            </div>
+            <div className="fgrid">
               <div className="fg"><label className="fl">Durée (jours)</label><input className="fi" type="number" min="1" value={cfg.loanDays||14} onChange={e=>setCfg({...cfg,loanDays:parseInt(e.target.value)})}/></div>
               <div className="fg"><label className="fl">Pénalité/jour (HTG)</label><input className="fi" type="number" min="0" value={cfg.feePerDay||10} onChange={e=>setCfg({...cfg,feePerDay:parseInt(e.target.value)})}/></div>
             </div>
@@ -1954,6 +2094,15 @@ body{font-family:Arial,Helvetica,sans-serif}
       <div className="ov" onClick={close}>
         <div className="mc" onClick={e=>e.stopPropagation()}>
           <div className="mh"><h2 className="mt">{editB?'Modifier livre':'Nouveau livre'}</h2><button className="xb" onClick={close}><Icon name="x" size={14}/></button></div>
+          <div className="fg">
+            <label className="fl">Recherche ISBN automatique</label>
+            <div style={{display:'flex',gap:8}}>
+              <input className="fi" placeholder="Ex: 9782070360024" value={bf.isbn||''} onChange={e=>setBf(f=>({...f,isbn:e.target.value}))} style={{flex:1}}/>
+              <button className="btn btn-secondary" disabled={isbnLoading} onClick={async()=>{const r=await lookupISBN(bf.isbn);if(r) setBf(f=>({...f,...r}));}} style={{flexShrink:0}}>
+                {isbnLoading?<span className="spinner"/>:<Icon name="search" size={13}/>}Remplir
+              </button>
+            </div>
+          </div>
           <div className="fgrid">
             <div className="fg"><label className="fl">Titre *</label><input className="fi" value={bf.title} onChange={e=>setBf({...bf,title:e.target.value})} placeholder="Titre"/></div>
             <div className="fg"><label className="fl">Auteur *</label><input className="fi" value={bf.author} onChange={e=>setBf({...bf,author:e.target.value})} placeholder="Auteur"/></div>
@@ -2117,6 +2266,7 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div style={{marginTop:14,display:'flex',gap:8,flexWrap:'wrap'}}>
             <button className="btn btn-primary btn-sm" onClick={()=>printBookBarcode(selectedBook)}><Icon name="printer" size={12}/>Étiquette</button>
             {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>{openEditB(selectedBook);setSelectedBook(null);}}><Icon name="pencil" size={12}/>Modifier</button>}
+            {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>{const a=prompt(`Disponibilité (0-${selectedBook.copies}):`,selectedBook.available);const s=prompt('Statut (normal/lost/damaged):',selectedBook.status||'normal');if(a!==null) setAvailManual(selectedBook.id,a,s||'normal').then(()=>{setSelectedBook(bk=>({...bk,available:parseInt(a),status:s}));});}}><Icon name="settings" size={12}/>Dispo manuelle</button>}
             <button className="btn btn-secondary btn-sm" style={{marginLeft:'auto'}} onClick={()=>setSelectedBook(null)}>Fermer</button>
           </div>
         </div>
@@ -2148,6 +2298,72 @@ body{font-family:Arial,Helvetica,sans-serif}
               <div className="fac">
                 <button className="btn btn-primary" style={{flex:1}} onClick={()=>renewLoan(renewLoanId)}><Icon name="check" size={13}/>Confirmer le renouvellement</button>
                 <button className="btn btn-secondary" onClick={()=>setRenewLoanId(null)}>Annuler</button>
+              </div>
+            </>);
+          })()}
+        </div>
+      </div>
+    )}
+
+    {/* Global search overlay */}
+    {showGlobalSearch&&(
+      <div className="ov" onClick={()=>setShowGlobalSearch(false)} style={{alignItems:'flex-start',paddingTop:80}}>
+        <div style={{width:'100%',maxWidth:620,background:'var(--bg2)',borderRadius:'var(--r)',boxShadow:'var(--shadow-lg)',border:'1px solid var(--border)',overflow:'hidden'}} onClick={e=>e.stopPropagation()}>
+          <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
+            <Icon name="search" size={18} color="var(--text3)"/>
+            <input autoFocus className="fi" style={{border:'none',background:'transparent',fontSize:'1em',flex:1,outline:'none',padding:0}} placeholder="Rechercher membres, livres, prêts…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)}/>
+            <span style={{fontSize:'.75em',color:'var(--text3)',background:'var(--bg3)',padding:'2px 6px',borderRadius:4}}>Échap pour fermer</span>
+          </div>
+          {globalSearch.length>=2&&globalResults.length===0&&<div style={{padding:'24px',textAlign:'center',color:'var(--text3)',fontSize:'.88em'}}>Aucun résultat pour "{globalSearch}"</div>}
+          {globalResults.length>0&&<div>
+            {['member','book','loan'].map(type=>{
+              const items=globalResults.filter(r=>r.type===type);
+              if(!items.length) return null;
+              const labels={member:'Membres',book:'Livres',loan:'Prêts actifs'};
+              const icons={member:'user',book:'book',loan:'book-open'};
+              return(<div key={type}>
+                <div style={{padding:'8px 16px 4px',fontSize:'.72em',fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em'}}>{labels[type]}</div>
+                {items.map((r,i)=>(
+                  <div key={i} onClick={r.action} style={{padding:'10px 16px',cursor:'pointer',display:'flex',gap:10,alignItems:'center',borderBottom:'1px solid var(--border)'}} onMouseEnter={e=>e.currentTarget.style.background='var(--surf)'} onMouseLeave={e=>e.currentTarget.style.background=''}>
+                    <Icon name={icons[type]} size={14} color="var(--accent)"/>
+                    <div><div style={{fontWeight:600,fontSize:'.9em'}}>{r.label}</div><div style={{fontSize:'.78em',color:'var(--text3)',marginTop:1}}>{r.sub}</div></div>
+                  </div>
+                ))}
+              </div>);
+            })}
+          </div>}
+          {globalSearch.length<2&&<div style={{padding:'16px',display:'flex',gap:8,flexWrap:'wrap'}}>
+            {[{key:'/',label:'Ouvrir/fermer'},{key:'M',label:'Membres'},{key:'B',label:'Livres'},{key:'L',label:'Prêts'},{key:'D',label:'Tableau de bord'},{key:'N',label:'Nouveau (Membres/Livres)'}].map(s=>(
+              <div key={s.key} style={{display:'flex',gap:6,alignItems:'center',fontSize:'.8em',color:'var(--text2)'}}>
+                <kbd style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:4,padding:'2px 6px',fontFamily:'monospace',fontSize:'.9em'}}>{s.key}</kbd>
+                <span>{s.label}</span>
+              </div>
+            ))}
+          </div>}
+        </div>
+      </div>
+    )}
+
+    {/* Loan note modal */}
+    {noteModal&&(
+      <div className="ov" onClick={()=>setNoteModal(null)}>
+        <div className="mc" style={{maxWidth:440}} onClick={e=>e.stopPropagation()}>
+          <div className="mh"><h2 className="mt">Note sur le prêt</h2><button className="xb" onClick={()=>setNoteModal(null)}><Icon name="x" size={14}/></button></div>
+          {(()=>{
+            const bk=books.find(b=>b.id===noteModal.bookId);
+            const mb=members.find(m=>m.id===noteModal.memberId);
+            return(<>
+              <div className="al al-i" style={{marginBottom:12,gap:8}}>
+                <Icon name="book" size={14}/>
+                <div style={{fontSize:'.88em'}}><strong>{bk?.title}</strong> — {mb?.name}</div>
+              </div>
+              <div className="fg">
+                <label className="fl">Note (état du livre, remarque…)</label>
+                <textarea className="ft" rows={3} defaultValue={noteModal.note||''} id="loan-note-input" placeholder="Ex: livre retourné avec une page cornée, couverture abîmée…"/>
+              </div>
+              <div className="fac">
+                <button className="btn btn-primary" style={{flex:1}} onClick={()=>saveLoanNote(noteModal.id,document.getElementById('loan-note-input').value)}><Icon name="check" size={13}/>Enregistrer</button>
+                <button className="btn btn-secondary" onClick={()=>setNoteModal(null)}>Annuler</button>
               </div>
             </>);
           })()}
