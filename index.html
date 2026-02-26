@@ -485,6 +485,8 @@ body{
 .selected-card{outline:2px solid var(--accent)!important;background:var(--accent-t)!important}
 .selected-card:hover{background:var(--accent-t)!important}
 kbd{font-family:monospace;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:.85em}
+.b.bo{background:rgba(234,88,12,.13);color:#ea580c}
+.pending-badge{display:inline-flex;align-items:center;justify-content:center;background:#f97316;color:#fff;border-radius:99px;font-size:.65em;font-weight:800;padding:1px 6px;margin-left:4px}
 
 /* ══ RESPONSIVE ═══════════════════════════════════════ */
 @media(max-width:768px){
@@ -606,12 +608,23 @@ async function getUserRole(userId, userEmail){
   if(userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) return 'admin';
   // 2. Then try database
   try{
-    const url=`${SB_URL}/rest/v1/user_roles?user_id=eq.${userId}&select=role`;
+    const url=`${SB_URL}/rest/v1/user_roles?user_id=eq.${userId}&select=role,email`;
     const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
-    if(!r.ok) return 'readonly';
+    if(!r.ok) return 'pending';
     const rows=await r.json();
-    return rows.length ? rows[0].role : 'readonly';
-  }catch(e){ return 'readonly'; }
+    if(!rows.length){
+      // New user — register as pending so admin sees them
+      try{
+        await fetch(`${SB_URL}/rest/v1/user_roles`,{
+          method:'POST',
+          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({user_id:userId, role:'pending', email:userEmail||''})
+        });
+      }catch(e){}
+      return 'pending';
+    }
+    return rows[0].role; // could be 'admin','librarian','readonly','pending','blocked'
+  }catch(e){ return 'pending'; }
 }
 async function getTeamMembers(){
   try{
@@ -627,6 +640,18 @@ async function setUserRole(userId, role){
 }
 async function removeUserRole(userId){
   await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`);
+}
+async function blockUser(userId){
+  try{ await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`); }catch(e){}
+  await sb('user_roles','POST',{user_id:userId, role:'blocked'});
+}
+async function getPendingUsers(){
+  try{
+    const url=`${SB_URL}/rest/v1/user_roles?role=eq.pending&order=created_at.desc&select=*`;
+    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    if(!r.ok) return [];
+    return r.json();
+  }catch(e){ return []; }
 }
 // Invite via Supabase admin invite (needs service role — show instructions instead)
 async function inviteUser(email, token){
@@ -880,6 +905,7 @@ function App(){
   const [theme,setTheme]=useState(()=>localStorage.getItem('lib_theme')||'light');
   const [userRole,setUserRole]=useState('readonly');
   const [teamMembers,setTeamMembers]=useState([]);
+  const [pendingUsers,setPendingUsers]=useState([]);
   const [histSearch,setHistSearch]=useState('');
   const [reservations,setReservations]=useState([]);
   const [selectedMember,setSelectedMember]=useState(null);
@@ -1439,8 +1465,11 @@ body{font-family:Arial,Helvetica,sans-serif}
 
   async function loadTeam(){
     if(!isAdmin) return;
-    try{ const t=await getTeamMembers(); setTeamMembers(t); }
-    catch(e){}
+    try{
+      const [t,p]=await Promise.all([getTeamMembers(),getPendingUsers()]);
+      setTeamMembers(t.filter(m=>m.role!=='blocked'&&m.role!=='pending'));
+      setPendingUsers(p);
+    }catch(e){}
   }
   useEffect(()=>{ if(isAdmin) loadTeam(); },[isAdmin]);
 
@@ -1481,6 +1510,35 @@ body{font-family:Arial,Helvetica,sans-serif}
 
   if(!authReady) return null;
   if(!session) return <Login onLogin={handleLogin}/>;
+
+  // Blocked user — show denial screen
+  if(userRole==='blocked') return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:20,background:'var(--bg)',padding:24}}>
+      <div style={{width:64,height:64,borderRadius:'50%',background:'#fee2e2',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <Icon name="x" size={32} color="#dc2626"/>
+      </div>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontWeight:700,fontSize:'1.2em',color:'var(--text)',marginBottom:8}}>Accès refusé</div>
+        <div style={{color:'var(--text2)',fontSize:'.9em',maxWidth:340}}>Votre accès à cette bibliothèque a été bloqué par l'administrateur.</div>
+      </div>
+      <button className="btn btn-secondary" onClick={handleLogout}><Icon name="log-out" size={14}/>Se déconnecter</button>
+    </div>
+  );
+
+  // Pending user — waiting for admin approval
+  if(userRole==='pending') return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:20,background:'var(--bg)',padding:24}}>
+      <div style={{width:64,height:64,borderRadius:'50%',background:'#fef3c7',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <Icon name="alert" size={32} color="#d97706"/>
+      </div>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontWeight:700,fontSize:'1.2em',color:'var(--text)',marginBottom:8}}>Accès en attente</div>
+        <div style={{color:'var(--text2)',fontSize:'.9em',maxWidth:360}}>Votre compte est en attente de validation par l'administrateur. Revenez dans quelques instants ou contactez l'administrateur.</div>
+      </div>
+      <button className="btn btn-secondary" onClick={()=>window.location.reload()}><Icon name="refresh" size={14}/>Vérifier à nouveau</button>
+      <button className="btn btn-ghost" onClick={handleLogout}><Icon name="log-out" size={14}/>Se déconnecter</button>
+    </div>
+  );
 
   if(loading) return(
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:16,background:'var(--bg)'}}>
@@ -1553,7 +1611,7 @@ body{font-family:Arial,Helvetica,sans-serif}
             <button className={`nbtn${tab==='team'?' active':''}`} onClick={()=>setTab('team')}>
               <span className="ni"><Icon name="users" size={15}/></span>
               <span className="nl">Équipe &amp; Accès</span>
-              <span className="nbadge">{teamMembers.length}</span>
+              <span className="nbadge">{teamMembers.length}{pendingUsers.length>0&&<span style={{marginLeft:3,background:'var(--orange)',borderRadius:99,padding:'0 5px',fontSize:'.7em',fontWeight:700,color:'#fff'}}>+{pendingUsers.length}</span>}</span>
             </button>
           </>
         )}
@@ -1615,7 +1673,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                         {!loan.returnDate&&<span className="b bo">Livre non encore retourné</span>}
                       </div>
                     </div>
-                    {!loan.finePaid&&loan.returnDate&&<button className="btn btn-success btn-sm" onClick={()=>payFine(loan.id)}><Icon name="check" size={12}/>Marquer payé</button>}
+                    {canEdit&&!loan.finePaid&&loan.returnDate&&<button className="btn btn-success btn-sm" onClick={()=>payFine(loan.id)}><Icon name="check" size={12}/>Marquer payé</button>}
                   </div>
                 </div>);
               })}
@@ -1627,19 +1685,65 @@ body{font-family:Arial,Helvetica,sans-serif}
         <div>
           <div className="ph au">
             <h1 className="pt">Équipe &amp; Accès</h1>
-            <button className="btn btn-primary btn-sm" onClick={()=>setModal('invite')}><Icon name="plus" size={13}/>Inviter un utilisateur</button>
+            <button className="btn btn-primary btn-sm" onClick={()=>setModal('invite')}><Icon name="plus" size={13}/>Partager l'accès</button>
           </div>
+
+          {/* Pending users — awaiting approval */}
+          {pendingUsers.length>0&&(
+            <div className="au2">
+              <div style={{fontWeight:700,fontSize:'.9em',color:'var(--orange)',marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
+                <Icon name="alert" size={15} color="var(--orange)"/>
+                {pendingUsers.length} compte(s) en attente de validation
+              </div>
+              <div className="grid">
+                {pendingUsers.map(u=>(
+                  <div key={u.user_id} className="card" style={{borderLeft:'3px solid var(--orange)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <div className="av" style={{background:'var(--orange)',opacity:.85}}><Icon name="user" size={20}/></div>
+                      <div style={{flex:1}}>
+                        <div className="ct" style={{fontSize:'.95em'}}>{u.email||u.user_id}</div>
+                        <div className="cs">Demande le {u.created_at?new Date(u.created_at).toLocaleDateString('fr-FR'):'-'}</div>
+                        <span className="b bo" style={{marginTop:4,display:'inline-block'}}>En attente</span>
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                        <select className="fsel" id={`role-${u.user_id}`} defaultValue="readonly" style={{fontSize:'.78em',padding:'4px 8px'}}>
+                          <option value="admin">Administrateur</option>
+                          <option value="librarian">Bibliothécaire</option>
+                          <option value="readonly">Lecture seule</option>
+                        </select>
+                        <div style={{display:'flex',gap:5}}>
+                          <button className="btn btn-success btn-sm" style={{flex:1}} onClick={async()=>{
+                            const role=document.getElementById(`role-${u.user_id}`).value;
+                            try{ await setUserRole(u.user_id,role); toast(`✅ Accès accordé (${ROLES[role]})`); loadTeam(); }
+                            catch(err){ toast(err.message,'err'); }
+                          }}><Icon name="check" size={12}/>Accepter</button>
+                          <button className="btn btn-danger btn-sm" onClick={async()=>{
+                            if(!confirm('Bloquer cet utilisateur ?')) return;
+                            try{ await blockUser(u.user_id); toast('🚫 Utilisateur bloqué'); loadTeam(); }
+                            catch(err){ toast(err.message,'err'); }
+                          }}><Icon name="x" size={12}/>Bloquer</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="al al-i au2" style={{flexDirection:'column',alignItems:'start',gap:6}}>
-            <div style={{fontWeight:700,fontSize:'.88em'}}>Gestion des accès</div>
-            <div style={{fontSize:'.82em',lineHeight:1.7,color:'var(--text2)'}}>
-              En tant qu'administrateur, vous contrôlez qui peut accéder à cette application.<br/>
-              <strong>Administrateur</strong> : accès complet, gestion des utilisateurs, suppression de données.<br/>
-              <strong>Bibliothécaire</strong> : peut ajouter, modifier, créer des prêts — ne peut pas supprimer ni gérer les accès.<br/>
-              <strong>Lecture seule</strong> : consulte uniquement sans pouvoir modifier.
+            <div style={{fontWeight:700,fontSize:'.88em'}}>Niveaux d'accès</div>
+            <div style={{fontSize:'.82em',lineHeight:1.8,color:'var(--text2)'}}>
+              <strong>🔴 Administrateur</strong> : accès complet, gestion des utilisateurs, suppression.<br/>
+              <strong>🟡 Bibliothécaire</strong> : ajouter, modifier, créer des prêts — pas de suppression.<br/>
+              <strong>🔵 Lecture seule</strong> : consultation uniquement, aucune modification possible.<br/>
+              <strong>🚫 Bloqué</strong> : accès refusé, ne peut pas se connecter.
             </div>
           </div>
+
           <div style={{marginTop:16}} className="au3">
-            <div className="card" style={{marginBottom:12}}>
+            {/* Own account */}
+            <div className="card" style={{marginBottom:12,borderLeft:'3px solid var(--accent)'}}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <div className="av"><Icon name="user" size={22}/></div>
                 <div style={{flex:1}}>
@@ -1649,33 +1753,48 @@ body{font-family:Arial,Helvetica,sans-serif}
                 <span className="b ba">Administrateur</span>
               </div>
             </div>
-            {teamMembers.length===0&&<div className="empty" style={{padding:'32px 20px'}}><div className="empty-i" style={{marginBottom:8}}><Icon name="users" size={36}/></div><div>Aucun membre d'équipe pour l'instant</div><div style={{fontSize:'.8em',marginTop:6}}>Invitez des bibliothécaires pour collaborer</div></div>}
-            <div className="grid">
-              {teamMembers.filter(t=>t.user_id!==session?.user?.id).map(t=>(
-                <div key={t.user_id} className="card">
-                  <div style={{display:'flex',alignItems:'center',gap:12}}>
-                    <div className="av"><Icon name="user" size={20}/></div>
-                    <div style={{flex:1}}>
-                      <div className="ct" style={{fontSize:'.95em'}}>{t.email||t.user_id}</div>
-                      <div className="cs">Ajouté le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR'):'-'}</div>
+
+            {teamMembers.length===0&&pendingUsers.length===0&&(
+              <div className="empty" style={{padding:'32px 20px'}}>
+                <div className="empty-i" style={{marginBottom:8}}><Icon name="users" size={36}/></div>
+                <div>Aucun membre d'équipe pour l'instant</div>
+                <div style={{fontSize:'.8em',marginTop:6}}>Partagez l'URL de l'application avec vos collaborateurs</div>
+              </div>
+            )}
+
+            {teamMembers.length>0&&(
+              <div className="grid">
+                {teamMembers.filter(t=>t.user_id!==session?.user?.id).map(t=>(
+                  <div key={t.user_id} className="card">
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <div className="av"><Icon name="user" size={20}/></div>
+                      <div style={{flex:1}}>
+                        <div className="ct" style={{fontSize:'.95em'}}>{t.email||t.user_id}</div>
+                        <div className="cs">Depuis le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR'):'-'}</div>
+                      </div>
+                      <select className="fsel" value={t.role} onChange={async e=>{
+                        try{ await setUserRole(t.user_id,e.target.value); toast('Rôle mis à jour'); loadTeam(); }
+                        catch(err){ toast(err.message,'err'); }
+                      }} style={{fontSize:'.8em',padding:'5px 9px'}}>
+                        <option value="admin">Administrateur</option>
+                        <option value="librarian">Bibliothécaire</option>
+                        <option value="readonly">Lecture seule</option>
+                      </select>
+                      <button className="btn btn-ghost btn-sm" title="Bloquer" style={{color:'var(--orange)'}} onClick={async()=>{
+                        if(!confirm(`Bloquer l'accès de ${t.email||t.user_id} ?`)) return;
+                        try{ await blockUser(t.user_id); toast('🚫 Utilisateur bloqué'); loadTeam(); }
+                        catch(err){ toast(err.message,'err'); }
+                      }}><Icon name="alert" size={12}/></button>
+                      <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={async()=>{
+                        if(!confirm('Révoquer complètement cet accès ?')) return;
+                        try{ await removeUserRole(t.user_id); toast('Accès révoqué'); loadTeam(); }
+                        catch(err){ toast(err.message,'err'); }
+                      }}><Icon name="trash" size={12}/></button>
                     </div>
-                    <select className="fsel" value={t.role} onChange={async e=>{
-                      try{ await setUserRole(t.user_id,e.target.value); toast('Rôle mis à jour'); loadTeam(); }
-                      catch(err){ toast(err.message,'err'); }
-                    }} style={{fontSize:'.8em',padding:'5px 9px'}}>
-                      <option value="admin">Administrateur</option>
-                      <option value="librarian">Bibliothécaire</option>
-                      <option value="readonly">Lecture seule</option>
-                    </select>
-                    <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={async()=>{
-                      if(!confirm('Révoquer cet accès ?')) return;
-                      try{ await removeUserRole(t.user_id); toast('Accès révoqué'); loadTeam(); }
-                      catch(err){ toast(err.message,'err'); }
-                    }}><Icon name="trash" size={12}/></button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1722,7 +1841,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                       <div className="cs">{mb?.name} — {mb?.email}</div>
                       <div style={{color:'var(--red)',fontWeight:700,marginTop:5,fontSize:'.84em'}}>{dl}j de retard — {dl*(cfg.feePerDay||10)} HTG</div>
                     </div>
-                    <button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}><Icon name="check" size={13}/>Retourner</button>
+                    {canEdit&&<button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}><Icon name="check" size={13}/>Retourner</button>}
                   </div>
                 </div>);
               })}
@@ -1783,12 +1902,12 @@ body{font-family:Arial,Helvetica,sans-serif}
                 <option value="">Sélectionner un livre disponible</option>
                 {books.filter(b=>b.available>0).map(b=><option key={b.id} value={b.id}>{b.title} ({b.available} dispo)</option>)}
               </select>
-              <button className="btn btn-primary" onClick={()=>{
+              {canEdit&&<button className="btn btn-primary" onClick={()=>{
                 const mId=parseInt(document.getElementById('man-m').value);
                 const bId=parseInt(document.getElementById('man-b').value);
                 if(!mId||!bId){toast('Sélectionnez un membre et un livre','err');return;}
                 createLoan(bId,mId);
-              }}><Icon name="plus" size={14}/>Créer le prêt</button>
+              }}><Icon name="plus" size={14}/>Créer le prêt</button>}
             </div>
           </div>
         </div>
@@ -1879,13 +1998,13 @@ body{font-family:Arial,Helvetica,sans-serif}
                   <img src={`https://api.qrserver.com/v1/create-qr-code/?size=82x82&data=${encodeURIComponent(bk.barcode)}&bgcolor=ffffff`} className="qr" alt="QR"/>
                 </div>
                 <div className="ca">
-                  {bk.available>0&&members.length>0&&(
+                  {canEdit&&bk.available>0&&members.length>0&&(
                     <select className="fsel" style={{flex:1}} onChange={e=>{if(e.target.value){if(memberAtLimit(e.target.value)){if(!confirm(`Ce membre a atteint la limite de ${maxLoans} prêts. Continuer quand même ?`)){e.target.value='';return;}}createLoan(bk.id,e.target.value);e.target.value=''}}}>
                       <option value="">Prêter à…</option>
                       {members.map(m=><option key={m.id} value={m.id}>{m.name}{memberAtLimit(m.id)?' ⚠️ limite':''}</option>)}
                     </select>
                   )}
-              {bk.available===0&&members.length>0&&(
+              {canEdit&&bk.available===0&&members.length>0&&(
                 <select className="fsel" style={{flex:1,opacity:.85}} onChange={e=>{if(e.target.value){reserveBook(bk.id,e.target.value);e.target.value=''}}}>
                   <option value="">Réserver pour…</option>
                   {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
@@ -1927,10 +2046,10 @@ body{font-family:Arial,Helvetica,sans-serif}
                     </div>
                   </div>
                   <div style={{display:'flex',flexDirection:'column',gap:5,flexShrink:0}}>
-                    <button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}><Icon name="check" size={12}/>Retourner</button>
-                    <button className="btn btn-secondary btn-sm" onClick={()=>setRenewLoanId(loan.id)}><Icon name="refresh" size={12}/>Renouveler</button>
+                    {canEdit&&<button className="btn btn-success btn-sm" onClick={()=>returnLoan(loan.id)}><Icon name="check" size={12}/>Retourner</button>}
+                    {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>setRenewLoanId(loan.id)}><Icon name="refresh" size={12}/>Renouveler</button>}
                     <button className="btn btn-ghost btn-sm" onClick={()=>sendReminderEmail(loan)} title="Envoyer rappel"><Icon name="mail" size={12}/></button>
-                    <button className="btn btn-ghost btn-sm" onClick={()=>setNoteModal(loan)} title="Ajouter note"><Icon name="pencil" size={12}/>{loan.note&&<span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',display:'inline-block',marginLeft:3}}/>}</button>
+                    {canEdit&&<button className="btn btn-ghost btn-sm" onClick={()=>setNoteModal(loan)} title="Ajouter note"><Icon name="pencil" size={12}/>{loan.note&&<span style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',display:'inline-block',marginLeft:3}}/>}</button>}
                   </div>
                 </div>
               </div>);
@@ -1960,8 +2079,8 @@ body{font-family:Arial,Helvetica,sans-serif}
                       <div className="cm"><span className={`b ${bk?.available>0?'bg':'br'}`}>{bk?.available>0?'Disponible maintenant !':'Indisponible'}</span></div>
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:5}}>
-                      {bk?.available>0&&mb&&<button className="btn btn-primary btn-sm" onClick={async()=>{await createLoan(bk.id,mb.id);cancelReservation(res.id);}}><Icon name="check" size={12}/>Prêter</button>}
-                      <button className="btn btn-danger btn-sm" onClick={()=>cancelReservation(res.id)}><Icon name="x" size={12}/>Annuler</button>
+                      {canEdit&&bk?.available>0&&mb&&<button className="btn btn-primary btn-sm" onClick={async()=>{await createLoan(bk.id,mb.id);cancelReservation(res.id);}}><Icon name="check" size={12}/>Prêter</button>}
+                      {canEdit&&<button className="btn btn-danger btn-sm" onClick={()=>cancelReservation(res.id)}><Icon name="x" size={12}/>Annuler</button>}
                     </div>
                   </div>
                 </div>);
@@ -1972,7 +2091,7 @@ body{font-family:Arial,Helvetica,sans-serif}
             <div style={{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center'}}>
               <select className="fsel" id="res-m" style={{flex:1}}><option value="">Sélectionner un membre</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select>
               <select className="fsel" id="res-b" style={{flex:1}}><option value="">Sélectionner un livre</option>{books.map(b=><option key={b.id} value={b.id}>{b.title} ({b.available} dispo)</option>)}</select>
-              <button className="btn btn-primary" onClick={()=>{const mId=document.getElementById('res-m').value,bId=document.getElementById('res-b').value;if(!mId||!bId){toast('Sélectionnez membre et livre','err');return;}reserveBook(bId,mId);}}><Icon name="plus" size={14}/>Réserver</button>
+              {canEdit&&<button className="btn btn-primary" onClick={()=>{const mId=document.getElementById('res-m').value,bId=document.getElementById('res-b').value;if(!mId||!bId){toast('Sélectionnez membre et livre','err');return;}reserveBook(bId,mId);}}><Icon name="plus" size={14}/>Réserver</button>}
             </div>
           </div>
         </div>
@@ -2239,7 +2358,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                     <div><div style={{fontWeight:600,fontSize:'.88em'}}>{mb?.name||'?'}</div><div style={{fontSize:'.75em',color:'var(--text3)',marginTop:2}}>Retour: {new Date(l.dueDate).toLocaleDateString('fr-FR')}</div></div>
                     <div style={{display:'flex',gap:5,alignItems:'center'}}>
                       <span className={`b ${d<0?'br':d<=3?'bo':'bg'}`}>{d<0?Math.abs(d)+'j retard':d+'j'}</span>
-                      <button className="btn btn-success btn-sm" onClick={()=>{returnLoan(l.id);setSelectedBook(null);}}><Icon name="check" size={12}/></button>
+                      {canEdit&&<button className="btn btn-success btn-sm" onClick={()=>{returnLoan(l.id);setSelectedBook(null);}}><Icon name="check" size={12}/></button>}
                     </div>
                   </div>
                 </div>);})}
@@ -2252,7 +2371,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                       <span style={{width:20,height:20,borderRadius:'50%',background:'var(--accent-t)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.72em',fontWeight:700,color:'var(--accent)',flexShrink:0}}>{i+1}</span>
                       <div><div style={{fontSize:'.86em',fontWeight:600}}>{mb?.name||'?'}</div><div style={{fontSize:'.72em',color:'var(--text3)'}}>{new Date(r.createdAt).toLocaleDateString('fr-FR')}</div></div>
                     </div>
-                    <button className="btn btn-danger btn-sm" onClick={()=>cancelReservation(r.id)}><Icon name="x" size={12}/></button>
+                    {canEdit&&<button className="btn btn-danger btn-sm" onClick={()=>cancelReservation(r.id)}><Icon name="x" size={12}/></button>}
                   </div>
                 </div>);})}
               </>}
