@@ -170,7 +170,7 @@ body{
   background:var(--bg);padding:20px;
 }
 .login-box{
-  width:100%;max-width:420px;
+  width:100%;max-width:400px;
   background:var(--bg2);border:1px solid var(--border2);
   border-radius:20px;padding:44px 36px;
   box-shadow:var(--shadow-lg);animation:fadeUp .4s ease;
@@ -183,11 +183,10 @@ body{
 }
 .login-title{font-family:'Fraunces',serif;font-size:1.75em;text-align:center;color:var(--text);margin-bottom:5px}
 .login-sub{font-size:.83em;color:var(--text3);text-align:center;margin-bottom:28px}
-.login-tabs{display:flex;gap:3px;background:var(--surf2);border-radius:var(--rs);padding:4px;margin-bottom:24px}
-.login-tab{flex:1;padding:8px 4px;border-radius:calc(var(--rs) - 2px);border:none;background:transparent;color:var(--text2);font-size:.78em;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
+.login-tabs{display:flex;gap:6px;background:var(--surf2);border-radius:var(--rs);padding:4px;margin-bottom:24px}
+.login-tab{flex:1;padding:8px;border:none;background:none;color:var(--text3);font-size:.84em;font-weight:600;cursor:pointer;border-radius:6px;font-family:inherit;transition:all .2s}
 .login-tab.active{background:var(--bg2);color:var(--accent);box-shadow:var(--shadow)}
-.login-err{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:var(--red);padding:10px 14px;border-radius:var(--rs);font-size:.83em;margin-bottom:14px;display:flex;align-items:center;gap:7px}
-.login-info{background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);color:#15803d;padding:10px 14px;border-radius:var(--rs);font-size:.83em;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.login-err{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:var(--red);padding:10px 14px;border-radius:var(--rs);font-size:.83em;margin-bottom:14px;text-align:center}
 
 /* ══ SHELL ════════════════════════════════════════════ */
 .shell{display:flex;min-height:100vh}
@@ -571,21 +570,9 @@ async function sb(table, method='GET', body=null, qs='', token=null){
 }
 
 // ══ SUPABASE AUTH ══════════════════════════════════════
-async function sbSignIn(identifier,password){
-  // Accept email OR member code (MBR-XXXX)
-  let email=identifier.trim();
-  if(/^MBR-/i.test(email)||(/^\d+$/.test(email))){
-    // It's a member code — resolve to email via DB
-    const code=email.toUpperCase().startsWith('MBR-')?email.toUpperCase():`MBR-${email.padStart(4,'0')}`;
-    try{
-      const r2=await fetch(`${SB_URL}/rest/v1/members?member_code=eq.${encodeURIComponent(code)}&select=email`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
-      const rows=await r2.json();
-      if(rows&&rows.length&&rows[0].email) email=rows[0].email;
-      else throw new Error(`Aucun membre trouvé avec le code ${code}`);
-    }catch(e){ if(e.message.includes('Aucun')) throw e; }
-  }
+async function sbSignIn(email,password){
   const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-  if(!r.ok){ const e=await r.json(); throw new Error(e.error_description||e.msg||'Email/code ou mot de passe incorrect'); }
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error_description||e.msg||'Erreur de connexion'); }
   return r.json();
 }
 async function sbSignUp(email,password){
@@ -617,41 +604,39 @@ function getEmailFromSession(session){
 }
 
 async function getUserRole(userId, userEmail){
-  // 1. Hardcoded admin emails always win
+  // 1. Check hardcoded admin emails first (always works)
   if(userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) return 'admin';
-  // 2. Check DB
+  // 2. Then try database
   try{
     const url=`${SB_URL}/rest/v1/user_roles?user_id=eq.${userId}&select=role,email`;
     const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
-    if(!r.ok) return 'readonly';
+    if(!r.ok) return 'pending';
     const rows=await r.json();
     if(!rows.length){
-      // New user → auto-register as readonly (visible to admin who can upgrade)
+      // New user — register as pending so admin sees them
       try{
         await fetch(`${SB_URL}/rest/v1/user_roles`,{
           method:'POST',
           headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-          body:JSON.stringify({user_id:userId, role:'readonly', email:userEmail||''})
+          body:JSON.stringify({user_id:userId, role:'pending', email:userEmail||''})
         });
       }catch(e){}
-      return 'readonly';
+      return 'pending';
     }
-    return rows[0].role;
-  }catch(e){ return 'readonly'; }
+    return rows[0].role; // could be 'admin','librarian','readonly','pending','blocked'
+  }catch(e){ return 'pending'; }
 }
 async function getTeamMembers(){
   try{
     const url=`${SB_URL}/rest/v1/user_roles?order=created_at.desc&select=*`;
     const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
     if(!r.ok) return [];
-    const rows=await r.json();
-    // Enrich with Supabase Auth email if missing (email stored during registration)
-    return rows;
+    return r.json();
   }catch(e){ return []; }
 }
-async function setUserRole(userId, role, email){
+async function setUserRole(userId, role){
   try{ await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`); }catch(e){}
-  await sb('user_roles','POST',{user_id:userId, role, email:email||''});
+  await sb('user_roles','POST',{user_id:userId, role});
 }
 async function removeUserRole(userId){
   await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`);
@@ -852,58 +837,21 @@ function Toasts({list}){
 
 // ══ LOGIN ══════════════════════════════════════════════
 function Login({onLogin}){
-  const [mode,setMode]=useState('login'); // 'login' | 'register' | 'member-register'
-  const [identifier,setIdentifier]=useState(''); // email OR memberCode for login
-  const [email,setEmail]=useState('');  // for staff registration
-  const [memberCode,setMemberCode]=useState(''); // for member registration
+  const [mode,setMode]=useState('login');
+  const [email,setEmail]=useState('');
   const [pwd,setPwd]=useState('');
-  const [pwd2,setPwd2]=useState('');
   const [loading,setLoading]=useState(false);
   const [err,setErr]=useState('');
-  const [info,setInfo]=useState('');
 
-  async function handleLogin(){
-    if(!identifier||!pwd){setErr('Identifiant et mot de passe requis');return;}
-    setLoading(true);setErr('');
-    try{
-      const data=await sbSignIn(identifier,pwd);
-      if(data.access_token){ storeSession(data); onLogin(data); }
-      else setErr('Réponse inattendue du serveur');
-    }catch(e){ setErr(e.message); }
-    finally{ setLoading(false); }
-  }
-
-  async function handleStaffRegister(){
+  async function handle(){
     if(!email||!pwd){setErr('Email et mot de passe requis');return;}
-    if(pwd!==pwd2){setErr('Les mots de passe ne correspondent pas');return;}
-    if(pwd.length<8){setErr('Mot de passe trop court (8 caractères minimum)');return;}
     setLoading(true);setErr('');
     try{
-      const data=await sbSignUp(email,pwd);
+      let data;
+      if(mode==='login') data=await sbSignIn(email,pwd);
+      else data=await sbSignUp(email,pwd);
       if(data.access_token){ storeSession(data); onLogin(data); }
-      else{ setInfo('Compte créé ! Connectez-vous maintenant.'); setMode('login'); setEmail(''); setPwd(''); setPwd2(''); }
-    }catch(e){ setErr(e.message); }
-    finally{ setLoading(false); }
-  }
-
-  async function handleMemberRegister(){
-    // Member creates account using their card code + email + password
-    const code=memberCode.trim().toUpperCase().startsWith('MBR-')?memberCode.trim().toUpperCase():`MBR-${memberCode.trim().padStart(4,'0')}`;
-    if(!code||!email||!pwd){setErr('Tous les champs sont requis');return;}
-    if(pwd!==pwd2){setErr('Les mots de passe ne correspondent pas');return;}
-    if(pwd.length<8){setErr('Mot de passe trop court (8 caractères minimum)');return;}
-    setLoading(true);setErr('');
-    try{
-      // Verify card exists and email matches
-      const r=await fetch(`${SB_URL}/rest/v1/members?member_code=eq.${encodeURIComponent(code)}&select=email,name`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
-      const rows=await r.json();
-      if(!rows||!rows.length){ setErr(`Carte ${code} introuvable. Vérifiez votre numéro.`); setLoading(false); return; }
-      const member=rows[0];
-      if(member.email.toLowerCase()!==email.toLowerCase()){ setErr('L'email ne correspond pas à la carte. Contactez la bibliothèque.'); setLoading(false); return; }
-      // Create Supabase Auth account
-      const data=await sbSignUp(email,pwd);
-      if(data.access_token){ storeSession(data); onLogin(data); }
-      else{ setInfo(`Compte créé pour ${member.name}. Connectez-vous avec votre email ou code ${code}.`); setMode('login'); setMemberCode(''); setEmail(''); setPwd(''); setPwd2(''); }
+      else if(mode==='register'){ setErr('Compte créé ! Vérifiez votre email puis connectez-vous.'); setMode('login'); }
     }catch(e){ setErr(e.message); }
     finally{ setLoading(false); }
   }
@@ -911,99 +859,19 @@ function Login({onLogin}){
   return(
     <div className="login-wrap">
       <div className="login-box">
-        <div className="login-icon"><Icon name="library" size={28}/></div>
+        <div className="login-icon"><Icon name="library" size={26}/></div>
         <div className="login-title">Bibliothèque</div>
-        <div className="login-sub">Espace numérique de la bibliothèque</div>
-
+        <div className="login-sub">Système de gestion professionnel</div>
         <div className="login-tabs">
-          <button className={`login-tab${mode==='login'?' active':''}`} onClick={()=>{setMode('login');setErr('');setInfo('');}}>
-            <Icon name="log-out" size={13}/>Connexion
-          </button>
-          <button className={`login-tab${mode==='register'?' active':''}`} onClick={()=>{setMode('register');setErr('');setInfo('');}}>
-            <Icon name="user" size={13}/>Personnel
-          </button>
-          <button className={`login-tab${mode==='member-register'?' active':''}`} onClick={()=>{setMode('member-register');setErr('');setInfo('');}}>
-            <Icon name="bookmark" size={13}/>Membre
-          </button>
+          <button className={`login-tab${mode==='login'?' active':''}`} onClick={()=>{setMode('login');setErr('');}}>Connexion</button>
+          <button className={`login-tab${mode==='register'?' active':''}`} onClick={()=>{setMode('register');setErr('');}}>Inscription</button>
         </div>
-
-        {err&&<div className="login-err"><Icon name="alert" size={13}/>{err}</div>}
-        {info&&<div className="login-info"><Icon name="check" size={13}/>{info}</div>}
-
-        {mode==='login'&&(<>
-          <div className="fg">
-            <label className="fl">Email ou code carte (ex: MBR-0042)</label>
-            <input className="fi" value={identifier} onChange={e=>setIdentifier(e.target.value)}
-              placeholder="email@exemple.com ou MBR-0042"
-              onKeyPress={e=>e.key==='Enter'&&handleLogin()}/>
-          </div>
-          <div className="fg">
-            <label className="fl">Mot de passe</label>
-            <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)}
-              placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handleLogin()}/>
-          </div>
-          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}} onClick={handleLogin} disabled={loading}>
-            {loading?<span className="spinner"/>:<><Icon name="log-out" size={15}/>Se connecter</>}
-          </button>
-          <div style={{fontSize:'.75em',color:'var(--text3)',textAlign:'center',marginTop:10,lineHeight:1.7}}>
-            Pas encore de compte ?<br/>
-            <span style={{cursor:'pointer',color:'var(--accent)',fontWeight:600}} onClick={()=>{setMode('register');setErr('');}}> Personnel (staff)</span>
-            {' ou '}
-            <span style={{cursor:'pointer',color:'var(--accent)',fontWeight:600}} onClick={()=>{setMode('member-register');setErr('');}}> Membre de la bibliothèque</span>
-          </div>
-        </>)}
-
-        {mode==='register'&&(<>
-          <div className="al al-i" style={{marginBottom:12,fontSize:'.8em'}}>
-            <Icon name="info" size={13}/>Compte pour le personnel (bibliothécaires, administrateurs)
-          </div>
-          <div className="fg">
-            <label className="fl">Email professionnel</label>
-            <input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="staff@bibliotheque.com"/>
-          </div>
-          <div className="fg">
-            <label className="fl">Mot de passe</label>
-            <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="8 caractères minimum"/>
-          </div>
-          <div className="fg">
-            <label className="fl">Confirmer le mot de passe</label>
-            <input className="fi" type="password" value={pwd2} onChange={e=>setPwd2(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handleStaffRegister()}/>
-          </div>
-          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}} onClick={handleStaffRegister} disabled={loading}>
-            {loading?<span className="spinner"/>:<><Icon name="user" size={15}/>Créer le compte</>}
-          </button>
-          <div style={{fontSize:'.73em',color:'var(--text3)',marginTop:8,lineHeight:1.6}}>
-            ℹ️ Accès <strong>Lecture seule</strong> par défaut. L'administrateur peut changer votre rôle dans l'onglet Équipe.
-          </div>
-        </>)}
-
-        {mode==='member-register'&&(<>
-          <div className="al al-i" style={{marginBottom:12,fontSize:'.8em'}}>
-            <Icon name="bookmark" size={13}/>Créez votre espace membre avec votre numéro de carte
-          </div>
-          <div className="fg">
-            <label className="fl">Numéro de carte membre</label>
-            <input className="fi" value={memberCode} onChange={e=>setMemberCode(e.target.value)} placeholder="MBR-0042 ou juste 42"/>
-          </div>
-          <div className="fg">
-            <label className="fl">Votre email (celui enregistré à la bibliothèque)</label>
-            <input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="votre@email.com"/>
-          </div>
-          <div className="fg">
-            <label className="fl">Choisissez un mot de passe</label>
-            <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="8 caractères minimum"/>
-          </div>
-          <div className="fg">
-            <label className="fl">Confirmer le mot de passe</label>
-            <input className="fi" type="password" value={pwd2} onChange={e=>setPwd2(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handleMemberRegister()}/>
-          </div>
-          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}} onClick={handleMemberRegister} disabled={loading}>
-            {loading?<span className="spinner"/>:<><Icon name="bookmark" size={15}/>Créer mon espace</>}
-          </button>
-          <div style={{fontSize:'.73em',color:'var(--text3)',marginTop:8,lineHeight:1.6}}>
-            ℹ️ Vous pourrez ensuite vous connecter avec votre email <strong>ou</strong> votre code carte.
-          </div>
-        </>)}
+        {err&&<div className="login-err">{err}</div>}
+        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="admin@bibliotheque.com" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
+        <div className="fg"><label className="fl">Mot de passe</label><input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
+        <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:6,padding:'12px'}} onClick={handle} disabled={loading}>
+          {loading?<span className="spinner"/>:<><Icon name={mode==='login'?'log-out':'user'} size={15}/>{mode==='login'?'Se connecter':'Créer le compte'}</>}
+        </button>
       </div>
     </div>
   );
@@ -1594,14 +1462,13 @@ body{font-family:Arial,Helvetica,sans-serif}
   // ── Helpers permissions ──
   const isAdmin = userRole === 'admin';
   const canEdit = userRole === 'admin' || userRole === 'librarian';
-  const canReserve = canEdit || userRole === 'readonly'; // readonly users can reserve
 
   async function loadTeam(){
     if(!isAdmin) return;
     try{
-      const all=await getTeamMembers();
-      setTeamMembers(all.filter(m=>m.role!=='blocked'));
-      setPendingUsers(all.filter(m=>m.role==='pending'||false)); // kept for compat, unused now
+      const [t,p]=await Promise.all([getTeamMembers(),getPendingUsers()]);
+      setTeamMembers(t.filter(m=>m.role!=='blocked'&&m.role!=='pending'));
+      setPendingUsers(p);
     }catch(e){}
   }
   useEffect(()=>{ if(isAdmin) loadTeam(); },[isAdmin]);
@@ -1658,7 +1525,20 @@ body{font-family:Arial,Helvetica,sans-serif}
     </div>
   );
 
-  // New users automatically get readonly role — no pending screen needed
+  // Pending user — waiting for admin approval
+  if(userRole==='pending') return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:20,background:'var(--bg)',padding:24}}>
+      <div style={{width:64,height:64,borderRadius:'50%',background:'#fef3c7',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <Icon name="alert" size={32} color="#d97706"/>
+      </div>
+      <div style={{textAlign:'center'}}>
+        <div style={{fontWeight:700,fontSize:'1.2em',color:'var(--text)',marginBottom:8}}>Accès en attente</div>
+        <div style={{color:'var(--text2)',fontSize:'.9em',maxWidth:360}}>Votre compte est en attente de validation par l'administrateur. Revenez dans quelques instants ou contactez l'administrateur.</div>
+      </div>
+      <button className="btn btn-secondary" onClick={()=>window.location.reload()}><Icon name="refresh" size={14}/>Vérifier à nouveau</button>
+      <button className="btn btn-ghost" onClick={handleLogout}><Icon name="log-out" size={14}/>Se déconnecter</button>
+    </div>
+  );
 
   if(loading) return(
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:16,background:'var(--bg)'}}>
@@ -1808,85 +1688,111 @@ body{font-family:Arial,Helvetica,sans-serif}
             <button className="btn btn-primary btn-sm" onClick={()=>setModal('invite')}><Icon name="plus" size={13}/>Partager l'accès</button>
           </div>
 
-          {/* Legend */}
-          <div className="al al-i au2" style={{flexDirection:'column',alignItems:'start',gap:4,padding:'10px 14px'}}>
-            <div style={{fontWeight:700,fontSize:'.85em',marginBottom:4}}>Niveaux d'accès</div>
-            <div style={{fontSize:'.8em',lineHeight:2,color:'var(--text2)',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 24px'}}>
-              <span><span style={{color:'var(--red)',fontWeight:700}}>●</span> <strong>Administrateur</strong> : tout faire, gérer les accès</span>
-              <span><span style={{color:'#f59e0b',fontWeight:700}}>●</span> <strong>Bibliothécaire</strong> : prêts, membres, livres</span>
-              <span><span style={{color:'var(--accent)',fontWeight:700}}>●</span> <strong>Lecture seule</strong> : consulter + réserver (défaut)</span>
-              <span><span style={{color:'#9ca3af',fontWeight:700}}>●</span> <strong>Bloqué</strong> : accès refusé</span>
+          {/* Pending users — awaiting approval */}
+          {pendingUsers.length>0&&(
+            <div className="au2">
+              <div style={{fontWeight:700,fontSize:'.9em',color:'var(--orange)',marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
+                <Icon name="alert" size={15} color="var(--orange)"/>
+                {pendingUsers.length} compte(s) en attente de validation
+              </div>
+              <div className="grid">
+                {pendingUsers.map(u=>(
+                  <div key={u.user_id} className="card" style={{borderLeft:'3px solid var(--orange)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <div className="av" style={{background:'var(--orange)',opacity:.85}}><Icon name="user" size={20}/></div>
+                      <div style={{flex:1}}>
+                        <div className="ct" style={{fontSize:'.95em'}}>{u.email||u.user_id}</div>
+                        <div className="cs">Demande le {u.created_at?new Date(u.created_at).toLocaleDateString('fr-FR'):'-'}</div>
+                        <span className="b bo" style={{marginTop:4,display:'inline-block'}}>En attente</span>
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                        <select className="fsel" id={`role-${u.user_id}`} defaultValue="readonly" style={{fontSize:'.78em',padding:'4px 8px'}}>
+                          <option value="admin">Administrateur</option>
+                          <option value="librarian">Bibliothécaire</option>
+                          <option value="readonly">Lecture seule</option>
+                        </select>
+                        <div style={{display:'flex',gap:5}}>
+                          <button className="btn btn-success btn-sm" style={{flex:1}} onClick={async()=>{
+                            const role=document.getElementById(`role-${u.user_id}`).value;
+                            try{ await setUserRole(u.user_id,role); toast(`✅ Accès accordé (${ROLES[role]})`); loadTeam(); }
+                            catch(err){ toast(err.message,'err'); }
+                          }}><Icon name="check" size={12}/>Accepter</button>
+                          <button className="btn btn-danger btn-sm" onClick={async()=>{
+                            if(!confirm('Bloquer cet utilisateur ?')) return;
+                            try{ await blockUser(u.user_id); toast('🚫 Utilisateur bloqué'); loadTeam(); }
+                            catch(err){ toast(err.message,'err'); }
+                          }}><Icon name="x" size={12}/>Bloquer</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="al al-i au2" style={{flexDirection:'column',alignItems:'start',gap:6}}>
+            <div style={{fontWeight:700,fontSize:'.88em'}}>Niveaux d'accès</div>
+            <div style={{fontSize:'.82em',lineHeight:1.8,color:'var(--text2)'}}>
+              <strong>🔴 Administrateur</strong> : accès complet, gestion des utilisateurs, suppression.<br/>
+              <strong>🟡 Bibliothécaire</strong> : ajouter, modifier, créer des prêts — pas de suppression.<br/>
+              <strong>🔵 Lecture seule</strong> : consultation uniquement, aucune modification possible.<br/>
+              <strong>🚫 Bloqué</strong> : accès refusé, ne peut pas se connecter.
             </div>
           </div>
 
-          {/* Own account */}
-          <div className="au3" style={{marginTop:8}}>
-            <div style={{fontSize:'.75em',fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Votre compte</div>
-            <div className="card" style={{marginBottom:16,borderLeft:'3px solid var(--accent)'}}>
+          <div style={{marginTop:16}} className="au3">
+            {/* Own account */}
+            <div className="card" style={{marginBottom:12,borderLeft:'3px solid var(--accent)'}}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
-                <div className="av" style={{background:'var(--accent-t)'}}><Icon name="user" size={20} color="var(--accent)"/></div>
+                <div className="av"><Icon name="user" size={22}/></div>
                 <div style={{flex:1}}>
-                  <div className="ct" style={{fontSize:'.95em'}}>{session?.user?.email}</div>
-                  <div className="cs">Compte administrateur</div>
+                  <div className="ct" style={{fontSize:'.98em'}}>{session?.user?.email}</div>
+                  <div className="cs">Votre compte</div>
                 </div>
-                <span className="b ba" style={{fontSize:'.75em'}}>Administrateur</span>
+                <span className="b ba">Administrateur</span>
               </div>
             </div>
 
-            {/* All users */}
-            {teamMembers.filter(t=>t.user_id!==session?.user?.id).length===0?(
-              <div className="empty" style={{padding:'28px 20px'}}>
+            {teamMembers.length===0&&pendingUsers.length===0&&(
+              <div className="empty" style={{padding:'32px 20px'}}>
                 <div className="empty-i" style={{marginBottom:8}}><Icon name="users" size={36}/></div>
-                <div>Aucun utilisateur enregistré</div>
-                <div style={{fontSize:'.8em',marginTop:6,color:'var(--text3)'}}>Les nouvelles personnes apparaissent ici dès leur inscription</div>
+                <div>Aucun membre d'équipe pour l'instant</div>
+                <div style={{fontSize:'.8em',marginTop:6}}>Partagez l'URL de l'application avec vos collaborateurs</div>
               </div>
-            ):(
-              <div>
-                <div style={{fontSize:'.75em',fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>
-                  Utilisateurs ({teamMembers.filter(t=>t.user_id!==session?.user?.id).length})
-                </div>
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {teamMembers.filter(t=>t.user_id!==session?.user?.id).map(t=>{
-                    const roleColor={admin:'var(--red)',librarian:'#f59e0b',readonly:'var(--accent)',blocked:'#9ca3af'}[t.role]||'var(--text3)';
-                    const roleName={admin:'Administrateur',librarian:'Bibliothécaire',readonly:'Lecture seule',blocked:'Bloqué'}[t.role]||t.role;
-                    return(
-                      <div key={t.user_id} className="card" style={{borderLeft:`3px solid ${roleColor}`}}>
-                        <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-                          <div className="av" style={{background:`${roleColor}22`,flexShrink:0}}>
-                            <Icon name="user" size={18} color={roleColor}/>
-                          </div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontWeight:600,fontSize:'.92em',color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                              {t.email||t.user_id}
-                            </div>
-                            <div style={{fontSize:'.75em',color:'var(--text3)',marginTop:1}}>
-                              Inscrit le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'-'}
-                              {' · '}<span style={{color:roleColor,fontWeight:600}}>{roleName}</span>
-                            </div>
-                          </div>
-                          <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
-                            <select className="fsel" value={t.role} onChange={async e=>{
-                              const nr=e.target.value;
-                              const nrLabel={admin:'Administrateur',librarian:'Bibliothécaire',readonly:'Lecture seule',blocked:'Bloqué'}[nr]||nr;
-                              try{ await setUserRole(t.user_id,nr,t.email); toast(`Rôle → ${nrLabel}`); loadTeam(); }
-                              catch(err){ toast(err.message,'err'); }
-                            }} style={{fontSize:'.8em',padding:'5px 10px',borderLeft:`2px solid ${roleColor}`}}>
-                              <option value="admin">Administrateur</option>
-                              <option value="librarian">Bibliothécaire</option>
-                              <option value="readonly">Lecture seule</option>
-                              <option value="blocked">Bloqué</option>
-                            </select>
-                            <button className="btn btn-ghost btn-sm" title="Supprimer l'accès" style={{color:'var(--red)',padding:'5px 7px'}} onClick={async()=>{
-                              if(!confirm(`Supprimer l'accès de ${t.email||t.user_id} ?`)) return;
-                              try{ await removeUserRole(t.user_id); toast('Accès supprimé'); loadTeam(); }
-                              catch(err){ toast(err.message,'err'); }
-                            }}><Icon name="trash" size={13}/></button>
-                          </div>
-                        </div>
+            )}
+
+            {teamMembers.length>0&&(
+              <div className="grid">
+                {teamMembers.filter(t=>t.user_id!==session?.user?.id).map(t=>(
+                  <div key={t.user_id} className="card">
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <div className="av"><Icon name="user" size={20}/></div>
+                      <div style={{flex:1}}>
+                        <div className="ct" style={{fontSize:'.95em'}}>{t.email||t.user_id}</div>
+                        <div className="cs">Depuis le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR'):'-'}</div>
                       </div>
-                    );
-                  })}
-                </div>
+                      <select className="fsel" value={t.role} onChange={async e=>{
+                        try{ await setUserRole(t.user_id,e.target.value); toast('Rôle mis à jour'); loadTeam(); }
+                        catch(err){ toast(err.message,'err'); }
+                      }} style={{fontSize:'.8em',padding:'5px 9px'}}>
+                        <option value="admin">Administrateur</option>
+                        <option value="librarian">Bibliothécaire</option>
+                        <option value="readonly">Lecture seule</option>
+                      </select>
+                      <button className="btn btn-ghost btn-sm" title="Bloquer" style={{color:'var(--orange)'}} onClick={async()=>{
+                        if(!confirm(`Bloquer l'accès de ${t.email||t.user_id} ?`)) return;
+                        try{ await blockUser(t.user_id); toast('🚫 Utilisateur bloqué'); loadTeam(); }
+                        catch(err){ toast(err.message,'err'); }
+                      }}><Icon name="alert" size={12}/></button>
+                      <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={async()=>{
+                        if(!confirm('Révoquer complètement cet accès ?')) return;
+                        try{ await removeUserRole(t.user_id); toast('Accès révoqué'); loadTeam(); }
+                        catch(err){ toast(err.message,'err'); }
+                      }}><Icon name="trash" size={12}/></button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -2098,7 +2004,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                       {members.map(m=><option key={m.id} value={m.id}>{m.name}{memberAtLimit(m.id)?' ⚠️ limite':''}</option>)}
                     </select>
                   )}
-              {canReserve&&bk.available===0&&members.length>0&&(
+              {canEdit&&bk.available===0&&members.length>0&&(
                 <select className="fsel" style={{flex:1,opacity:.85}} onChange={e=>{if(e.target.value){reserveBook(bk.id,e.target.value);e.target.value=''}}}>
                   <option value="">Réserver pour…</option>
                   {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
@@ -2185,7 +2091,7 @@ body{font-family:Arial,Helvetica,sans-serif}
             <div style={{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center'}}>
               <select className="fsel" id="res-m" style={{flex:1}}><option value="">Sélectionner un membre</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select>
               <select className="fsel" id="res-b" style={{flex:1}}><option value="">Sélectionner un livre</option>{books.map(b=><option key={b.id} value={b.id}>{b.title} ({b.available} dispo)</option>)}</select>
-              {canReserve&&<button className="btn btn-primary" onClick={()=>{const mId=document.getElementById('res-m').value,bId=document.getElementById('res-b').value;if(!mId||!bId){toast('Sélectionnez membre et livre','err');return;}reserveBook(bId,mId);}}><Icon name="plus" size={14}/>Réserver</button>}
+              {canEdit&&<button className="btn btn-primary" onClick={()=>{const mId=document.getElementById('res-m').value,bId=document.getElementById('res-b').value;if(!mId||!bId){toast('Sélectionnez membre et livre','err');return;}reserveBook(bId,mId);}}><Icon name="plus" size={14}/>Réserver</button>}
             </div>
           </div>
         </div>
