@@ -1,1 +1,3 @@
 src/app.js
+const books = ["Kant", "Proudhon", "Aristote"];
+books.forEach(book => console.log(`Livre disponible : ${book}`));
