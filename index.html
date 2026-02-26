@@ -842,8 +842,8 @@ function Login({onLogin}){
           <button className={`login-tab${mode==='register'?' active':''}`} onClick={()=>{setMode('register');setErr('');}}>Inscription</button>
         </div>
         {err&&<div className="login-err">{err}</div>}
-        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="admin@bibliotheque.com" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
-        <div className="fg"><label className="fl">Mot de passe</label><input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
+        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={email} onChange={e=/>setEmail(e.target.value)} placeholder="admin@bibliotheque.com" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
+        <div className="fg"><label className="fl">Mot de passe</label><input className="fi" type="password" value={pwd} onChange={e=/>setPwd(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
         <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:6,padding:'12px'}} onClick={handle} disabled={loading}>
           {loading?<span className="spinner"/>:<><Icon name={mode==='login'?'log-out':'user'} size={15}/>{mode==='login'?'Se connecter':'Créer le compte'}</>}
         </button>
@@ -1253,7 +1253,7 @@ ${cfg.libraryName}`;
     const qr=`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(book.barcode)}&bgcolor=ffffff&color=000000`;
     const thC=theme==='green'?'#14532d':theme==='blue'?'#0f1d35':'#111827';
     const acC=theme==='green'?'#4ade80':theme==='blue'?'#60a5fa':theme==='dark'?'#e8c97a':'#2563eb';
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
 @page{size:85.6mm 54mm landscape;margin:0}
 *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
 html,body{width:85.6mm;height:54mm;overflow:hidden}
@@ -1282,8 +1282,8 @@ body{font-family:Arial,Helvetica,sans-serif}
       <div class="code">${book.barcode}</div>
     </div>
     <div class="right">
-      <div class="qr-box"><img src="${qr}" width="20mm" height="20mm"></div>
-      <div class="bar-box"><img src="${bar}" width="100%" height="7mm"></div>
+      <div class="qr-box"><img src="${qr}" width="20mm" height="20mm"/></div>
+      <div class="bar-box"><img src="${bar}" width="100%" height="7mm"/></div>
     </div>
   </div>
 </div><\/body><\/html>`;
@@ -1306,7 +1306,7 @@ body{font-family:Arial,Helvetica,sans-serif}
     const acC=theme==='green'?'#16a34a':theme==='blue'?'#2563eb':theme==='dark'?'#c9a84c':'#2563eb';
     const rows=mLoans.slice(0,20).map(l=>{const mb=members.find(m=>m.id===l.memberId),bk=books.find(b=>b.id===l.bookId);return `<tr><td>${bk?.title||'?'}</td><td>${mb?.name||'?'}</td><td>${new Date(l.loanDate).toLocaleDateString('fr-FR')}</td><td>${l.returnDate?new Date(l.returnDate).toLocaleDateString('fr-FR'):'En cours'}</td><td style="color:${l.daysLate>0?'#dc2626':'#16a34a'}">${l.daysLate>0?l.daysLate+'j / '+l.lateFee+' HTG':'OK'}</td></tr>`;}).join('');
     const topRows=topBooks.filter(b=>b.cnt>0).map((b,i)=>`<tr><td>${i+1}</td><td>${b.title}</td><td>${b.author}</td><td>${b.cnt}</td></tr>`).join('');
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
 @page{size:A4;margin:18mm 15mm}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:10pt;line-height:1.4;-webkit-print-color-adjust:exact!important}
@@ -1358,7 +1358,7 @@ ${topRows?`<div class="section"><h2>Top livres empruntés</h2><table><thead><tr>
     const thC=theme==='green'?'#14532d':theme==='blue'?'#0f1d35':'#111827';
     const acC=theme==='green'?'#4ade80':theme==='blue'?'#60a5fa':theme==='dark'?'#e8c97a':'#2563eb';
     const since=new Date(member.joinDate).toLocaleDateString('fr-FR');
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
 <style>
 @page{size:54mm 85.6mm portrait;margin:0}
 *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
@@ -1389,13 +1389,13 @@ body{font-family:Arial,Helvetica,sans-serif}
 <div class="card">
   <div class="header">
     ${cfg.libraryLogo
-      ?`<img src="${cfg.libraryLogo}" class="logo-box" style="object-fit:cover;border-radius:1.5mm">`
+      ?`<img src="${cfg.libraryLogo}" class="logo-box" style="object-fit:cover;border-radius:1.5mm"/>`
       :`<div class="logo-box">&#128218;</div>`}
     <div><div class="lib-name">${lib}</div><div class="lib-sub">Carte de membre</div></div>
   </div>
   <div class="photo-section">
     ${member.photo
-      ?`<img src="${member.photo}" class="photo">`
+      ?`<img src="${member.photo}" class="photo"/>`
       :`<div class="no-photo">&#128100;</div>`}
   </div>
   <div class="info-section">
@@ -1407,10 +1407,10 @@ body{font-family:Arial,Helvetica,sans-serif}
     <div class="member-code"><span class="code-val">${member.memberCode}</span></div>
   </div>
   <div class="qr-section">
-    <div class="qr-box"><img src="${qr}" width="28mm" height="28mm"></div>
+    <div class="qr-box"><img src="${qr}" width="28mm" height="28mm"/></div>
   </div>
   <div class="bar-section">
-    <div class="bar-box"><img src="${bar}" width="100%" height="8mm"></div>
+    <div class="bar-box"><img src="${bar}" width="100%" height="8mm"/></div>
   </div>
   <div class="since">Membre depuis ${since}</div>
 </div>
@@ -1685,7 +1685,6 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div className="ph au">
             <h1 className="pt">Tableau de bord</h1>
             <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-              <div style={{display:'flex',gap:4}}>
               {overdue.length>0&&(
                 <button className="btn btn-email btn-sm" onClick={sendLateEmails} disabled={emailSending}>
                   {emailSending?<span className="spinner"/>:<Icon name="mail" size={13}/>}
@@ -1761,7 +1760,7 @@ body{font-family:Arial,Helvetica,sans-serif}
               <h2 style={{fontSize:'1.05em',fontWeight:700,color:'var(--text)'}}>Zone de scan</h2>
             </div>
             <p style={{color:'var(--text3)',marginBottom:13,fontSize:'.84em'}}>Scannez la carte membre puis le livre pour créer un prêt</p>
-            <input ref={scanRef} type="text" className="scan-in" value={scanVal} onChange={e=>setScanVal(e.target.value)} onKeyPress={handleScan} placeholder="Pointez votre scanner ici…" autoFocus/>
+            <input ref={scanRef} type="text" className="scan-in" value={scanVal} onChange={e=/>setScanVal(e.target.value)} onKeyPress={handleScan} placeholder="Pointez votre scanner ici…" autoFocus/>
             {scanSt&&<div className="scan-st">{scanSt}</div>}
           </div>
           {scanItem&&<div className="al al-s au">
@@ -1802,7 +1801,7 @@ body{font-family:Arial,Helvetica,sans-serif}
             <h1 className="pt">Membres</h1>
             {canEdit&&<button className="btn btn-primary" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}><Icon name="plus" size={14}/>Nouveau membre</button>}
           </div>
-          <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher nom, email, code…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
+          <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher nom, email, code…" value={search} onChange={e=/>setSearch(e.target.value)}/></div>
           {fMembers.length===0?<div className="empty au3"><div className="empty-i"><Icon name="users" size={48}/></div><div>Aucun membre</div></div>:
           <div className="grid au3">
             {fMembers.map(m=>{
@@ -1852,7 +1851,7 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div className="fbar au2">
             <div className="sw" style={{flex:1,marginBottom:0}}>
               <span className="sw-icon"><Icon name="search" size={14}/></span>
-              <input type="text" className="sbar" style={{marginBottom:0}} placeholder="Titre, auteur, ISBN, code-barres…" value={search} onChange={e=>setSearch(e.target.value)}/>
+              <input type="text" className="sbar" style={{marginBottom:0}} placeholder="Titre, auteur, ISBN, code-barres…" value={search} onChange={e=/>setSearch(e.target.value)}/>
             </div>
             <select className="fsel" value={catF} onChange={e=>setCatF(e.target.value)}>
               <option value="all">Toutes catégories</option>
@@ -1988,7 +1987,7 @@ body{font-family:Arial,Helvetica,sans-serif}
               <button className="btn btn-secondary btn-sm" onClick={exportCSV}><Icon name="bar-chart" size={13}/>Export CSV</button>
             </div>
           </div>
-          <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher membre ou titre…" value={histSearch} onChange={e=>setHistSearch(e.target.value)}/></div>
+          <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher membre ou titre…" value={histSearch} onChange={e=/>setHistSearch(e.target.value)}/></div>
           {fHistory.length===0?<div className="empty au2"><div className="empty-i"><Icon name="history" size={48}/></div><div>Aucun résultat</div></div>:
           <div className="grid au2">
             {fHistory.map(loan=>{
@@ -2031,9 +2030,9 @@ body{font-family:Arial,Helvetica,sans-serif}
           </div>
           <div className="ss">
             <h3>Bibliothèque</h3>
-            <div className="fg"><label className="fl">Nom</label><input className="fi" value={cfg.libraryName} onChange={e=>setCfg({...cfg,libraryName:e.target.value})}/></div>
+            <div className="fg"><label className="fl">Nom</label><input className="fi" value={cfg.libraryName} onChange={e=/>setCfg({...cfg,libraryName:e.target.value})}/></div>
             <div className="fg"><label className="fl">Logo</label>
-              <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setCfg(s=>({...s,libraryLogo:r.result}));r.readAsDataURL(f);}}/>
+              <input ref={logoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=/>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setCfg(s=>({...s,libraryLogo:r.result}));r.readAsDataURL(f);}}/>
               <button className="btn btn-secondary" style={{width:'100%'}} onClick={()=>logoRef.current.click()}><Icon name="camera" size={13}/>Choisir logo</button>
               {cfg.libraryLogo&&<img src={cfg.libraryLogo} style={{width:64,height:64,borderRadius:'50%',objectFit:'cover',marginTop:10,border:'2px solid var(--accent)'}} alt=""/>}
             </div>
@@ -2041,11 +2040,11 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div className="ss">
             <h3>Règles de prêt</h3>
             <div className="fgrid">
-              <div className="fg"><label className="fl">Max prêts/membre (0=illimité)</label><input className="fi" type="number" min="0" max="20" value={cfg.maxLoansPerMember||0} onChange={e=>setCfg(f=>({...f,maxLoansPerMember:parseInt(e.target.value)||0}))}/></div>
+              <div className="fg"><label className="fl">Max prêts/membre (0=illimité)</label><input className="fi" type="number" min="0" max="20" value={cfg.maxLoansPerMember||0} onChange={e=/>setCfg(f=>({...f,maxLoansPerMember:parseInt(e.target.value)||0}))}/></div>
             </div>
             <div className="fgrid">
-              <div className="fg"><label className="fl">Durée (jours)</label><input className="fi" type="number" min="1" value={cfg.loanDays||14} onChange={e=>setCfg({...cfg,loanDays:parseInt(e.target.value)})}/></div>
-              <div className="fg"><label className="fl">Pénalité/jour (HTG)</label><input className="fi" type="number" min="0" value={cfg.feePerDay||10} onChange={e=>setCfg({...cfg,feePerDay:parseInt(e.target.value)})}/></div>
+              <div className="fg"><label className="fl">Durée (jours)</label><input className="fi" type="number" min="1" value={cfg.loanDays||14} onChange={e=/>setCfg({...cfg,loanDays:parseInt(e.target.value)})}/></div>
+              <div className="fg"><label className="fl">Pénalité/jour (HTG)</label><input className="fi" type="number" min="0" value={cfg.feePerDay||10} onChange={e=/>setCfg({...cfg,feePerDay:parseInt(e.target.value)})}/></div>
             </div>
           </div>
           <div className="ss">
@@ -2070,21 +2069,21 @@ body{font-family:Arial,Helvetica,sans-serif}
         <div className="mc" onClick={e=>e.stopPropagation()}>
           <div className="mh"><h2 className="mt">{editM?'Modifier membre':'Nouveau membre'}</h2><button className="xb" onClick={close}><Icon name="x" size={14}/></button></div>
           <div className="fg"><label className="fl">Photo</label>
-            <input ref={photoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setMf(prev=>({...prev,photo:r.result}));r.readAsDataURL(f);}}/>
+            <input ref={photoRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=/>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onloadend=()=>setMf(prev=>({...prev,photo:r.result}));r.readAsDataURL(f);}}/>
             <div className="pu" onClick={()=>photoRef.current.click()}>
               {mf.photo?<img src={mf.photo} className="pp" alt=""/>:<><Icon name="camera" size={24} color="var(--text3)"/><div style={{color:'var(--text3)',fontSize:'.82em',marginTop:6}}>Cliquez pour ajouter une photo</div></>}
             </div>
           </div>
           <div className="fgrid">
-            <div className="fg"><label className="fl">Nom complet *</label><input className="fi" value={mf.name} onChange={e=>setMf({...mf,name:e.target.value})} placeholder="Jean Dupont"/></div>
-            <div className="fg"><label className="fl">Email *</label><input className="fi" type="email" value={mf.email} onChange={e=>setMf({...mf,email:e.target.value})} placeholder="jean@email.com"/></div>
+            <div className="fg"><label className="fl">Nom complet *</label><input className="fi" value={mf.name} onChange={e=/>setMf({...mf,name:e.target.value})} placeholder="Jean Dupont"/></div>
+            <div className="fg"><label className="fl">Email *</label><input className="fi" type="email" value={mf.email} onChange={e=/>setMf({...mf,email:e.target.value})} placeholder="jean@email.com"/></div>
           </div>
           <div className="fgrid">
-            <div className="fg"><label className="fl">Téléphone</label><input className="fi" type="tel" value={mf.phone} onChange={e=>setMf({...mf,phone:e.target.value})} placeholder="+509 1234 5678"/></div>
-            <div className="fg"><label className="fl">N° identité</label><input className="fi" value={mf.idNumber} onChange={e=>setMf({...mf,idNumber:e.target.value})} placeholder="CIN/NIF"/></div>
+            <div className="fg"><label className="fl">Téléphone</label><input className="fi" type="tel" value={mf.phone} onChange={e=/>setMf({...mf,phone:e.target.value})} placeholder="+509 1234 5678"/></div>
+            <div className="fg"><label className="fl">N° identité</label><input className="fi" value={mf.idNumber} onChange={e=/>setMf({...mf,idNumber:e.target.value})} placeholder="CIN/NIF"/></div>
           </div>
           <div className="fg"><label className="fl">Adresse</label><textarea className="ft" value={mf.address} onChange={e=>setMf({...mf,address:e.target.value})} placeholder="Adresse"/></div>
-          <div className="fg"><label className="fl">Date de naissance</label><input className="fi" type="date" value={mf.dateOfBirth} onChange={e=>setMf({...mf,dateOfBirth:e.target.value})}/></div>
+          <div className="fg"><label className="fl">Date de naissance</label><input className="fi" type="date" value={mf.dateOfBirth} onChange={e=/>setMf({...mf,dateOfBirth:e.target.value})}/></div>
           <div className="fac">
             <button className="btn btn-primary" style={{flex:1}} onClick={saveMember}><Icon name="check" size={13}/>Enregistrer</button>
             <button className="btn btn-secondary" onClick={close}>Annuler</button>
@@ -2101,19 +2100,19 @@ body{font-family:Arial,Helvetica,sans-serif}
           <div className="fg">
             <label className="fl">Recherche ISBN automatique</label>
             <div style={{display:'flex',gap:8}}>
-              <input className="fi" placeholder="Ex: 9782070360024" value={bf.isbn||''} onChange={e=>setBf(f=>({...f,isbn:e.target.value}))} style={{flex:1}}/>
+              <input className="fi" placeholder="Ex: 9782070360024" value={bf.isbn||''} onChange={e=/>setBf(f=>({...f,isbn:e.target.value}))} style={{flex:1}}/>
               <button className="btn btn-secondary" disabled={isbnLoading} onClick={async()=>{const r=await lookupISBN(bf.isbn);if(r) setBf(f=>({...f,...r}));}} style={{flexShrink:0}}>
                 {isbnLoading?<span className="spinner"/>:<Icon name="search" size={13}/>}Remplir
               </button>
             </div>
           </div>
           <div className="fgrid">
-            <div className="fg"><label className="fl">Titre *</label><input className="fi" value={bf.title} onChange={e=>setBf({...bf,title:e.target.value})} placeholder="Titre"/></div>
-            <div className="fg"><label className="fl">Auteur *</label><input className="fi" value={bf.author} onChange={e=>setBf({...bf,author:e.target.value})} placeholder="Auteur"/></div>
+            <div className="fg"><label className="fl">Titre *</label><input className="fi" value={bf.title} onChange={e=/>setBf({...bf,title:e.target.value})} placeholder="Titre"/></div>
+            <div className="fg"><label className="fl">Auteur *</label><input className="fi" value={bf.author} onChange={e=/>setBf({...bf,author:e.target.value})} placeholder="Auteur"/></div>
           </div>
           <div className="fgrid">
-            <div className="fg"><label className="fl">ISBN</label><input className="fi" value={bf.isbn} onChange={e=>setBf({...bf,isbn:e.target.value})} placeholder="978-XXXXXXXXXX"/></div>
-            <div className="fg"><label className="fl">Année</label><input className="fi" value={bf.year} onChange={e=>setBf({...bf,year:e.target.value})} placeholder="2024"/></div>
+            <div className="fg"><label className="fl">ISBN</label><input className="fi" value={bf.isbn} onChange={e=/>setBf({...bf,isbn:e.target.value})} placeholder="978-XXXXXXXXXX"/></div>
+            <div className="fg"><label className="fl">Année</label><input className="fi" value={bf.year} onChange={e=/>setBf({...bf,year:e.target.value})} placeholder="2024"/></div>
           </div>
           <div className="fgrid">
             <div className="fg"><label className="fl">Catégorie</label>
@@ -2121,11 +2120,11 @@ body{font-family:Arial,Helvetica,sans-serif}
                 {CATS.map(c=><option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div className="fg"><label className="fl">Cote</label><input className="fi" value={bf.shelf} onChange={e=>setBf({...bf,shelf:e.target.value})} placeholder="A-12"/></div>
+            <div className="fg"><label className="fl">Cote</label><input className="fi" value={bf.shelf} onChange={e=/>setBf({...bf,shelf:e.target.value})} placeholder="A-12"/></div>
           </div>
           <div className="fgrid">
-            <div className="fg"><label className="fl">Éditeur</label><input className="fi" value={bf.publisher} onChange={e=>setBf({...bf,publisher:e.target.value})} placeholder="Éditeur"/></div>
-            <div className="fg"><label className="fl">Exemplaires</label><input className="fi" type="number" min="1" value={bf.copies} onChange={e=>setBf({...bf,copies:e.target.value})}/></div>
+            <div className="fg"><label className="fl">Éditeur</label><input className="fi" value={bf.publisher} onChange={e=/>setBf({...bf,publisher:e.target.value})} placeholder="Éditeur"/></div>
+            <div className="fg"><label className="fl">Exemplaires</label><input className="fi" type="number" min="1" value={bf.copies} onChange={e=/>setBf({...bf,copies:e.target.value})}/></div>
           </div>
           <div className="fg"><label className="fl">Description</label><textarea className="ft" value={bf.description} onChange={e=>setBf({...bf,description:e.target.value})} placeholder="Résumé…"/></div>
           <div className="fac">
@@ -2315,7 +2314,7 @@ body{font-family:Arial,Helvetica,sans-serif}
         <div style={{width:'100%',maxWidth:620,background:'var(--bg2)',borderRadius:'var(--r)',boxShadow:'var(--shadow-lg)',border:'1px solid var(--border)',overflow:'hidden'}} onClick={e=>e.stopPropagation()}>
           <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
             <Icon name="search" size={18} color="var(--text3)"/>
-            <input autoFocus className="fi" style={{border:'none',background:'transparent',fontSize:'1em',flex:1,outline:'none',padding:0}} placeholder="Rechercher membres, livres, prêts…" value={globalSearch} onChange={e=>setGlobalSearch(e.target.value)}/>
+            <input autoFocus className="fi" style={{border:'none',background:'transparent',fontSize:'1em',flex:1,outline:'none',padding:0}} placeholder="Rechercher membres, livres, prêts…" value={globalSearch} onChange={e=/>setGlobalSearch(e.target.value)}/>
             <span style={{fontSize:'.75em',color:'var(--text3)',background:'var(--bg3)',padding:'2px 6px',borderRadius:4}}>Échap pour fermer</span>
           </div>
           {globalSearch.length>=2&&globalResults.length===0&&<div style={{padding:'24px',textAlign:'center',color:'var(--text3)',fontSize:'.88em'}}>Aucun résultat pour "{globalSearch}"</div>}
@@ -2441,7 +2440,7 @@ body{font-family:Arial,Helvetica,sans-serif}
             <div className="zlist">
               {zp.map((bk,i)=>(
                 <div key={i} className={`zrow${bk._s?' sel':''}`} onClick={()=>setZp(p=>p.map((b,j)=>j===i?{...b,_s:!b._s}:b))}>
-                  <input type="checkbox" checked={bk._s} onChange={()=>{}} style={{width:14,height:14,marginTop:3,accentColor:'var(--accent)',flexShrink:0,cursor:'pointer'}} onClick={e=>e.stopPropagation()}/>
+                  <input type="checkbox" checked={bk._s} onChange={()=/>{}} style={{width:14,height:14,marginTop:3,accentColor:'var(--accent)',flexShrink:0,cursor:'pointer'}} onClick={e=>e.stopPropagation()}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:600,color:'var(--text)',fontSize:'.88em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bk.title}</div>
                     <div style={{fontSize:'.76em',color:'var(--text3)',marginTop:2}}>{bk.author||'—'}{bk.year?` · ${bk.year}`:''}</div>
