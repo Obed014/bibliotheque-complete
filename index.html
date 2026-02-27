@@ -170,7 +170,7 @@ body{
   background:var(--bg);padding:20px;
 }
 .login-box{
-  width:100%;max-width:400px;
+  width:100%;max-width:420px;
   background:var(--bg2);border:1px solid var(--border2);
   border-radius:20px;padding:44px 36px;
   box-shadow:var(--shadow-lg);animation:fadeUp .4s ease;
@@ -183,10 +183,12 @@ body{
 }
 .login-title{font-family:'Fraunces',serif;font-size:1.75em;text-align:center;color:var(--text);margin-bottom:5px}
 .login-sub{font-size:.83em;color:var(--text3);text-align:center;margin-bottom:28px}
-.login-tabs{display:flex;gap:6px;background:var(--surf2);border-radius:var(--rs);padding:4px;margin-bottom:24px}
-.login-tab{flex:1;padding:8px;border:none;background:none;color:var(--text3);font-size:.84em;font-weight:600;cursor:pointer;border-radius:6px;font-family:inherit;transition:all .2s}
+.login-tabs{display:flex;gap:3px;background:var(--surf2);border-radius:var(--rs);padding:4px;margin-bottom:24px}
+.login-tab{flex:1;padding:8px 4px;border-radius:calc(var(--rs) - 2px);border:none;background:transparent;color:var(--text2);font-size:.78em;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
 .login-tab.active{background:var(--bg2);color:var(--accent);box-shadow:var(--shadow)}
-.login-err{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:var(--red);padding:10px 14px;border-radius:var(--rs);font-size:.83em;margin-bottom:14px;text-align:center}
+.login-err{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:var(--red);padding:10px 14px;border-radius:var(--rs);font-size:.83em;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.login-info{background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);color:#15803d;padding:10px 14px;border-radius:var(--rs);font-size:.83em;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.login-notice{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:8px 12px;border-radius:var(--rs);font-size:.8em;margin-bottom:12px;display:flex;align-items:flex-start;gap:7px;line-height:1.5}
 
 /* ══ SHELL ════════════════════════════════════════════ */
 .shell{display:flex;min-height:100vh}
@@ -549,7 +551,7 @@ const Icon = ({ name, size=16, color='currentColor', strokeWidth=1.75 }) => {
 // ══ CONFIG ════════════════════════════════════════════
 const SB_URL = 'https://kokwzdfbypjvvqduuovk.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtva3d6ZGZieXBqdnZxZHV1b3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MDI1NTYsImV4cCI6MjA4NzQ3ODU1Nn0.fhPdFPa3Ap6SM6RK5bAs46bIBko3t-tBFm2w_fnKMn4';
-const CATS = ['Fiction','Science','Histoire','Biographie','Enfants','Religion','Technologie','Art','Cuisine','Autre'];
+const DEFAULT_CATS = ['Fiction','Science','Histoire','Biographie','Enfants','Religion','Technologie','Art','Cuisine','Autre'];
 const USE_SB = !!(SB_URL && SB_KEY && SB_KEY.startsWith('eyJ'));
 
 // ══ HELPERS ═══════════════════════════════════════════
@@ -570,9 +572,21 @@ async function sb(table, method='GET', body=null, qs='', token=null){
 }
 
 // ══ SUPABASE AUTH ══════════════════════════════════════
-async function sbSignIn(email,password){
+async function sbSignIn(identifier,password){
+  // Accept email OR member code (MBR-XXXX)
+  let email=identifier.trim();
+  if(/^MBR-/i.test(email)||(/^\d+$/.test(email))){
+    // It's a member code — resolve to email via DB
+    const code=email.toUpperCase().startsWith('MBR-')?email.toUpperCase():`MBR-${email.padStart(4,'0')}`;
+    try{
+      const r2=await fetch(`${SB_URL}/rest/v1/members?member_code=eq.${encodeURIComponent(code)}&select=email`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+      const rows=await r2.json();
+      if(rows&&rows.length&&rows[0].email) email=rows[0].email;
+      else throw new Error(`Aucun membre trouvé avec le code ${code}`);
+    }catch(e){ if(e.message.includes('Aucun')) throw e; }
+  }
   const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-  if(!r.ok){ const e=await r.json(); throw new Error(e.error_description||e.msg||'Erreur de connexion'); }
+  if(!r.ok){ const e=await r.json(); throw new Error(e.error_description||e.msg||'Email/code ou mot de passe incorrect'); }
   return r.json();
 }
 async function sbSignUp(email,password){
@@ -582,6 +596,26 @@ async function sbSignUp(email,password){
 }
 async function sbSignOut(token){
   await fetch(`${SB_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${token}`}});
+}
+async function sbResetPassword(email){
+  const r=await fetch(`${SB_URL}/auth/v1/recover`,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email})});
+  if(!r.ok){ const e=await r.json(); throw new Error(e.msg||e.error_description||'Erreur'); }
+  return true;
+}
+async function sbUpdatePassword(newPassword, accessToken){
+  const r=await fetch(`${SB_URL}/auth/v1/user`,{
+    method:'PUT',
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${accessToken}`,'Content-Type':'application/json'},
+    body:JSON.stringify({password:newPassword})
+  });
+  if(!r.ok){ const e=await r.json(); throw new Error(e.msg||e.error_description||'Erreur mise à jour'); }
+  return r.json();
+}
+function getHashParams(){
+  const hash=window.location.hash.substring(1);
+  const params={};
+  hash.split('&').forEach(p=>{ const [k,v]=p.split('='); if(k) params[k]=decodeURIComponent(v||''); });
+  return params;
 }
 function getStoredSession(){ try{ return JSON.parse(localStorage.getItem('lib_session')||'null'); }catch{ return null; } }
 
@@ -603,40 +637,43 @@ function getEmailFromSession(session){
   }catch(e){ return null; }
 }
 
-async function getUserRole(userId, userEmail){
-  // 1. Check hardcoded admin emails first (always works)
+async function getUserRole(userId, userEmail, userToken){
+  // 1. Hardcoded admin emails always win
   if(userEmail && ADMIN_EMAILS.includes(userEmail.toLowerCase())) return 'admin';
-  // 2. Then try database
+  // 2. Check DB — use user's own JWT token so RLS allows the read
+  const tok = userToken || SB_KEY;
   try{
     const url=`${SB_URL}/rest/v1/user_roles?user_id=eq.${userId}&select=role,email`;
-    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
-    if(!r.ok) return 'pending';
+    const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${tok}`}});
+    if(!r.ok) return 'readonly';
     const rows=await r.json();
     if(!rows.length){
-      // New user — register as pending so admin sees them
+      // New user → auto-register as readonly using their own token
       try{
         await fetch(`${SB_URL}/rest/v1/user_roles`,{
           method:'POST',
-          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-          body:JSON.stringify({user_id:userId, role:'pending', email:userEmail||''})
+          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${tok}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({user_id:userId, role:'readonly', email:userEmail||''})
         });
       }catch(e){}
-      return 'pending';
+      return 'readonly';
     }
-    return rows[0].role; // could be 'admin','librarian','readonly','pending','blocked'
-  }catch(e){ return 'pending'; }
+    return rows[0].role;
+  }catch(e){ return 'readonly'; }
 }
 async function getTeamMembers(){
   try{
     const url=`${SB_URL}/rest/v1/user_roles?order=created_at.desc&select=*`;
     const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
     if(!r.ok) return [];
-    return r.json();
+    const rows=await r.json();
+    // Enrich with Supabase Auth email if missing (email stored during registration)
+    return rows;
   }catch(e){ return []; }
 }
-async function setUserRole(userId, role){
+async function setUserRole(userId, role, email){
   try{ await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`); }catch(e){}
-  await sb('user_roles','POST',{user_id:userId, role});
+  await sb('user_roles','POST',{user_id:userId, role, email:email||''});
 }
 async function removeUserRole(userId){
   await sb('user_roles','DELETE',null,`?user_id=eq.${userId}`);
@@ -837,21 +874,106 @@ function Toasts({list}){
 
 // ══ LOGIN ══════════════════════════════════════════════
 function Login({onLogin}){
-  const [mode,setMode]=useState('login');
+  // mode: 'login' | 'register' | 'member-register' | 'reset' | 'new-password'
+  const hashParams = getHashParams();
+  const recoveryToken = hashParams.access_token && hashParams.type==='recovery' ? hashParams.access_token : null;
+  const [mode,setMode]=useState(recoveryToken?'new-password':'login');
+  const [identifier,setIdentifier]=useState('');
   const [email,setEmail]=useState('');
+  const [memberCode,setMemberCode]=useState('');
   const [pwd,setPwd]=useState('');
+  const [pwd2,setPwd2]=useState('');
   const [loading,setLoading]=useState(false);
   const [err,setErr]=useState('');
+  const [info,setInfo]=useState(recoveryToken?'Entrez votre nouveau mot de passe':'');
 
-  async function handle(){
-    if(!email||!pwd){setErr('Email et mot de passe requis');return;}
+  function switchMode(m){ setMode(m); setErr(''); setInfo(''); }
+
+  async function handleLogin(){
+    if(!identifier||!pwd){setErr('Identifiant et mot de passe requis');return;}
+    setLoading(true); setErr('');
+    try{
+      const data=await sbSignIn(identifier,pwd);
+      if(data.access_token){ storeSession(data); onLogin(data); }
+      else setErr('Réponse inattendue du serveur');
+    }catch(e){ setErr(e.message); }
+    finally{ setLoading(false); }
+  }
+
+  async function handleStaffRegister(){
+    if(!email||!pwd){ setErr('Email et mot de passe requis'); return; }
+    if(pwd!==pwd2){ setErr('Les mots de passe ne correspondent pas'); return; }
+    if(pwd.length<8){ setErr('Minimum 8 caractères'); return; }
+    setLoading(true); setErr('');
+    try{
+      const data=await sbSignUp(email,pwd);
+      if(data.access_token){ storeSession(data); onLogin(data); }
+      else{ setInfo('Compte créé ! Connectez-vous maintenant.'); switchMode('login'); setEmail(''); setPwd(''); setPwd2(''); }
+    }catch(e){ setErr(e.message); }
+    finally{ setLoading(false); }
+  }
+
+  async function handleMemberRegister(){
+    const code=memberCode.trim().toUpperCase().startsWith('MBR-')
+      ? memberCode.trim().toUpperCase()
+      : `MBR-${memberCode.trim().padStart(4,'0')}`;
+    if(!code||!email||!pwd){ setErr('Tous les champs sont requis'); return; }
+    if(pwd!==pwd2){ setErr('Les mots de passe ne correspondent pas'); return; }
+    if(pwd.length<8){ setErr('Minimum 8 caractères'); return; }
+    setLoading(true); setErr('');
+    try{
+      const r=await fetch(`${SB_URL}/rest/v1/members?member_code=eq.${encodeURIComponent(code)}&select=email,name`,
+        {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+      const rows=await r.json();
+      if(!rows||!rows.length){ setErr(`Carte ${code} introuvable. Vérifiez votre numéro.`); setLoading(false); return; }
+      const member=rows[0];
+      if(member.email.toLowerCase()!==email.toLowerCase()){
+        setErr('Email non associé à cette carte. Contactez la bibliothèque.');
+        setLoading(false); return;
+      }
+      const data=await sbSignUp(email,pwd);
+      if(data.access_token){ storeSession(data); onLogin(data); }
+      else{
+        setInfo(`Compte créé pour ${member.name}. Connectez-vous avec votre email ou code ${code}.`);
+        switchMode('login'); setMemberCode(''); setEmail(''); setPwd(''); setPwd2('');
+      }
+    }catch(e){ setErr(e.message); }
+    finally{ setLoading(false); }
+  }
+
+  async function handleNewPassword(){
+    if(!pwd||!pwd2){setErr('Entrez et confirmez le nouveau mot de passe');return;}
+    if(pwd!==pwd2){setErr('Les mots de passe ne correspondent pas');return;}
+    if(pwd.length<8){setErr('Mot de passe trop court (8 caractères minimum)');return;}
+    if(!recoveryToken){setErr('Lien de réinitialisation invalide');return;}
     setLoading(true);setErr('');
     try{
-      let data;
-      if(mode==='login') data=await sbSignIn(email,pwd);
-      else data=await sbSignUp(email,pwd);
-      if(data.access_token){ storeSession(data); onLogin(data); }
-      else if(mode==='register'){ setErr('Compte créé ! Vérifiez votre email puis connectez-vous.'); setMode('login'); }
+      await sbUpdatePassword(pwd, recoveryToken);
+      // Clear hash from URL
+      window.history.replaceState(null,'',window.location.pathname);
+      setInfo('Mot de passe mis à jour ! Connectez-vous maintenant.');
+      setMode('login'); setPwd(''); setPwd2('');
+    }catch(e){ setErr(e.message); }
+    finally{ setLoading(false); }
+  }
+
+  async function handleReset(){
+    if(!identifier){ setErr('Entrez votre email ou code carte'); return; }
+    setLoading(true); setErr('');
+    try{
+      // If code, resolve to email first
+      let resolvedEmail=identifier.trim();
+      if(/^MBR-/i.test(resolvedEmail)||/^\d+$/.test(resolvedEmail)){
+        const code=resolvedEmail.toUpperCase().startsWith('MBR-')?resolvedEmail.toUpperCase():`MBR-${resolvedEmail.padStart(4,'0')}`;
+        const r=await fetch(`${SB_URL}/rest/v1/members?member_code=eq.${encodeURIComponent(code)}&select=email`,
+          {headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+        const rows=await r.json();
+        if(rows&&rows.length&&rows[0].email) resolvedEmail=rows[0].email;
+        else{ setErr('Code carte introuvable'); setLoading(false); return; }
+      }
+      await sbResetPassword(resolvedEmail);
+      setInfo(`Un email de réinitialisation a été envoyé à ${resolvedEmail}. Vérifiez votre boîte mail.`);
+      setErr('');
     }catch(e){ setErr(e.message); }
     finally{ setLoading(false); }
   }
@@ -859,19 +981,170 @@ function Login({onLogin}){
   return(
     <div className="login-wrap">
       <div className="login-box">
-        <div className="login-icon"><Icon name="library" size={26}/></div>
+        <div className="login-icon"><Icon name="library" size={28}/></div>
         <div className="login-title">Bibliothèque</div>
-        <div className="login-sub">Système de gestion professionnel</div>
-        <div className="login-tabs">
-          <button className={`login-tab${mode==='login'?' active':''}`} onClick={()=>{setMode('login');setErr('');}}>Connexion</button>
-          <button className={`login-tab${mode==='register'?' active':''}`} onClick={()=>{setMode('register');setErr('');}}>Inscription</button>
-        </div>
-        {err&&<div className="login-err">{err}</div>}
-        <div className="fg"><label className="fl">Email</label><input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="admin@bibliotheque.com" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
-        <div className="fg"><label className="fl">Mot de passe</label><input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handle()}/></div>
-        <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:6,padding:'12px'}} onClick={handle} disabled={loading}>
-          {loading?<span className="spinner"/>:<><Icon name={mode==='login'?'log-out':'user'} size={15}/>{mode==='login'?'Se connecter':'Créer le compte'}</>}
-        </button>
+        <div className="login-sub">Espace numérique de la bibliothèque</div>
+
+        {/* Tabs */}
+        {mode!=='reset'&&(
+          <div className="login-tabs">
+            <button className={`login-tab${mode==='login'?' active':''}`} onClick={()=>switchMode('login')}>
+              <Icon name="log-out" size={12}/>Connexion
+            </button>
+            <button className={`login-tab${mode==='register'?' active':''}`} onClick={()=>switchMode('register')}>
+              <Icon name="users" size={12}/>Personnel
+            </button>
+            <button className={`login-tab${mode==='member-register'?' active':''}`} onClick={()=>switchMode('member-register')}>
+              <Icon name="bookmark" size={12}/>Membre
+            </button>
+          </div>
+        )}
+
+        {err&&<div className="login-err"><Icon name="alert" size={13}/><span>{err}</span></div>}
+        {info&&<div className="login-info"><Icon name="check" size={13}/><span>{info}</span></div>}
+
+        {/* ── CONNEXION ── */}
+        {mode==='login'&&(<>
+          <div className="fg">
+            <label className="fl">Email ou code de carte (ex: MBR-0042)</label>
+            <input className="fi" value={identifier} onChange={e=>setIdentifier(e.target.value)}
+              placeholder="email@exemple.com ou MBR-0042" autoFocus
+              onKeyPress={e=>e.key==='Enter'&&handleLogin()}/>
+          </div>
+          <div className="fg">
+            <label className="fl" style={{display:'flex',justifyContent:'space-between'}}>
+              <span>Mot de passe</span>
+              <span style={{color:'var(--accent)',cursor:'pointer',fontWeight:500,fontSize:'.9em'}}
+                onClick={()=>switchMode('reset')}>Mot de passe oublié ?</span>
+            </label>
+            <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)}
+              placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handleLogin()}/>
+          </div>
+          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}}
+            onClick={handleLogin} disabled={loading}>
+            {loading?<span className="spinner"/>:<><Icon name="log-out" size={15}/>Se connecter</>}
+          </button>
+          <div style={{textAlign:'center',marginTop:12,fontSize:'.78em',color:'var(--text3)',lineHeight:1.8}}>
+            Pas de compte ?
+            <span style={{color:'var(--accent)',cursor:'pointer',fontWeight:600,marginLeft:4}}
+              onClick={()=>switchMode('register')}>Personnel</span>
+            <span style={{margin:'0 6px',opacity:.4}}>·</span>
+            <span style={{color:'var(--accent)',cursor:'pointer',fontWeight:600}}
+              onClick={()=>switchMode('member-register')}>Membre</span>
+          </div>
+        </>)}
+
+        {/* ── MOT DE PASSE OUBLIÉ ── */}
+        {mode==='reset'&&(<>
+          <div style={{textAlign:'center',marginBottom:16}}>
+            <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(245,158,11,.12)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}>
+              <Icon name="key" size={22} color="#f59e0b"/>
+            </div>
+            <div style={{fontWeight:700,fontSize:'1.05em',marginBottom:4}}>Réinitialiser le mot de passe</div>
+            <div style={{fontSize:'.82em',color:'var(--text3)'}}>Un lien de réinitialisation sera envoyé à votre email</div>
+          </div>
+          <div className="fg">
+            <label className="fl">Votre email ou code de carte</label>
+            <input className="fi" value={identifier} onChange={e=>setIdentifier(e.target.value)}
+              placeholder="email@exemple.com ou MBR-0042" autoFocus
+              onKeyPress={e=>e.key==='Enter'&&handleReset()}/>
+          </div>
+          {!info&&(
+            <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}}
+              onClick={handleReset} disabled={loading}>
+              {loading?<span className="spinner"/>:<><Icon name="mail" size={15}/>Envoyer le lien</>}
+            </button>
+          )}
+          <button className="btn btn-ghost" style={{width:'100%',justifyContent:'center',marginTop:8}}
+            onClick={()=>{switchMode('login');setIdentifier('');}}>
+            <Icon name="arrow-left" size={14}/>Retour à la connexion
+          </button>
+        </>)}
+
+        {/* ── NOUVEAU MOT DE PASSE (depuis lien email) ── */}
+        {mode==='new-password'&&(<>
+          <div style={{textAlign:'center',marginBottom:16}}>
+            <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(34,197,94,.12)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px'}}>
+              <Icon name="lock" size={22} color="#16a34a"/>
+            </div>
+            <div style={{fontWeight:700,fontSize:'1.05em',marginBottom:4}}>Nouveau mot de passe</div>
+            <div style={{fontSize:'.82em',color:'var(--text3)'}}>Choisissez un nouveau mot de passe sécurisé</div>
+          </div>
+          <div className="fg">
+            <label className="fl">Nouveau mot de passe</label>
+            <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="Minimum 8 caractères" autoFocus/>
+          </div>
+          <div className="fg">
+            <label className="fl">Confirmer le mot de passe</label>
+            <input className="fi" type="password" value={pwd2} onChange={e=>setPwd2(e.target.value)} placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handleNewPassword()}/>
+          </div>
+          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}} onClick={handleNewPassword} disabled={loading}>
+            {loading?<span className="spinner"/>:<><Icon name="check" size={15}/>Enregistrer le mot de passe</>}
+          </button>
+        </>)}
+
+        {/* ── INSCRIPTION PERSONNEL ── */}
+        {mode==='register'&&(<>
+          <div className="login-notice">
+            <Icon name="info" size={13}/>Pour le personnel de la bibliothèque (bibliothécaires, administrateurs)
+          </div>
+          <div className="fg">
+            <label className="fl">Email professionnel</label>
+            <input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)}
+              placeholder="staff@bibliotheque.com" autoFocus/>
+          </div>
+          <div className="fg">
+            <label className="fl">Mot de passe</label>
+            <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)}
+              placeholder="Minimum 8 caractères"/>
+          </div>
+          <div className="fg">
+            <label className="fl">Confirmer le mot de passe</label>
+            <input className="fi" type="password" value={pwd2} onChange={e=>setPwd2(e.target.value)}
+              placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handleStaffRegister()}/>
+          </div>
+          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}}
+            onClick={handleStaffRegister} disabled={loading}>
+            {loading?<span className="spinner"/>:<><Icon name="user" size={15}/>Créer le compte</>}
+          </button>
+          <div className="login-notice" style={{marginTop:8,color:'var(--text3)'}}>
+            Accès <strong>Lecture seule</strong> par défaut — l'admin peut changer votre rôle.
+          </div>
+        </>)}
+
+        {/* ── INSCRIPTION MEMBRE ── */}
+        {mode==='member-register'&&(<>
+          <div className="login-notice">
+            <Icon name="bookmark" size={13}/>Créez votre espace avec votre numéro de carte de bibliothèque
+          </div>
+          <div className="fg">
+            <label className="fl">Numéro de carte membre</label>
+            <input className="fi" value={memberCode} onChange={e=>setMemberCode(e.target.value)}
+              placeholder="MBR-0042 ou juste 42" autoFocus/>
+          </div>
+          <div className="fg">
+            <label className="fl">Votre email (enregistré à la bibliothèque)</label>
+            <input className="fi" type="email" value={email} onChange={e=>setEmail(e.target.value)}
+              placeholder="votre@email.com"/>
+          </div>
+          <div className="fg">
+            <label className="fl">Choisissez un mot de passe</label>
+            <input className="fi" type="password" value={pwd} onChange={e=>setPwd(e.target.value)}
+              placeholder="Minimum 8 caractères"/>
+          </div>
+          <div className="fg">
+            <label className="fl">Confirmer le mot de passe</label>
+            <input className="fi" type="password" value={pwd2} onChange={e=>setPwd2(e.target.value)}
+              placeholder="••••••••" onKeyPress={e=>e.key==='Enter'&&handleMemberRegister()}/>
+          </div>
+          <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:8,padding:'12px'}}
+            onClick={handleMemberRegister} disabled={loading}>
+            {loading?<span className="spinner"/>:<><Icon name="bookmark" size={15}/>Créer mon espace</>}
+          </button>
+          <div className="login-notice" style={{marginTop:8,color:'var(--text3)'}}>
+            Vous pourrez vous connecter avec votre email <strong>ou</strong> votre code carte.
+          </div>
+        </>)}
       </div>
     </div>
   );
@@ -894,7 +1167,8 @@ function App(){
   const [scanSt,setScanSt]=useState('');
   const [scanItem,setScanItem]=useState(null);
   const [toasts,setToasts]=useState([]);
-  const [cfg,setCfg]=useState({libraryName:'Ma Bibliothèque',libraryLogo:'',loanDays:14,feePerDay:10});
+  const [cfg,setCfg]=useState({libraryName:'Ma Bibliothèque',libraryLogo:'',loanDays:14,feePerDay:10,categories:[...DEFAULT_CATS]});
+  const CATS = cfg.categories&&cfg.categories.length ? cfg.categories : DEFAULT_CATS;
   const [mf,setMf]=useState({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});
   const [bf,setBf]=useState({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});
   const [editM,setEditM]=useState(null);
@@ -954,12 +1228,13 @@ function App(){
       // Immediately check role from stored session
       const email = getEmailFromSession(stored);
       const uid = stored.user?.id;
+      const tok1 = stored.access_token;
       if(uid||email){
-        getUserRole(uid, email).then(r=>setUserRole(r));
+        getUserRole(uid, email, tok1).then(r=>setUserRole(r));
       }
     }
     setAuthReady(true);
-    const s=gsettings(); if(s&&s.libraryName) setCfg(prev=>({...prev,...s}));
+    const s=gsettings(); if(s&&s.libraryName) setCfg(prev=>({...prev,...s,categories:s.categories&&s.categories.length?s.categories:[...DEFAULT_CATS]}));
   },[]);
 
   useEffect(()=>{
@@ -968,7 +1243,8 @@ function App(){
       // Fetch user role
       const uid = session.user?.id || session.user;
       const email = getEmailFromSession(session);
-      getUserRole(uid, email).then(r=>{
+      const tok2 = session.access_token;
+      getUserRole(uid, email, tok2).then(r=>{
         setUserRole(r);
       });
     }
@@ -1275,49 +1551,298 @@ ${cfg.libraryName}`;
     catch(e){ toast(e.message,'err'); }
   }
   function printBookBarcode(book){
-    const bar=`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(book.barcode)}&code=Code128&dpi=200&bgcolor=FFFFFF&fgcolor=000000`;
-    const qr=`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(book.barcode)}&bgcolor=ffffff&color=000000`;
-    const thC=theme==='green'?'#14532d':theme==='blue'?'#0f1d35':'#111827';
-    const acC=theme==='green'?'#4ade80':theme==='blue'?'#60a5fa':theme==='dark'?'#e8c97a':'#2563eb';
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
-@page{size:85.6mm 54mm landscape;margin:0}
-*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
-html,body{width:85.6mm;height:54mm;overflow:hidden}
-body{font-family:Arial,Helvetica,sans-serif}
-.card{width:85.6mm;height:54mm;background:linear-gradient(135deg,${thC},#000);display:flex;flex-direction:column;overflow:hidden}
-.top{padding:3mm 4mm 2.5mm;display:flex;align-items:center;border-bottom:0.3mm solid rgba(255,255,255,.12);flex-shrink:0;background:rgba(255,255,255,.07)}
-.lib{font-size:2.8mm;font-weight:700;color:#fff}
-.sub{font-size:1.7mm;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;margin-top:.3mm}
-.body{display:flex;flex:1;padding:3mm 4mm;gap:3mm;overflow:hidden;align-items:center}
-.info{flex:1;min-width:0}
-.title{font-size:2.8mm;font-weight:700;color:#fff;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.author{font-size:2.1mm;color:rgba(255,255,255,.55);margin-top:1.5mm;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.cat{font-size:1.7mm;color:${acC};font-weight:600;margin-top:1.5mm;text-transform:uppercase;letter-spacing:.05em}
-.code{font-size:2.2mm;font-weight:800;letter-spacing:1.5mm;color:${acC};font-family:'Courier New',monospace;margin-top:2mm;background:rgba(255,255,255,.07);padding:1mm 2mm;border-radius:.8mm}
-.right{display:flex;flex-direction:column;align-items:center;gap:1.5mm;flex-shrink:0;width:22mm}
-.qr-box{background:#fff;border-radius:1mm;padding:.8mm;line-height:0}
-.bar-box{background:#fff;border-radius:.8mm;padding:.8mm 1mm;width:100%;line-height:0}
-<\/style><\/head><body>
-<div class="card">
-  <div class="top"><div><div class="lib">${cfg.libraryName}</div><div class="sub">Étiquette livre</div></div></div>
-  <div class="body">
-    <div class="info">
-      <div class="title">${book.title}</div>
-      <div class="author">${book.author}</div>
-      <div class="cat">${book.category}${book.shelf?' · '+book.shelf:''}</div>
-      <div class="code">${book.barcode}</div>
-    </div>
-    <div class="right">
-      <div class="qr-box"><img src="${qr}" width="20mm" height="20mm"/></div>
-      <div class="bar-box"><img src="${bar}" width="100%" height="7mm"/></div>
-    </div>
-  </div>
-</div><\/body><\/html>`;
-    let iframe=document.getElementById('_pb');
-    if(!iframe){ iframe=document.createElement('iframe'); iframe.id='_pb'; iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:350px;height:230px;border:none;'; document.body.appendChild(iframe); }
-    iframe.onload=()=>{ const imgs=iframe.contentDocument.querySelectorAll('img'); let done=0; const tryPrint=()=>{ if(++done>=imgs.length) setTimeout(()=>iframe.contentWindow.print(),500); }; if(!imgs.length) setTimeout(()=>iframe.contentWindow.print(),500); else imgs.forEach(img=>{ if(img.complete) tryPrint(); else{ img.onload=tryPrint; img.onerror=tryPrint; } }); };
-    iframe.srcdoc=html;
+    printSelectedBooks([book],'label');
   }
+  // ── Print book labels — white-background, high-contrast, adhesive-paper ready ──
+  function printSelectedBooks(bookList, formatOpt='label'){
+    if(!bookList.length) return;
+    const thC='#111827';
+    const acC='#2563eb';
+    const libName=cfg.libraryName||'Bibliothèque';
+    
+    // ── FORMAT LABELS ADHÉSIFS ────────────────────────────
+    if(formatOpt==='label'||formatOpt==='label-a4'||formatOpt==='label-sheet'){
+      // Detect label size: 'label'=CR80-style, 'label-a4'=A4 with grid, 'label-sheet'=64mm×34mm standard adhesive
+      const isSheet = formatOpt==='label-sheet';
+      const isA4 = formatOpt==='label-a4';
+      const lW = isSheet?'64mm':'85.6mm';
+      const lH = isSheet?'34mm':'54mm';
+      const pageSize = isA4?'A4 portrait':'auto';
+      const labels=bookList.map(book=>{
+        const qr=`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(book.barcode)}&bgcolor=ffffff&color=000000`;
+        const bar=`https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(book.barcode)}&code=Code128&dpi=200&bgcolor=FFFFFF&fgcolor=000000`;
+        return `<div class="label">
+          <div class="l-header">
+            <span class="l-lib">${libName}</span>
+            <span class="l-cat">${(book.category||'').substring(0,12)}</span>
+          </div>
+          <div class="l-body">
+            <div class="l-info">
+              <div class="l-title">${(book.title||'').substring(0,45)}</div>
+              <div class="l-author">${(book.author||'').substring(0,35)}</div>
+              <div class="l-codewrap">
+                <div class="l-code">${book.barcode}</div>
+                ${book.shelf?`<div class="l-shelf">${book.shelf}</div>`:''}
+              </div>
+              ${book.isbn?`<div class="l-isbn">ISBN ${book.isbn}</div>`:''}
+            </div>
+            <div class="l-right">
+              <img class="l-qr" src="${qr}" width="${isSheet?'16mm':'22mm'}" height="${isSheet?'16mm':'22mm'}"/>
+              <img class="l-bar" src="${bar}" style="width:100%;height:${isSheet?'6mm':'8mm'}"/>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+      const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Étiquettes — ${libName}</title><style>
+@page{size:${pageSize};margin:${isA4?'8mm':'3mm'}}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;background:#fff}
+.sheet{display:flex;flex-wrap:wrap;gap:${isA4?'4mm':'2mm'};padding:${isA4?'0':'1mm'};${isA4?'justify-content:flex-start':''}}
+.label{width:${lW};height:${lH};background:#fff;border:0.4mm solid #374151;border-radius:1.5mm;page-break-inside:avoid;display:flex;flex-direction:column;overflow:hidden}
+.l-header{background:#1e3a5f;padding:${isSheet?'1mm 2mm':'1.5mm 2.5mm'};display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.l-lib{font-size:${isSheet?'2mm':'2.4mm'};font-weight:800;color:#fff;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%}
+.l-cat{font-size:${isSheet?'1.6mm':'1.8mm'};color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.l-body{display:flex;flex:1;padding:${isSheet?'1.5mm':'2mm'};gap:${isSheet?'1.5mm':'2mm'};align-items:center;overflow:hidden}
+.l-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:${isSheet?'.6mm':'1mm'}}
+.l-title{font-size:${isSheet?'2.2mm':'2.8mm'};font-weight:700;color:#111827;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:${isSheet?'1':'2'};-webkit-box-orient:vertical}
+.l-author{font-size:${isSheet?'1.8mm':'2mm'};color:#6b7280;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.l-codewrap{display:flex;align-items:center;gap:1.5mm;margin-top:${isSheet?'.5mm':'1mm'}}
+.l-code{font-size:${isSheet?'3mm':'3.5mm'};font-weight:900;letter-spacing:1mm;color:#1d4ed8;font-family:'Courier New',monospace;background:#dbeafe;padding:${isSheet?'.5mm 1.5mm':'1mm 2mm'};border-radius:.5mm;border:0.3mm solid #93c5fd;white-space:nowrap}
+.l-shelf{font-size:${isSheet?'1.8mm':'2mm'};background:#fef3c7;color:#92400e;padding:${isSheet?'.5mm 1.5mm':'1mm 2mm'};border-radius:.5mm;font-weight:700;white-space:nowrap}
+.l-isbn{font-size:${isSheet?'1.5mm':'1.7mm'};color:#9ca3af;font-family:'Courier New',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.l-right{display:flex;flex-direction:column;align-items:center;gap:1mm;flex-shrink:0;width:${isSheet?'18mm':'24mm'}}
+.l-qr{background:#fff;border:0.3mm solid #e5e7eb;border-radius:.8mm;display:block}
+.l-bar{background:#fff;border:0.3mm solid #e5e7eb;border-radius:.5mm;display:block}
+<\/style><\/head><body>
+<div class="sheet">${labels}</div>
+<\/body><\/html>`;
+      let w=window.open('','_blank','width=1000,height=700');
+      if(!w) return;
+      w.document.write(html); w.document.close();
+      w.onload=()=>{
+        const imgs=w.document.querySelectorAll('img');
+        let done=0;
+        const tryPrint=()=>{if(++done>=imgs.length){setTimeout(()=>w.print(),800);}};
+        if(!imgs.length){setTimeout(()=>w.print(),500);}
+        else imgs.forEach(img=>{if(img.complete)tryPrint();else{img.onload=tryPrint;img.onerror=tryPrint;}});
+      };
+      return;
+    }
+
+    // ── FORMAT FICHES LISIBLES (A4) ──────────────────────
+    const rows=bookList.map(book=>{
+      const qr=`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(book.barcode)}&bgcolor=ffffff&color=000000`;
+      return `<div class="fiche">
+        <div class="fiche-header">
+          <div class="fiche-code-big">${book.barcode}</div>
+          <div class="fiche-meta">
+            <div class="fiche-cat">${book.category||''}</div>
+            ${book.shelf?`<div class="fiche-shelf">Cote: ${book.shelf}</div>`:''}
+          </div>
+          <img src="${qr}" class="fiche-qr"/>
+        </div>
+        <div class="fiche-title">${book.title||''}</div>
+        <div class="fiche-author">${book.author||''}</div>
+        <div class="fiche-details">
+          ${book.isbn?`<span class="tag">ISBN: ${book.isbn}</span>`:''}
+          ${book.year?`<span class="tag">${book.year}</span>`:''}
+          ${book.publisher?`<span class="tag">${book.publisher}</span>`:''}
+          <span class="tag stock ${(book.available||0)>0?'ok':'nok'}">${book.available||0}/${book.copies||1} dispo</span>
+        </div>
+        ${book.description?`<div class="fiche-desc">${book.description.substring(0,300)}</div>`:''}
+        <div class="fiche-bar">
+          <img src="https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(book.barcode)}&code=Code128&dpi=150&bgcolor=FFFFFF&fgcolor=000000" style="height:12mm;max-width:80mm"/>
+        </div>
+      </div>`;
+    }).join('');
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Fiches — ${libName}</title><style>
+@page{size:A4 portrait;margin:15mm 12mm}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;background:#fff;font-size:10pt}
+.fiche{border:0.5pt solid #d1d5db;border-radius:3pt;page-break-inside:avoid;margin-bottom:8mm;overflow:hidden}
+.fiche-header{background:#1e3a5f;padding:8pt 12pt;display:flex;align-items:center;gap:10pt}
+.fiche-code-big{font-family:'Courier New',monospace;font-size:16pt;font-weight:900;letter-spacing:2pt;color:#fff;background:rgba(255,255,255,.12);padding:4pt 10pt;border-radius:3pt;border:0.5pt solid rgba(255,255,255,.3);white-space:nowrap}
+.fiche-meta{flex:1;min-width:0}
+.fiche-cat{font-size:9pt;color:#93c5fd;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2pt}
+.fiche-shelf{font-size:8pt;color:rgba(255,255,255,.6)}
+.fiche-qr{background:#fff;border-radius:2pt;padding:2pt;flex-shrink:0}
+.fiche-title{padding:8pt 12pt 2pt;font-size:13pt;font-weight:700;color:#111827;line-height:1.3}
+.fiche-author{padding:0 12pt 6pt;font-size:10pt;color:#4b5563}
+.fiche-details{padding:0 12pt 6pt;display:flex;gap:4pt;flex-wrap:wrap}
+.tag{font-size:8pt;padding:1pt 6pt;border-radius:2pt;background:#f3f4f6;color:#374151;white-space:nowrap}
+.tag.stock{font-weight:700}
+.tag.ok{background:#dcfce7;color:#15803d}
+.tag.nok{background:#fee2e2;color:#dc2626}
+.fiche-desc{padding:4pt 12pt 8pt;font-size:8pt;color:#6b7280;line-height:1.5;border-top:0.3pt solid #f3f4f6;margin:0 6pt}
+.fiche-bar{padding:4pt 12pt 8pt;text-align:left}
+<\/style><\/head><body>${rows}<\/body><\/html>`;
+    let w=window.open('','_blank','width=900,height=700');
+    if(!w) return;
+    w.document.write(html); w.document.close();
+    w.onload=()=>{
+      const imgs=w.document.querySelectorAll('img');
+      let done=0;
+      const tryPrint=()=>{if(++done>=imgs.length){setTimeout(()=>w.print(),800);}};
+      if(!imgs.length){setTimeout(()=>w.print(),500);}
+      else imgs.forEach(img=>{if(img.complete)tryPrint();else{img.onload=tryPrint;img.onerror=tryPrint;}});
+    };
+  }
+
+  
+  // ── Export to Word (.doc) — editable catalogue sheet ──
+  function exportSelectedBooksWord(bookList){
+    if(!bookList.length) return;
+    const libName=cfg.libraryName||'Bibliothèque';
+    const dateStr=new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const rows=bookList.map(b=>`
+      <tr>
+        <td style="width:15%;padding:6pt 8pt;border:0.5pt solid #d1d5db;text-align:center;vertical-align:middle;background:#1e3a5f">
+          <p style="font-family:'Courier New';font-size:11pt;font-weight:bold;color:#fff;letter-spacing:2pt;margin:0;white-space:nowrap">${b.barcode||''}</p>
+          ${b.shelf?`<p style="font-size:7pt;color:#93c5fd;margin:3pt 0 0;font-family:'Courier New'">${b.shelf}</p>`:''}
+        </td>
+        <td style="width:38%;padding:6pt 8pt;border:0.5pt solid #d1d5db;vertical-align:top">
+          <p style="font-weight:bold;font-size:11pt;margin:0 0 3pt;color:#111827">${b.title||''}</p>
+          <p style="color:#6b7280;font-size:9pt;margin:0 0 4pt">${b.author||''}</p>
+          ${b.description?`<p style="font-size:8pt;color:#9ca3af;margin:0;line-height:1.4">${b.description.substring(0,180)}</p>`:''}
+        </td>
+        <td style="padding:6pt 8pt;border:0.5pt solid #d1d5db;vertical-align:top">
+          <p style="margin:0 0 2pt"><span style="background:#dbeafe;color:#1d4ed8;padding:1pt 6pt;border-radius:3pt;font-size:8pt;font-weight:bold">${b.category||''}</span></p>
+          ${b.isbn?`<p style="font-size:8pt;color:#6b7280;margin:3pt 0">ISBN: ${b.isbn}</p>`:''}
+          ${b.year?`<p style="font-size:8pt;color:#6b7280;margin:2pt 0">${b.year}</p>`:''}
+          ${b.publisher?`<p style="font-size:8pt;color:#9ca3af;margin:2pt 0">${b.publisher}</p>`:''}
+        </td>
+        <td style="width:12%;padding:6pt 8pt;border:0.5pt solid #d1d5db;text-align:center;vertical-align:top">
+          <p style="font-size:10pt;font-weight:bold;color:${(b.available||0)>0?'#15803d':'#dc2626'};margin:0">${b.available||0}</p>
+          <p style="font-size:7pt;color:#9ca3af;margin:2pt 0">/${b.copies||1} ex.</p>
+        </td>
+      </tr>`).join('');
+
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"/>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+  @page{size:21cm 29.7cm;margin:2cm}
+  body{font-family:Arial,sans-serif;font-size:10pt;margin:0}
+  h1{font-size:18pt;color:#1e3a5f;border-bottom:2pt solid #2563eb;padding-bottom:6pt;margin:0 0 4pt}
+  h2{font-size:9pt;color:#9ca3af;font-weight:normal;margin:0 0 14pt;font-style:italic}
+  table{width:100%;border-collapse:collapse;margin-top:6pt}
+  th{background:#1e3a5f;color:#fff;padding:6pt 8pt;font-size:9pt;text-align:left;border:0.5pt solid #1e3a5f}
+  tr:nth-child(even) td{background:#f9fafb}
+</style>
+</head><body>
+<h1>Catalogue — ${libName}</h1>
+<h2>${bookList.length} livre(s) · ${dateStr}</h2>
+<table>
+<thead><tr>
+  <th style="width:15%">Code</th>
+  <th style="width:38%">Titre &amp; Auteur</th>
+  <th>Détails</th>
+  <th style="width:12%;text-align:center">Stock</th>
+</tr></thead>
+<tbody>${rows}</tbody>
+</table>
+</body></html>`;
+    const blob=new Blob(['\ufeff'+html],{type:'application/msword;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`catalogue-${libName.replace(/\s+/g,'-')}-${Date.now()}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`📄 ${bookList.length} fiche(s) exportée(s) en Word`);
+  }
+
+  
+  // ── Export member card to Word ──
+  function exportMemberCardWord(member){
+    const dateStr=new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+    const since=member.joinDate?new Date(member.joinDate).toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'}):'-';
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"/>
+<style>
+  @page{size:21cm 29.7cm;margin:2.5cm}
+  body{font-family:Arial,sans-serif;font-size:10pt}
+  .header{background:#1e3a5f;color:white;padding:14pt 16pt;margin-bottom:16pt}
+  .header h1{font-size:14pt;margin:0;font-weight:bold}
+  .header p{font-size:9pt;opacity:.7;margin:4pt 0 0}
+  .card-code{font-family:Courier New;font-size:16pt;font-weight:bold;color:#1e40af;background:#dbeafe;padding:8pt 16pt;letter-spacing:4pt;display:inline-block;margin:8pt 0 16pt}
+  .section{margin-bottom:12pt}
+  .section-title{font-size:9pt;font-weight:bold;color:#64748b;text-transform:uppercase;letter-spacing:.08em;border-bottom:0.5pt solid #e2e8f0;padding-bottom:3pt;margin-bottom:8pt}
+  table{border-collapse:collapse;width:100%}
+  td{padding:5pt 8pt;vertical-align:top}
+  .label{color:#64748b;font-size:9pt;width:35%}
+  .value{color:#0f172a;font-size:10pt;font-weight:500}
+  .footer{font-size:8pt;color:#94a3b8;margin-top:20pt;text-align:center;border-top:0.5pt solid #e2e8f0;padding-top:8pt}
+</style>
+</head><body>
+<div class="header">
+  <h1>&#128100; Fiche Membre — ${(cfg.libraryName||'Bibliothèque').replace(/&/g,'&amp;')}</h1>
+  <p>Émise le ${dateStr}</p>
+</div>
+<div class="card-code">${member.memberCode||''}</div>
+<div class="section">
+  <div class="section-title">Informations personnelles</div>
+  <table>
+    <tr><td class="label">Nom complet</td><td class="value">${(member.name||'').replace(/&/g,'&amp;')}</td></tr>
+    <tr><td class="label">Email</td><td class="value">${(member.email||'').replace(/&/g,'&amp;')}</td></tr>
+    ${member.phone?`<tr><td class="label">Téléphone</td><td class="value">${member.phone}</td></tr>`:''}
+    ${member.address?`<tr><td class="label">Adresse</td><td class="value">${member.address.replace(/&/g,'&amp;')}</td></tr>`:''}
+    ${member.idNumber?`<tr><td class="label">N° identité</td><td class="value">${member.idNumber}</td></tr>`:''}
+    <tr><td class="label">Membre depuis</td><td class="value">${since}</td></tr>
+  </table>
+</div>
+<p class="footer">${(cfg.libraryName||'Bibliothèque').replace(/&/g,'&amp;')} — Document officiel</p>
+</body></html>`;
+    const blob=new Blob(['﻿'+html],{type:'application/msword;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download=`fiche-${(member.memberCode||'membre').replace(/[^a-z0-9]/gi,'-')}.doc`;
+    a.click(); URL.revokeObjectURL(url);
+    toast('📄 Fiche exportée en Word');
+  }
+
+  // ── Export monthly report to Word ──
+  function exportMonthlyReportWord(mLoans, mName){
+    const dateStr=new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+    const rows=mLoans.map((l,i)=>`
+      <tr style="background:${i%2===0?'#f8fafc':'#fff'}">
+        <td style="padding:5pt 7pt;border:0.5pt solid #e2e8f0">${l.bookTitle||l.bookId}</td>
+        <td style="padding:5pt 7pt;border:0.5pt solid #e2e8f0">${l.memberName||l.memberId}</td>
+        <td style="padding:5pt 7pt;border:0.5pt solid #e2e8f0;text-align:center">${l.loanDate?new Date(l.loanDate).toLocaleDateString('fr-FR'):'-'}</td>
+        <td style="padding:5pt 7pt;border:0.5pt solid #e2e8f0;text-align:center">${l.returnDate?new Date(l.returnDate).toLocaleDateString('fr-FR'):'En cours'}</td>
+        <td style="padding:5pt 7pt;border:0.5pt solid #e2e8f0;text-align:center;color:${l.returnDate?'#16a34a':'#f59e0b'};font-weight:bold">${l.returnDate?'Retourné':'En cours'}</td>
+      </tr>`).join('');
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8"/>
+<style>
+  @page{size:21cm 29.7cm;margin:2cm;mso-header-margin:1cm;mso-footer-margin:1cm}
+  body{font-family:Arial,sans-serif;font-size:10pt}
+  h1{font-size:16pt;color:#1e3a5f;margin:0 0 4pt}
+  .sub{color:#64748b;font-size:10pt;margin:0 0 14pt}
+  table{border-collapse:collapse;width:100%}
+  th{background:#1e3a5f;color:#fff;padding:6pt 8pt;font-size:9pt;text-align:left}
+  .footer{font-size:8pt;color:#94a3b8;margin-top:14pt;text-align:center;border-top:0.5pt solid #e2e8f0;padding-top:8pt}
+</style>
+</head><body>
+<h1>&#128218; Rapport mensuel — ${(cfg.libraryName||'').replace(/&/g,'&amp;')}</h1>
+<p class="sub">${mName} &nbsp;·&nbsp; ${mLoans.length} prêt(s) &nbsp;·&nbsp; Généré le ${dateStr}</p>
+<table>
+  <thead><tr>
+    <th>Livre</th><th>Membre</th><th style="text-align:center">Prêté le</th>
+    <th style="text-align:center">Retourné le</th><th style="text-align:center">Statut</th>
+  </tr></thead>
+  <tbody>${rows||'<tr><td colspan="5" style="text-align:center;padding:12pt;color:#94a3b8">Aucun prêt ce mois</td></tr>'}</tbody>
+</table>
+<p class="footer">${(cfg.libraryName||'Bibliothèque').replace(/&/g,'&amp;')} — Rapport confidentiel</p>
+</body></html>`;
+    const blob=new Blob(['﻿'+html],{type:'application/msword;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download=`rapport-${mName.replace(/[^a-z0-9]/gi,'-')}-${Date.now()}.doc`;
+    a.click(); URL.revokeObjectURL(url);
+    toast('📄 Rapport exporté en Word');
+  }
+
   function printMonthlyReport(){
     const now=new Date();
     const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
@@ -1462,13 +1987,14 @@ body{font-family:Arial,Helvetica,sans-serif}
   // ── Helpers permissions ──
   const isAdmin = userRole === 'admin';
   const canEdit = userRole === 'admin' || userRole === 'librarian';
+  const canReserve = canEdit || userRole === 'readonly'; // readonly users can reserve
 
   async function loadTeam(){
     if(!isAdmin) return;
     try{
-      const [t,p]=await Promise.all([getTeamMembers(),getPendingUsers()]);
-      setTeamMembers(t.filter(m=>m.role!=='blocked'&&m.role!=='pending'));
-      setPendingUsers(p);
+      const all=await getTeamMembers();
+      setTeamMembers(all.filter(m=>m.role!=='blocked'));
+      setPendingUsers(all.filter(m=>m.role==='pending'||false)); // kept for compat, unused now
     }catch(e){}
   }
   useEffect(()=>{ if(isAdmin) loadTeam(); },[isAdmin]);
@@ -1525,20 +2051,7 @@ body{font-family:Arial,Helvetica,sans-serif}
     </div>
   );
 
-  // Pending user — waiting for admin approval
-  if(userRole==='pending') return(
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:20,background:'var(--bg)',padding:24}}>
-      <div style={{width:64,height:64,borderRadius:'50%',background:'#fef3c7',display:'flex',alignItems:'center',justifyContent:'center'}}>
-        <Icon name="alert" size={32} color="#d97706"/>
-      </div>
-      <div style={{textAlign:'center'}}>
-        <div style={{fontWeight:700,fontSize:'1.2em',color:'var(--text)',marginBottom:8}}>Accès en attente</div>
-        <div style={{color:'var(--text2)',fontSize:'.9em',maxWidth:360}}>Votre compte est en attente de validation par l'administrateur. Revenez dans quelques instants ou contactez l'administrateur.</div>
-      </div>
-      <button className="btn btn-secondary" onClick={()=>window.location.reload()}><Icon name="refresh" size={14}/>Vérifier à nouveau</button>
-      <button className="btn btn-ghost" onClick={handleLogout}><Icon name="log-out" size={14}/>Se déconnecter</button>
-    </div>
-  );
+  // New users automatically get readonly role — no pending screen needed
 
   if(loading) return(
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:16,background:'var(--bg)'}}>
@@ -1594,6 +2107,7 @@ body{font-family:Arial,Helvetica,sans-serif}
         {[
           {k:'members',i:'users',l:'Membres',n:members.length},
           {k:'books',i:'book',l:'Livres',n:books.length},
+          {k:'categories',i:'tag',l:'Catégories',n:CATS.length},
           {k:'loans',i:'book-open',l:'Prêts actifs',n:loans.length},
           {k:'history',i:'history',l:'Historique',n:history.length},
           {k:'reservations',i:'book-marked',l:'Réservations',n:reservations.length},
@@ -1624,7 +2138,15 @@ body{font-family:Arial,Helvetica,sans-serif}
           <input type="file" accept=".json" ref={importRef} style={{display:'none'}} onChange={importJSON}/>
           <button className="sfbtn" onClick={()=>importRef.current.click()}><Icon name="upload" size={12}/>Import</button>
         </div>
-        <button className="sfbtn" onClick={printMonthlyReport} style={{width:'100%',background:'var(--accent-t)',color:'var(--sb-accent)',borderColor:'rgba(255,255,255,.1)'}}><Icon name="bar-chart" size={12}/>Rapport mensuel</button>
+        <div style={{display:'flex',gap:4,width:'100%'}}>
+          <button className="sfbtn" onClick={printMonthlyReport} style={{flex:1,background:'var(--accent-t)',color:'var(--sb-accent)',borderColor:'rgba(255,255,255,.1)'}}><Icon name="bar-chart" size={12}/>Rapport mensuel</button>
+          <button className="sfbtn" title="Exporter en Word" onClick={()=>{
+            const now=new Date(); const ms=new Date(now.getFullYear(),now.getMonth(),1);
+            const mLoans=history.filter(l=>new Date(l.loanDate)>=ms);
+            const mName=now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+            exportMonthlyReportWord(mLoans,mName);
+          }} style={{background:'var(--accent-t)',color:'var(--sb-accent)',borderColor:'rgba(255,255,255,.1)',padding:'0 8px'}}><Icon name="file-text" size={12}/></button>
+        </div>
         <button className="sfbtn" onClick={()=>setModal('settings')} style={{width:'100%'}}><Icon name="settings" size={12}/>Paramètres</button>
         <button className="sfbtn zotero" onClick={()=>{setZp([]);setZst('');setModal('zotero');}} style={{width:'100%'}}><Icon name="download" size={12}/>Importer Zotero</button>
         <div className="sb-user">
@@ -1681,6 +2203,105 @@ body{font-family:Arial,Helvetica,sans-serif}
         </div>
       )}
 
+      {tab==='categories'&&(
+        <div>
+          <div className="ph au">
+            <h1 className="pt">Catégories</h1>
+            {canEdit&&<button className="btn btn-primary btn-sm" onClick={()=>{
+              const v=prompt('Nom de la nouvelle catégorie :');
+              if(v&&v.trim()&&!CATS.includes(v.trim())){
+                const newCats=[...CATS,v.trim()];
+                setCfg(f=>({...f,categories:newCats}));
+                saveCfg({...cfg,categories:newCats});
+              }
+            }}><Icon name="plus" size={13}/>Nouvelle catégorie</button>}
+          </div>
+
+          <div className="al al-i au2" style={{fontSize:'.82em',color:'var(--text2)'}}>
+            <Icon name="info" size={13}/>Les catégories s'appliquent aux livres. Supprimer une catégorie ne supprime pas les livres qui l'utilisent.
+          </div>
+
+          <div className="au3">
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:10}}>
+              {CATS.map((cat,i)=>{
+                const count=books.filter(b=>b.category===cat).length;
+                const isDefault=DEFAULT_CATS.includes(cat);
+                return(
+                  <div key={cat} className="card" style={{cursor:'default',position:'relative'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <div style={{width:36,height:36,borderRadius:8,background:'var(--accent-t)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        <Icon name="tag" size={16} color="var(--accent)"/>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:'.9em',color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cat}</div>
+                        <div style={{fontSize:'.75em',color:'var(--text3)',marginTop:2}}>
+                          {count} livre{count!==1?'s':''}
+                          {isDefault&&<span style={{marginLeft:6,fontSize:'.7em',background:'var(--bg3)',color:'var(--text3)',padding:'1px 5px',borderRadius:4}}>défaut</span>}
+                        </div>
+                      </div>
+                      {canEdit&&(
+                        <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                          <button className="btn btn-ghost btn-sm" style={{padding:'3px 5px'}} title="Renommer" onClick={()=>{
+                            const v=prompt('Nouveau nom :',cat);
+                            if(v&&v.trim()&&v.trim()!==cat&&!CATS.includes(v.trim())){
+                              const newCats=CATS.map(c=>c===cat?v.trim():c);
+                              const newBooks=books.map(b=>b.category===cat?{...b,category:v.trim()}:b);
+                              setCfg(f=>({...f,categories:newCats}));
+                              saveCfg({...cfg,categories:newCats});
+                              // Update books in DB
+                              newBooks.filter(b=>b.category===v.trim()).forEach(b=>DB.updateBook(b.id,{...b}));
+                              reload();
+                              toast(`Catégorie renommée → ${v.trim()}`);
+                            }
+                          }}><Icon name="pencil" size={11}/></button>
+                          <button className="btn btn-ghost btn-sm" style={{padding:'3px 5px',color:'var(--red)'}} title="Supprimer" onClick={()=>{
+                            if(count>0&&!confirm(`${count} livre(s) utilisent "${cat}". Ils seront mis en catégorie "Autre". Continuer ?`)) return;
+                            const newCats=CATS.filter(c=>c!==cat);
+                            setCfg(f=>({...f,categories:newCats.length?newCats:[...DEFAULT_CATS]}));
+                            saveCfg({...cfg,categories:newCats.length?newCats:[...DEFAULT_CATS]});
+                            toast(`Catégorie supprimée`);
+                          }}><Icon name="trash" size={11}/></button>
+                        </div>
+                      )}
+                    </div>
+                    {count>0&&(
+                      <button className="btn btn-ghost btn-sm" style={{marginTop:8,width:'100%',fontSize:'.75em',color:'var(--accent)'}}
+                        onClick={()=>{setTab('books');setCatF(cat);}}>
+                        <Icon name="book" size={11}/>Voir les livres →
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {canEdit&&(
+              <div className="card" style={{marginTop:16,padding:'12px 14px'}}>
+                <div style={{fontWeight:600,fontSize:'.85em',marginBottom:10}}>Ajouter des catégories en lot</div>
+                <div style={{display:'flex',gap:8}}>
+                  <input className="fi" id="bulk-cat-input" placeholder="Ex: Roman, Poésie, Philosophie (séparées par virgule)" style={{flex:1}}/>
+                  <button className="btn btn-secondary btn-sm" onClick={()=>{
+                    const inp=document.getElementById('bulk-cat-input');
+                    const vals=inp.value.split(',').map(v=>v.trim()).filter(v=>v&&!CATS.includes(v));
+                    if(vals.length){
+                      const newCats=[...CATS,...vals];
+                      setCfg(f=>({...f,categories:newCats}));
+                      saveCfg({...cfg,categories:newCats});
+                      inp.value='';
+                      toast(`${vals.length} catégorie(s) ajoutée(s)`);
+                    }
+                  }}><Icon name="plus" size={13}/>Ajouter</button>
+                </div>
+                <button className="btn btn-ghost btn-sm" style={{marginTop:8,fontSize:'.75em',color:'var(--text3)'}}
+                  onClick={()=>{if(confirm('Rétablir les catégories par défaut ?')){setCfg(f=>({...f,categories:[...DEFAULT_CATS]}));saveCfg({...cfg,categories:[...DEFAULT_CATS]});}}}>
+                  Rétablir les catégories par défaut
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {tab==='team'&&(
         <div>
           <div className="ph au">
@@ -1688,111 +2309,85 @@ body{font-family:Arial,Helvetica,sans-serif}
             <button className="btn btn-primary btn-sm" onClick={()=>setModal('invite')}><Icon name="plus" size={13}/>Partager l'accès</button>
           </div>
 
-          {/* Pending users — awaiting approval */}
-          {pendingUsers.length>0&&(
-            <div className="au2">
-              <div style={{fontWeight:700,fontSize:'.9em',color:'var(--orange)',marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
-                <Icon name="alert" size={15} color="var(--orange)"/>
-                {pendingUsers.length} compte(s) en attente de validation
-              </div>
-              <div className="grid">
-                {pendingUsers.map(u=>(
-                  <div key={u.user_id} className="card" style={{borderLeft:'3px solid var(--orange)'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:12}}>
-                      <div className="av" style={{background:'var(--orange)',opacity:.85}}><Icon name="user" size={20}/></div>
-                      <div style={{flex:1}}>
-                        <div className="ct" style={{fontSize:'.95em'}}>{u.email||u.user_id}</div>
-                        <div className="cs">Demande le {u.created_at?new Date(u.created_at).toLocaleDateString('fr-FR'):'-'}</div>
-                        <span className="b bo" style={{marginTop:4,display:'inline-block'}}>En attente</span>
-                      </div>
-                      <div style={{display:'flex',flexDirection:'column',gap:5}}>
-                        <select className="fsel" id={`role-${u.user_id}`} defaultValue="readonly" style={{fontSize:'.78em',padding:'4px 8px'}}>
-                          <option value="admin">Administrateur</option>
-                          <option value="librarian">Bibliothécaire</option>
-                          <option value="readonly">Lecture seule</option>
-                        </select>
-                        <div style={{display:'flex',gap:5}}>
-                          <button className="btn btn-success btn-sm" style={{flex:1}} onClick={async()=>{
-                            const role=document.getElementById(`role-${u.user_id}`).value;
-                            try{ await setUserRole(u.user_id,role); toast(`✅ Accès accordé (${ROLES[role]})`); loadTeam(); }
-                            catch(err){ toast(err.message,'err'); }
-                          }}><Icon name="check" size={12}/>Accepter</button>
-                          <button className="btn btn-danger btn-sm" onClick={async()=>{
-                            if(!confirm('Bloquer cet utilisateur ?')) return;
-                            try{ await blockUser(u.user_id); toast('🚫 Utilisateur bloqué'); loadTeam(); }
-                            catch(err){ toast(err.message,'err'); }
-                          }}><Icon name="x" size={12}/>Bloquer</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="al al-i au2" style={{flexDirection:'column',alignItems:'start',gap:6}}>
-            <div style={{fontWeight:700,fontSize:'.88em'}}>Niveaux d'accès</div>
-            <div style={{fontSize:'.82em',lineHeight:1.8,color:'var(--text2)'}}>
-              <strong>🔴 Administrateur</strong> : accès complet, gestion des utilisateurs, suppression.<br/>
-              <strong>🟡 Bibliothécaire</strong> : ajouter, modifier, créer des prêts — pas de suppression.<br/>
-              <strong>🔵 Lecture seule</strong> : consultation uniquement, aucune modification possible.<br/>
-              <strong>🚫 Bloqué</strong> : accès refusé, ne peut pas se connecter.
+          {/* Legend */}
+          <div className="al al-i au2" style={{flexDirection:'column',alignItems:'start',gap:4,padding:'10px 14px'}}>
+            <div style={{fontWeight:700,fontSize:'.85em',marginBottom:4}}>Niveaux d'accès</div>
+            <div style={{fontSize:'.8em',lineHeight:2,color:'var(--text2)',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 24px'}}>
+              <span><span style={{color:'var(--red)',fontWeight:700}}>●</span> <strong>Administrateur</strong> : tout faire, gérer les accès</span>
+              <span><span style={{color:'#f59e0b',fontWeight:700}}>●</span> <strong>Bibliothécaire</strong> : prêts, membres, livres</span>
+              <span><span style={{color:'var(--accent)',fontWeight:700}}>●</span> <strong>Lecture seule</strong> : consulter + réserver (défaut)</span>
+              <span><span style={{color:'#9ca3af',fontWeight:700}}>●</span> <strong>Bloqué</strong> : accès refusé</span>
             </div>
           </div>
 
-          <div style={{marginTop:16}} className="au3">
-            {/* Own account */}
-            <div className="card" style={{marginBottom:12,borderLeft:'3px solid var(--accent)'}}>
+          {/* Own account */}
+          <div className="au3" style={{marginTop:8}}>
+            <div style={{fontSize:'.75em',fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Votre compte</div>
+            <div className="card" style={{marginBottom:16,borderLeft:'3px solid var(--accent)'}}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
-                <div className="av"><Icon name="user" size={22}/></div>
+                <div className="av" style={{background:'var(--accent-t)'}}><Icon name="user" size={20} color="var(--accent)"/></div>
                 <div style={{flex:1}}>
-                  <div className="ct" style={{fontSize:'.98em'}}>{session?.user?.email}</div>
-                  <div className="cs">Votre compte</div>
+                  <div className="ct" style={{fontSize:'.95em'}}>{session?.user?.email}</div>
+                  <div className="cs">Compte administrateur</div>
                 </div>
-                <span className="b ba">Administrateur</span>
+                <span className="b ba" style={{fontSize:'.75em'}}>Administrateur</span>
               </div>
             </div>
 
-            {teamMembers.length===0&&pendingUsers.length===0&&(
-              <div className="empty" style={{padding:'32px 20px'}}>
+            {/* All users */}
+            {teamMembers.filter(t=>t.user_id!==session?.user?.id).length===0?(
+              <div className="empty" style={{padding:'28px 20px'}}>
                 <div className="empty-i" style={{marginBottom:8}}><Icon name="users" size={36}/></div>
-                <div>Aucun membre d'équipe pour l'instant</div>
-                <div style={{fontSize:'.8em',marginTop:6}}>Partagez l'URL de l'application avec vos collaborateurs</div>
+                <div>Aucun utilisateur enregistré</div>
+                <div style={{fontSize:'.8em',marginTop:6,color:'var(--text3)'}}>Les nouvelles personnes apparaissent ici dès leur inscription</div>
               </div>
-            )}
-
-            {teamMembers.length>0&&(
-              <div className="grid">
-                {teamMembers.filter(t=>t.user_id!==session?.user?.id).map(t=>(
-                  <div key={t.user_id} className="card">
-                    <div style={{display:'flex',alignItems:'center',gap:12}}>
-                      <div className="av"><Icon name="user" size={20}/></div>
-                      <div style={{flex:1}}>
-                        <div className="ct" style={{fontSize:'.95em'}}>{t.email||t.user_id}</div>
-                        <div className="cs">Depuis le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR'):'-'}</div>
+            ):(
+              <div>
+                <div style={{fontSize:'.75em',fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>
+                  Utilisateurs ({teamMembers.filter(t=>t.user_id!==session?.user?.id).length})
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {teamMembers.filter(t=>t.user_id!==session?.user?.id).map(t=>{
+                    const roleColor={admin:'var(--red)',librarian:'#f59e0b',readonly:'var(--accent)',blocked:'#9ca3af'}[t.role]||'var(--text3)';
+                    const roleName={admin:'Administrateur',librarian:'Bibliothécaire',readonly:'Lecture seule',blocked:'Bloqué'}[t.role]||t.role;
+                    return(
+                      <div key={t.user_id} className="card" style={{borderLeft:`3px solid ${roleColor}`}}>
+                        <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+                          <div className="av" style={{background:`${roleColor}22`,flexShrink:0}}>
+                            <Icon name="user" size={18} color={roleColor}/>
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:600,fontSize:'.92em',color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                              {t.email||t.user_id}
+                            </div>
+                            <div style={{fontSize:'.75em',color:'var(--text3)',marginTop:1}}>
+                              Inscrit le {t.created_at?new Date(t.created_at).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}):'-'}
+                              {' · '}<span style={{color:roleColor,fontWeight:600}}>{roleName}</span>
+                            </div>
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+                            <select className="fsel" value={t.role} onChange={async e=>{
+                              const nr=e.target.value;
+                              const nrLabel={admin:'Administrateur',librarian:'Bibliothécaire',readonly:'Lecture seule',blocked:'Bloqué'}[nr]||nr;
+                              try{ await setUserRole(t.user_id,nr,t.email); toast(`Rôle → ${nrLabel}`); loadTeam(); }
+                              catch(err){ toast(err.message,'err'); }
+                            }} style={{fontSize:'.8em',padding:'5px 10px',borderLeft:`2px solid ${roleColor}`}}>
+                              <option value="admin">Administrateur</option>
+                              <option value="librarian">Bibliothécaire</option>
+                              <option value="readonly">Lecture seule</option>
+                              <option value="blocked">Bloqué</option>
+                            </select>
+                            <button className="btn btn-ghost btn-sm" title="Supprimer l'accès" style={{color:'var(--red)',padding:'5px 7px'}} onClick={async()=>{
+                              if(!confirm(`Supprimer l'accès de ${t.email||t.user_id} ?`)) return;
+                              try{ await removeUserRole(t.user_id); toast('Accès supprimé'); loadTeam(); }
+                              catch(err){ toast(err.message,'err'); }
+                            }}><Icon name="trash" size={13}/></button>
+                          </div>
+                        </div>
                       </div>
-                      <select className="fsel" value={t.role} onChange={async e=>{
-                        try{ await setUserRole(t.user_id,e.target.value); toast('Rôle mis à jour'); loadTeam(); }
-                        catch(err){ toast(err.message,'err'); }
-                      }} style={{fontSize:'.8em',padding:'5px 9px'}}>
-                        <option value="admin">Administrateur</option>
-                        <option value="librarian">Bibliothécaire</option>
-                        <option value="readonly">Lecture seule</option>
-                      </select>
-                      <button className="btn btn-ghost btn-sm" title="Bloquer" style={{color:'var(--orange)'}} onClick={async()=>{
-                        if(!confirm(`Bloquer l'accès de ${t.email||t.user_id} ?`)) return;
-                        try{ await blockUser(t.user_id); toast('🚫 Utilisateur bloqué'); loadTeam(); }
-                        catch(err){ toast(err.message,'err'); }
-                      }}><Icon name="alert" size={12}/></button>
-                      <button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={async()=>{
-                        if(!confirm('Révoquer complètement cet accès ?')) return;
-                        try{ await removeUserRole(t.user_id); toast('Accès révoqué'); loadTeam(); }
-                        catch(err){ toast(err.message,'err'); }
-                      }}><Icon name="trash" size={12}/></button>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -1944,7 +2539,8 @@ body{font-family:Arial,Helvetica,sans-serif}
                 </div>
                 <div className="ca">
                   <button className="btn btn-secondary btn-sm" onClick={()=>setSelectedMember(m)}><Icon name="user" size={12}/>Fiche</button>
-                  <button className="btn btn-primary btn-sm" onClick={()=>printCard(m)}><Icon name="printer" size={12}/>Carte</button>
+                  <button className="btn btn-secondary btn-sm" title="Exporter fiche Word" onClick={()=>exportMemberCardWord(m)}><Icon name="file-text" size={12}/></button>
+                    <button className="btn btn-primary btn-sm" onClick={()=>printCard(m)}><Icon name="printer" size={12}/>Carte</button>
                   {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>openEditM(m)}><Icon name="pencil" size={12}/>Modifier</button>}
                   {canEdit&&<button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--red)'}} onClick={()=>delMember(m.id)}><Icon name="trash" size={12}/></button>}
                 </div>
@@ -1961,8 +2557,28 @@ body{font-family:Arial,Helvetica,sans-serif}
             <h1 className="pt">Livres</h1>
             <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
               {selectMode&&selectedBooks.size>0&&<button className="btn btn-danger btn-sm" onClick={deleteBulkBooks}><Icon name="trash" size={13}/>Supprimer ({selectedBooks.size})</button>}
+              {selectMode&&selectedBooks.size>0&&(
+                <div style={{position:'relative',display:'inline-flex',gap:0}}>
+                  <button className="btn btn-secondary btn-sm" style={{borderRadius:'var(--rs) 0 0 var(--rs)',borderRight:'1px solid rgba(0,0,0,.1)'}}
+                    onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'label')}>
+                    <Icon name="printer" size={13}/>Étiquettes
+                  </button>
+                  <button className="btn btn-secondary btn-sm" style={{borderRadius:0,borderLeft:'none',borderRight:'1px solid rgba(0,0,0,.1)'}}
+                    onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'label-sheet')}>
+                    <Icon name="package" size={13}/>64×34mm
+                  </button>
+                  <button className="btn btn-secondary btn-sm" style={{borderRadius:0,borderLeft:'none',borderRight:'1px solid rgba(0,0,0,.1)'}}
+                    onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'fiche')}>
+                    <Icon name="book-open" size={13}/>Fiches A4
+                  </button>
+                  <button className="btn btn-secondary btn-sm" style={{borderRadius:'0 var(--rs) var(--rs) 0',borderLeft:'none'}}
+                    onClick={()=>exportSelectedBooksWord([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean))}>
+                    <Icon name="file-text" size={13}/>Word
+                  </button>
+                </div>
+              )}
               {selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>{setSelectMode(false);setSelectedBooks(new Set());}}><Icon name="x" size={13}/>Annuler</button>}
-              {canEdit&&!selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>setSelectMode(true)}><Icon name="check" size={13}/>Sélectionner</button>}
+              {!selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>setSelectMode(true)}><Icon name="check" size={13}/>Sélectionner</button>}
               <button className="btn btn-secondary btn-sm" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
               {canEdit&&<button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>}
             </div>
@@ -2004,7 +2620,7 @@ body{font-family:Arial,Helvetica,sans-serif}
                       {members.map(m=><option key={m.id} value={m.id}>{m.name}{memberAtLimit(m.id)?' ⚠️ limite':''}</option>)}
                     </select>
                   )}
-              {canEdit&&bk.available===0&&members.length>0&&(
+              {canReserve&&bk.available===0&&members.length>0&&(
                 <select className="fsel" style={{flex:1,opacity:.85}} onChange={e=>{if(e.target.value){reserveBook(bk.id,e.target.value);e.target.value=''}}}>
                   <option value="">Réserver pour…</option>
                   {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
@@ -2091,7 +2707,7 @@ body{font-family:Arial,Helvetica,sans-serif}
             <div style={{display:'flex',gap:9,flexWrap:'wrap',alignItems:'center'}}>
               <select className="fsel" id="res-m" style={{flex:1}}><option value="">Sélectionner un membre</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select>
               <select className="fsel" id="res-b" style={{flex:1}}><option value="">Sélectionner un livre</option>{books.map(b=><option key={b.id} value={b.id}>{b.title} ({b.available} dispo)</option>)}</select>
-              {canEdit&&<button className="btn btn-primary" onClick={()=>{const mId=document.getElementById('res-m').value,bId=document.getElementById('res-b').value;if(!mId||!bId){toast('Sélectionnez membre et livre','err');return;}reserveBook(bId,mId);}}><Icon name="plus" size={14}/>Réserver</button>}
+              {canReserve&&<button className="btn btn-primary" onClick={()=>{const mId=document.getElementById('res-m').value,bId=document.getElementById('res-b').value;if(!mId||!bId){toast('Sélectionnez membre et livre','err');return;}reserveBook(bId,mId);}}><Icon name="plus" size={14}/>Réserver</button>}
             </div>
           </div>
         </div>
@@ -2155,6 +2771,26 @@ body{font-family:Arial,Helvetica,sans-serif}
               <button className="btn btn-secondary" style={{width:'100%'}} onClick={()=>logoRef.current.click()}><Icon name="camera" size={13}/>Choisir logo</button>
               {cfg.libraryLogo&&<img src={cfg.libraryLogo} style={{width:64,height:64,borderRadius:'50%',objectFit:'cover',marginTop:10,border:'2px solid var(--accent)'}} alt=""/>}
             </div>
+          </div>
+          <div className="ss">
+            <h3>Catégories de livres</h3>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:10}}>
+              {(cfg.categories||DEFAULT_CATS).map((cat,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:4,background:'var(--bg3)',borderRadius:20,padding:'3px 10px 3px 12px',fontSize:'.8em',border:'1px solid var(--border)'}}>
+                  <span>{cat}</span>
+                  <button onClick={()=>setCfg(f=>({...f,categories:f.categories.filter((_,j)=>j!==i)}))} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text3)',padding:'0 2px',fontSize:'1em',lineHeight:1}}>×</button>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <input className="fi" id="new-cat-input" placeholder="Nouvelle catégorie…" style={{flex:1}} onKeyPress={e=>{if(e.key==='Enter'){const v=e.target.value.trim();if(v&&!(cfg.categories||DEFAULT_CATS).includes(v)){setCfg(f=>({...f,categories:[...(f.categories||DEFAULT_CATS),v]}));e.target.value='';}}}}/>
+              <button className="btn btn-secondary btn-sm" onClick={()=>{const inp=document.getElementById('new-cat-input');const v=inp.value.trim();if(v&&!(cfg.categories||DEFAULT_CATS).includes(v)){setCfg(f=>({...f,categories:[...(f.categories||DEFAULT_CATS),v]}));inp.value='';}}}>
+                <Icon name="plus" size={13}/>Ajouter
+              </button>
+            </div>
+            <button className="btn btn-ghost btn-sm" style={{marginTop:6,fontSize:'.75em',color:'var(--text3)'}} onClick={()=>setCfg(f=>({...f,categories:[...DEFAULT_CATS]}))}>
+              Réinitialiser les catégories par défaut
+            </button>
           </div>
           <div className="ss">
             <h3>Règles de prêt</h3>
@@ -2308,7 +2944,8 @@ body{font-family:Arial,Helvetica,sans-serif}
             </>);
           })()}
           <div style={{marginTop:14,display:'flex',gap:8,flexWrap:'wrap'}}>
-            <button className="btn btn-primary btn-sm" onClick={()=>printCard(selectedMember)}><Icon name="printer" size={12}/>Imprimer carte</button>
+            <button className="btn btn-secondary btn-sm" title="Exporter fiche Word" onClick={()=>exportMemberCardWord(selectedMember)}><Icon name="file-text" size={12}/></button>
+              <button className="btn btn-primary btn-sm" onClick={()=>printCard(selectedMember)}><Icon name="printer" size={12}/>Imprimer carte</button>
             {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>{openEditM(selectedMember);setSelectedMember(null);}}><Icon name="pencil" size={12}/>Modifier</button>}
             <button className="btn btn-secondary btn-sm" style={{marginLeft:'auto'}} onClick={()=>setSelectedMember(null)}>Fermer</button>
           </div>
@@ -2386,7 +3023,8 @@ body{font-family:Arial,Helvetica,sans-serif}
             </>);
           })()}
           <div style={{marginTop:14,display:'flex',gap:8,flexWrap:'wrap'}}>
-            <button className="btn btn-primary btn-sm" onClick={()=>printBookBarcode(selectedBook)}><Icon name="printer" size={12}/>Étiquette</button>
+            <button className="btn btn-secondary btn-sm" title="Fiche Word" onClick={()=>exportSelectedBooksWord([selectedBook])}><Icon name="file-text" size={12}/>Word</button>
+<button className="btn btn-primary btn-sm" onClick={()=>printBookBarcode(selectedBook)}><Icon name="printer" size={12}/>Étiquette</button>
             {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>{openEditB(selectedBook);setSelectedBook(null);}}><Icon name="pencil" size={12}/>Modifier</button>}
             {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>{const a=prompt(`Disponibilité (0-${selectedBook.copies}):`,selectedBook.available);const s=prompt('Statut (normal/lost/damaged):',selectedBook.status||'normal');if(a!==null) setAvailManual(selectedBook.id,a,s||'normal').then(()=>{setSelectedBook(bk=>({...bk,available:parseInt(a),status:s}));});}}><Icon name="settings" size={12}/>Dispo manuelle</button>}
             <button className="btn btn-secondary btn-sm" style={{marginLeft:'auto'}} onClick={()=>setSelectedBook(null)}>Fermer</button>
