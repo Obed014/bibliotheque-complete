@@ -1187,6 +1187,7 @@ function App(){
   const [renewLoanId,setRenewLoanId]=useState(null);
   const [selectedBooks,setSelectedBooks]=useState(new Set());
   const [selectMode,setSelectMode]=useState(false);
+  const [selectedMembersSet,setSelectedMembersSet]=useState(new Set());
   const [globalSearch,setGlobalSearch]=useState('');
   const [showGlobalSearch,setShowGlobalSearch]=useState(false);
   const [dashWidgets,setDashWidgets]=useState(()=>JSON.parse(localStorage.getItem('lib_widgets')||'["stats","overdue","categories","topbooks"]'));
@@ -1453,22 +1454,50 @@ function App(){
 
   // ── ISBN lookup ──────────────────────────────────────
   async function lookupISBN(isbn){
-    if(!isbn||isbn.length<10){ toast('ISBN invalide','err'); return null; }
+    const clean=isbn.replace(/[\s\-]/g,'');
+    if(!clean||clean.length<10){ toast('ISBN invalide (min 10 chiffres)','err'); return null; }
     setIsbnLoading(true);
+    // Try Google Books first — much faster than OpenLibrary
     try{
-      const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-      const d=await r.json();
-      const book=d[`ISBN:${isbn}`];
-      if(!book){ toast('Livre non trouvé pour cet ISBN','warn'); return null; }
-      return {
-        title: book.title||'',
-        author: (book.authors||[]).map(a=>a.name).join(', '),
-        year: book.publish_date?(book.publish_date.match(/\d{4}/)||[''])[0]:'',
-        publisher: (book.publishers||[]).map(p=>p.name).join(', '),
-        isbn
-      };
-    }catch(e){ toast('Erreur de recherche ISBN','err'); return null; }
-    finally{ setIsbnLoading(false); }
+      const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${clean}&maxResults=1`);
+      if(r.ok){
+        const d=await r.json();
+        const item=d.items&&d.items[0];
+        if(item){
+          const info=item.volumeInfo||{};
+          const result={
+            title: info.title||'',
+            author: (info.authors||[]).join(', '),
+            year: info.publishedDate?(info.publishedDate.match(/\d{4}/)||[''])[0]:'',
+            publisher: info.publisher||'',
+            isbn: clean,
+            description: info.description?(info.description.substring(0,400)):''
+          };
+          toast(`✅ ${result.title||'Livre trouvé'}`);
+          return result;
+        }
+      }
+    }catch(e){}
+    // Fallback: OpenLibrary
+    try{
+      const r2=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${clean}&format=json&jscmd=data`,{signal:AbortSignal.timeout(6000)});
+      if(r2.ok){
+        const d2=await r2.json();
+        const book=d2[`ISBN:${clean}`];
+        if(book){
+          toast(`✅ ${book.title||'Livre trouvé'} (OpenLibrary)`);
+          return {
+            title: book.title||'',
+            author: (book.authors||[]).map(a=>a.name).join(', '),
+            year: book.publish_date?(book.publish_date.match(/\d{4}/)||[''])[0]:'',
+            publisher: (book.publishers||[]).map(p=>p.name).join(', '),
+            isbn: clean
+          };
+        }
+      }
+    }catch(e){}
+    toast('Livre non trouvé pour cet ISBN','warn');
+    return null;
   }
 
   // ── Bulk delete books ─────────────────────────────────
@@ -1985,9 +2014,14 @@ body{font-family:Arial,Helvetica,sans-serif}
 
 
   // ── Helpers permissions ──
-  const isAdmin = userRole === 'admin';
-  const canEdit = userRole === 'admin' || userRole === 'librarian';
-  const canReserve = canEdit || userRole === 'readonly'; // readonly users can reserve
+  const isAdmin  = userRole === 'admin';
+  const canEdit  = userRole === 'admin' || userRole === 'librarian';
+  const isReadonly = userRole === 'readonly';
+  const canReserve = canEdit || isReadonly;
+  // For readonly: the member record whose email matches the logged-in account
+  const myMemberProfile = isReadonly
+    ? members.find(m => m.email && m.email.toLowerCase() === userEmail.toLowerCase()) || null
+    : null;
 
   async function loadTeam(){
     if(!isAdmin) return;
@@ -2010,8 +2044,11 @@ body{font-family:Arial,Helvetica,sans-serif}
   const fMembers=members.filter(m=>(m.name||'').toLowerCase().includes(search.toLowerCase())||(m.email||'').toLowerCase().includes(search.toLowerCase())||(m.memberCode||'').toLowerCase().includes(search.toLowerCase()));
   const fBooks=books.filter(b=>{
     const ms=(b.title||'').toLowerCase().includes(search.toLowerCase())||(b.author||'').toLowerCase().includes(search.toLowerCase())||(b.isbn||'').toLowerCase().includes(search.toLowerCase())||(b.barcode||'').toLowerCase().includes(search.toLowerCase());
-    return ms&&(catF==='all'||b.category===catF);
+    const catMatch=catF==='all'||(catF==='__available'?b.available>0:b.category===catF);
+    // Readonly sees all books (so they can reserve unavailable ones), but available first
+    return ms&&catMatch;
   });
+  const fBooksSorted=isReadonly?[...fBooks].sort((a,b)=>(b.available>0?1:0)-(a.available>0?1:0)):fBooks;
   const cStats=CATS.reduce((a,c)=>({...a,[c]:books.filter(b=>b.category===c).length}),{});
   const overdue=loans.filter(l=>new Date(l.dueDate)<new Date());
   const fHistory=[...history].reverse().filter(loan=>{
@@ -2093,67 +2130,91 @@ body{font-family:Arial,Helvetica,sans-serif}
       </div>
 
       <nav className="sb-nav">
-        <div className="sb-sec">Navigation</div>
-        {[
-          {k:'dashboard',i:'home',l:'Tableau de bord'},
-          {k:'scanner',i:'scan',l:'Scanner'},
-        ].map(item=>(
-          <button key={item.k} className={`nbtn${tab===item.k?' active':''}`} onClick={()=>{setTab(item.k);setSearch('');setCatF('all');}}>
-            <span className="ni"><Icon name={item.i} size={15}/></span>
-            <span className="nl">{item.l}</span>
-          </button>
-        ))}
-        <div className="sb-sec">Gestion</div>
-        {[
-          {k:'members',i:'users',l:'Membres',n:members.length},
-          {k:'books',i:'book',l:'Livres',n:books.length},
-          {k:'categories',i:'tag',l:'Catégories',n:CATS.length},
-          {k:'loans',i:'book-open',l:'Prêts actifs',n:loans.length},
-          {k:'history',i:'history',l:'Historique',n:history.length},
-          {k:'reservations',i:'book-marked',l:'Réservations',n:reservations.length},
-          {k:'fines',i:'alert',l:'Amendes',n:history.filter(l=>l.daysLate>0&&!l.finePaid&&l.returnDate).length},
-        ].map(item=>(
-          <button key={item.k} className={`nbtn${tab===item.k?' active':''}`} onClick={()=>{setTab(item.k);setSearch('');setCatF('all');}}>
-            <span className="ni"><Icon name={item.i} size={15}/></span>
-            <span className="nl">{item.l}</span>
-            <span className="nbadge">{item.n}</span>
-          </button>
-        ))}
-        {isAdmin&&(
-          <>
-            <div className="sb-sec">Administration</div>
-            <button className={`nbtn${tab==='team'?' active':''}`} onClick={()=>setTab('team')}>
-              <span className="ni"><Icon name="users" size={15}/></span>
-              <span className="nl">Équipe &amp; Accès</span>
-              <span className="nbadge">{teamMembers.length}{pendingUsers.length>0&&<span style={{marginLeft:3,background:'var(--orange)',borderRadius:99,padding:'0 5px',fontSize:'.7em',fontWeight:700,color:'#fff'}}>+{pendingUsers.length}</span>}</span>
+        {/* ── Navigation (staff only) ── */}
+        {!isReadonly&&(<>
+          <div className="sb-sec">Navigation</div>
+          {[
+            {k:'dashboard',i:'home',l:'Tableau de bord'},
+            {k:'scanner',i:'scan',l:'Scanner'},
+          ].map(item=>(
+            <button key={item.k} className={`nbtn${tab===item.k?' active':''}`} onClick={()=>{setTab(item.k);setSearch('');setCatF('all');}}>
+              <span className="ni"><Icon name={item.i} size={15}/></span>
+              <span className="nl">{item.l}</span>
             </button>
-          </>
-        )}
+          ))}
+        </>)}
+        {/* ── Gestion (staff) OR Vitrine (readonly) ── */}
+        <div className="sb-sec">{isReadonly?'Catalogue':'Gestion'}</div>
+        {isReadonly?(<>
+          <button className={`nbtn${tab==='books'?' active':''}`} onClick={()=>{setTab('books');setSearch('');setCatF('all');}}>
+            <span className="ni"><Icon name="book" size={15}/></span>
+            <span className="nl">Catalogue</span>
+            <span className="nbadge">{books.filter(b=>b.available>0).length} dispo</span>
+          </button>
+          <button className={`nbtn${tab==='reservations'?' active':''}`} onClick={()=>{setTab('reservations');setSearch('');setCatF('all');}}>
+            <span className="ni"><Icon name="book-marked" size={15}/></span>
+            <span className="nl">Mes réservations</span>
+            {myMemberProfile&&<span className="nbadge">{reservations.filter(r=>r.memberId===myMemberProfile.id).length}</span>}
+          </button>
+          <button className={`nbtn${tab==='members'?' active':''}`} onClick={()=>{setTab('members');setSearch('');setCatF('all');}}>
+            <span className="ni"><Icon name="user" size={15}/></span>
+            <span className="nl">Mon profil</span>
+          </button>
+        </>):(<>
+          {[
+            {k:'members',i:'users',l:'Membres',n:members.length},
+            {k:'books',i:'book',l:'Livres',n:books.length},
+            {k:'categories',i:'tag',l:'Catégories',n:CATS.length},
+            {k:'loans',i:'book-open',l:'Prêts actifs',n:loans.length},
+            {k:'history',i:'history',l:'Historique',n:history.length},
+            {k:'reservations',i:'book-marked',l:'Réservations',n:reservations.length},
+            {k:'fines',i:'alert',l:'Amendes',n:history.filter(l=>l.daysLate>0&&!l.finePaid&&l.returnDate).length},
+          ].map(item=>(
+            <button key={item.k} className={`nbtn${tab===item.k?' active':''}`} onClick={()=>{setTab(item.k);setSearch('');setCatF('all');}}>
+              <span className="ni"><Icon name={item.i} size={15}/></span>
+              <span className="nl">{item.l}</span>
+              <span className="nbadge">{item.n}</span>
+            </button>
+          ))}
+          {isAdmin&&(
+            <>
+              <div className="sb-sec">Administration</div>
+              <button className={`nbtn${tab==='team'?' active':''}`} onClick={()=>setTab('team')}>
+                <span className="ni"><Icon name="users" size={15}/></span>
+                <span className="nl">Équipe &amp; Accès</span>
+                <span className="nbadge">{teamMembers.length}{pendingUsers.length>0&&<span style={{marginLeft:3,background:'var(--orange)',borderRadius:99,padding:'0 5px',fontSize:'.7em',fontWeight:700,color:'#fff'}}>+{pendingUsers.length}</span>}</span>
+              </button>
+            </>
+          )}
+        </>)}
       </nav>
 
       <div className="sb-foot">
-        <div className="sb-foot-row">
-          <button className="sfbtn" onClick={exportCSV}><Icon name="bar-chart" size={12}/>CSV</button>
-          <button className="sfbtn" onClick={exportJSON}><Icon name="save" size={12}/>Backup</button>
-          <input type="file" accept=".json" ref={importRef} style={{display:'none'}} onChange={importJSON}/>
-          <button className="sfbtn" onClick={()=>importRef.current.click()}><Icon name="upload" size={12}/>Import</button>
-        </div>
-        <div style={{display:'flex',gap:4,width:'100%'}}>
-          <button className="sfbtn" onClick={printMonthlyReport} style={{flex:1,background:'var(--accent-t)',color:'var(--sb-accent)',borderColor:'rgba(255,255,255,.1)'}}><Icon name="bar-chart" size={12}/>Rapport mensuel</button>
-          <button className="sfbtn" title="Exporter en Word" onClick={()=>{
-            const now=new Date(); const ms=new Date(now.getFullYear(),now.getMonth(),1);
-            const mLoans=history.filter(l=>new Date(l.loanDate)>=ms);
-            const mName=now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-            exportMonthlyReportWord(mLoans,mName);
-          }} style={{background:'var(--accent-t)',color:'var(--sb-accent)',borderColor:'rgba(255,255,255,.1)',padding:'0 8px'}}><Icon name="file-text" size={12}/></button>
-        </div>
-        <button className="sfbtn" onClick={()=>setModal('settings')} style={{width:'100%'}}><Icon name="settings" size={12}/>Paramètres</button>
-        <button className="sfbtn zotero" onClick={()=>{setZp([]);setZst('');setModal('zotero');}} style={{width:'100%'}}><Icon name="download" size={12}/>Importer Zotero</button>
+        {/* Staff-only tools */}
+        {!isReadonly&&(<>
+          <div className="sb-foot-row">
+            <button className="sfbtn" onClick={exportCSV}><Icon name="bar-chart" size={12}/>CSV</button>
+            <button className="sfbtn" onClick={exportJSON}><Icon name="save" size={12}/>Backup</button>
+            <input type="file" accept=".json" ref={importRef} style={{display:'none'}} onChange={importJSON}/>
+            <button className="sfbtn" onClick={()=>importRef.current.click()}><Icon name="upload" size={12}/>Import</button>
+          </div>
+          <div style={{display:'flex',gap:4,width:'100%'}}>
+            <button className="sfbtn" onClick={printMonthlyReport} style={{flex:1,background:'var(--accent-t)',color:'var(--sb-accent)',borderColor:'rgba(255,255,255,.1)'}}><Icon name="bar-chart" size={12}/>Rapport mensuel</button>
+            <button className="sfbtn" title="Exporter en Word" onClick={()=>{
+              const now=new Date(); const ms=new Date(now.getFullYear(),now.getMonth(),1);
+              const mLoans=history.filter(l=>new Date(l.loanDate)>=ms);
+              const mName=now.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+              exportMonthlyReportWord(mLoans,mName);
+            }} style={{background:'var(--accent-t)',color:'var(--sb-accent)',borderColor:'rgba(255,255,255,.1)',padding:'0 8px'}}><Icon name="file-text" size={12}/></button>
+          </div>
+          <button className="sfbtn" onClick={()=>setModal('settings')} style={{width:'100%'}}><Icon name="settings" size={12}/>Paramètres</button>
+          <button className="sfbtn zotero" onClick={()=>{setZp([]);setZst('');setModal('zotero');}} style={{width:'100%'}}><Icon name="download" size={12}/>Importer Zotero</button>
+          <button className="sfbtn" onClick={()=>setShowGlobalSearch(s=>!s)} style={{width:'100%'}} title="Raccourci: /"><Icon name="search" size={12}/>Recherche globale</button>
+        </>)}
         <div className="sb-user">
-          <span>{userEmail}</span>
-          <span style={{marginLeft:6,padding:'1px 7px',borderRadius:20,fontSize:'.65em',fontWeight:700,background:'var(--accent-t)',color:'var(--sb-accent)',textTransform:'uppercase',letterSpacing:'.04em'}}>{ROLES[userRole]||userRole}</span>
+          <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{userEmail}</span>
+          <span style={{marginLeft:6,padding:'1px 7px',borderRadius:20,fontSize:'.65em',fontWeight:700,background:'var(--accent-t)',color:'var(--sb-accent)',textTransform:'uppercase',letterSpacing:'.04em',flexShrink:0}}>{ROLES[userRole]||userRole}</span>
         </div>
-        <button className="sfbtn" onClick={()=>setShowGlobalSearch(s=>!s)} style={{width:'100%'}} title="Raccourci: /"><Icon name="search" size={12}/>Recherche globale</button>
         <button className="sfbtn logout" onClick={handleLogout} style={{width:'100%'}}><Icon name="log-out" size={12}/>Déconnexion</button>
       </div>
     </aside>
@@ -2511,42 +2572,130 @@ body{font-family:Arial,Helvetica,sans-serif}
       {/* MEMBERS */}
       {tab==='members'&&(
         <div>
-          <div className="ph au">
-            <h1 className="pt">Membres</h1>
-            {canEdit&&<button className="btn btn-primary" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}><Icon name="plus" size={14}/>Nouveau membre</button>}
-          </div>
-          <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher nom, email, code…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
-          {fMembers.length===0?<div className="empty au3"><div className="empty-i"><Icon name="users" size={48}/></div><div>Aucun membre</div></div>:
-          <div className="grid au3">
-            {fMembers.map(m=>{
-              const ml=loans.filter(l=>l.memberId===m.id);
-              return(<div key={m.id} className="card">
-                <div style={{display:'flex',justifyContent:'space-between',gap:14}}>
-                  <div style={{display:'flex',gap:12,alignItems:'center',flex:1}}>
-                    {m.photo?<img src={m.photo} className="av" style={{display:'block'}} alt=""/>:<div className="av"><Icon name="user" size={22}/></div>}
-                    <div style={{flex:1}}>
-                      <div className="ct">{m.name}</div>
-                      <div className="cs">{m.email}</div>
-                      {m.phone&&<div className="cs">{m.phone}</div>}
-                      <div className="cm">
-                        <span className="b ba">{m.memberCode}</span>
-                        {ml.length>0&&<span className="b bb">{ml.length} prêt{ml.length>1?'s':''} actif{ml.length>1?'s':''}</span>}
-                        {(()=>{const stats=memberLoanCounts.find(x=>x.id===m.id);return stats&&stats.total>0?<span className="b bk">{stats.total} total</span>:null;})()}
+          {isReadonly?(
+            /* ── READONLY: only own profile ── */
+            <div className="au2">
+              <div className="ph" style={{marginBottom:16}}>
+                <h1 className="pt">Mon profil</h1>
+              </div>
+              {myMemberProfile?(
+                <div style={{maxWidth:520,margin:'0 auto'}}>
+                  <div className="card" style={{padding:24}}>
+                    <div style={{display:'flex',gap:20,alignItems:'center',marginBottom:20}}>
+                      {myMemberProfile.photo
+                        ?<img src={myMemberProfile.photo} className="av" style={{width:64,height:64,display:'block'}} alt=""/>
+                        :<div className="av" style={{width:64,height:64,fontSize:28}}><Icon name="user" size={32}/></div>}
+                      <div>
+                        <div style={{fontWeight:700,fontSize:'1.15em'}}>{myMemberProfile.name}</div>
+                        <div style={{color:'var(--text3)',fontSize:'.9em'}}>{myMemberProfile.email}</div>
+                        {myMemberProfile.phone&&<div style={{color:'var(--text3)',fontSize:'.85em'}}>{myMemberProfile.phone}</div>}
                       </div>
                     </div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
+                      <span className="b ba" style={{fontSize:'.9em',padding:'4px 10px'}}>{myMemberProfile.memberCode}</span>
+                      {(()=>{const ml=loans.filter(l=>l.memberId===myMemberProfile.id);return ml.length>0&&<span className="b bb">{ml.length} prêt{ml.length>1?'s':''} actif{ml.length>1?'s':''}</span>;})()}
+                      {myMemberProfile.address&&<span className="b bk">{myMemberProfile.address}</span>}
+                    </div>
+                    <div style={{marginTop:12}}>
+                      <div style={{fontSize:'.75em',fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Mes prêts actifs</div>
+                      {loans.filter(l=>l.memberId===myMemberProfile.id).length===0
+                        ?<div style={{color:'var(--text3)',fontSize:'.85em',padding:'10px 0'}}>Aucun prêt en cours</div>
+                        :loans.filter(l=>l.memberId===myMemberProfile.id).map(loan=>{
+                          const bk=books.find(b=>b.id===loan.bookId);
+                          const due=loan.dueDate?new Date(loan.dueDate):null;
+                          const late=due&&due<new Date();
+                          return(
+                            <div key={loan.id} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)',alignItems:'center'}}>
+                              <Icon name="book-open" size={14} color="var(--accent)"/>
+                              <div style={{flex:1}}>
+                                <div style={{fontWeight:600,fontSize:'.9em'}}>{bk?.title||'Livre'}</div>
+                                <div style={{fontSize:'.78em',color:late?'var(--red)':'var(--text3)'}}>
+                                  Retour prévu: {due?due.toLocaleDateString('fr-FR'):'—'}{late?' ⚠️ En retard':''}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
+                    <div style={{marginTop:16}}>
+                      <div style={{fontSize:'.75em',fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Mes réservations</div>
+                      {reservations.filter(r=>r.memberId===myMemberProfile.id).length===0
+                        ?<div style={{color:'var(--text3)',fontSize:'.85em',padding:'10px 0'}}>Aucune réservation</div>
+                        :reservations.filter(r=>r.memberId===myMemberProfile.id).map(res=>{
+                          const bk=books.find(b=>b.id===res.bookId);
+                          return(
+                            <div key={res.id} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid var(--border)',alignItems:'center'}}>
+                              <Icon name="book-marked" size={14} color="var(--orange)"/>
+                              <div style={{flex:1}}>
+                                <div style={{fontWeight:600,fontSize:'.9em'}}>{bk?.title||'Livre'}</div>
+                                <div style={{fontSize:'.78em',color:'var(--text3)'}}>Réservé le {res.reservationDate?new Date(res.reservationDate).toLocaleDateString('fr-FR'):'—'}</div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
                   </div>
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=82x82&data=${encodeURIComponent(m.memberCode)}&bgcolor=ffffff`} className="qr" alt="QR"/>
                 </div>
-                <div className="ca">
-                  <button className="btn btn-secondary btn-sm" onClick={()=>setSelectedMember(m)}><Icon name="user" size={12}/>Fiche</button>
-                  <button className="btn btn-secondary btn-sm" title="Exporter fiche Word" onClick={()=>exportMemberCardWord(m)}><Icon name="file-text" size={12}/></button>
-                    <button className="btn btn-primary btn-sm" onClick={()=>printCard(m)}><Icon name="printer" size={12}/>Carte</button>
-                  {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>openEditM(m)}><Icon name="pencil" size={12}/>Modifier</button>}
-                  {canEdit&&<button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--red)'}} onClick={()=>delMember(m.id)}><Icon name="trash" size={12}/></button>}
+              ):(
+                <div className="empty au3">
+                  <div className="empty-i"><Icon name="user" size={48}/></div>
+                  <div>Aucun profil membre associé à votre compte</div>
+                  <div style={{fontSize:'.82em',marginTop:8,color:'var(--text3)',maxWidth:320,textAlign:'center'}}>
+                    Demandez à un bibliothécaire de créer votre fiche avec l'email <strong>{userEmail}</strong>
+                  </div>
                 </div>
-              </div>);
-            })}
-          </div>}
+              )}
+            </div>
+          ):(
+            /* ── STAFF: full member list ── */
+            <div>
+              <div className="ph au">
+                <h1 className="pt">Membres</h1>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>{
+                    const all=fMembers.map(m=>m.id);
+                    setSelectedMembersSet(prev=>prev.size===all.length?new Set():new Set(all));
+                  }}><Icon name="check" size={13}/>{selectedMembersSet&&selectedMembersSet.size===fMembers.length?'Désélectionner tout':'Tout sélectionner'}</button>}
+                  {canEdit&&<button className="btn btn-primary" onClick={()=>{setMf({name:'',email:'',phone:'',address:'',dateOfBirth:'',idNumber:'',photo:''});setEditM(null);setModal('member');}}><Icon name="plus" size={14}/>Nouveau membre</button>}
+                </div>
+              </div>
+              <div className="sw au2"><span className="sw-icon"><Icon name="search" size={14}/></span><input type="text" className="sbar" placeholder="Rechercher nom, email, code…" value={search} onChange={e=>setSearch(e.target.value)}/></div>
+              {fMembers.length===0?<div className="empty au3"><div className="empty-i"><Icon name="users" size={48}/></div><div>Aucun membre</div></div>:
+              <div className="grid au3">
+                {fMembers.map(m=>{
+                  const ml=loans.filter(l=>l.memberId===m.id);
+                  return(<div key={m.id} className={`card${selectedMembersSet&&selectedMembersSet.has(m.id)?' selected-card':''}`}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:14}}>
+                      <div style={{display:'flex',gap:12,alignItems:'center',flex:1}}>
+                        {canEdit&&<input type="checkbox" checked={!!(selectedMembersSet&&selectedMembersSet.has(m.id))} onChange={()=>setSelectedMembersSet(prev=>{const n=new Set(prev);n.has(m.id)?n.delete(m.id):n.add(m.id);return n;})} style={{width:15,height:15,accentColor:'var(--accent)',flexShrink:0}}/>}
+                        {m.photo?<img src={m.photo} className="av" style={{display:'block'}} alt=""/>:<div className="av"><Icon name="user" size={22}/></div>}
+                        <div style={{flex:1}}>
+                          <div className="ct">{m.name}</div>
+                          <div className="cs">{m.email}</div>
+                          {m.phone&&<div className="cs">{m.phone}</div>}
+                          <div className="cm">
+                            <span className="b ba">{m.memberCode}</span>
+                            {ml.length>0&&<span className="b bb">{ml.length} prêt{ml.length>1?'s':''} actif{ml.length>1?'s':''}</span>}
+                            {(()=>{const stats=memberLoanCounts.find(x=>x.id===m.id);return stats&&stats.total>0?<span className="b bk">{stats.total} total</span>:null;})()}
+                          </div>
+                        </div>
+                      </div>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=82x82&data=${encodeURIComponent(m.memberCode)}&bgcolor=ffffff`} className="qr" alt="QR"/>
+                    </div>
+                    <div className="ca">
+                      <button className="btn btn-secondary btn-sm" onClick={()=>setSelectedMember(m)}><Icon name="user" size={12}/>Fiche</button>
+                      {canEdit&&<button className="btn btn-secondary btn-sm" title="Exporter fiche Word" onClick={()=>exportMemberCardWord(m)}><Icon name="file-text" size={12}/></button>}
+                      {canEdit&&<button className="btn btn-primary btn-sm" onClick={()=>printCard(m)}><Icon name="printer" size={12}/>Carte</button>}
+                      {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>openEditM(m)}><Icon name="pencil" size={12}/>Modifier</button>}
+                      {canEdit&&<button className="btn btn-ghost btn-sm" style={{marginLeft:'auto',color:'var(--red)'}} onClick={()=>delMember(m.id)}><Icon name="trash" size={12}/></button>}
+                    </div>
+                  </div>);
+                })}
+              </div>}
+            </div>
+          )}
         </div>
       )}
 
@@ -2554,33 +2703,47 @@ body{font-family:Arial,Helvetica,sans-serif}
       {tab==='books'&&(
         <div>
           <div className="ph au">
-            <h1 className="pt">Livres</h1>
+            <h1 className="pt">{isReadonly?'Catalogue':'Livres'}</h1>
             <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-              {selectMode&&selectedBooks.size>0&&<button className="btn btn-danger btn-sm" onClick={deleteBulkBooks}><Icon name="trash" size={13}/>Supprimer ({selectedBooks.size})</button>}
-              {selectMode&&selectedBooks.size>0&&(
-                <div style={{position:'relative',display:'inline-flex',gap:0}}>
-                  <button className="btn btn-secondary btn-sm" style={{borderRadius:'var(--rs) 0 0 var(--rs)',borderRight:'1px solid rgba(0,0,0,.1)'}}
-                    onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'label')}>
-                    <Icon name="printer" size={13}/>Étiquettes
-                  </button>
-                  <button className="btn btn-secondary btn-sm" style={{borderRadius:0,borderLeft:'none',borderRight:'1px solid rgba(0,0,0,.1)'}}
-                    onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'label-sheet')}>
-                    <Icon name="package" size={13}/>64×34mm
-                  </button>
-                  <button className="btn btn-secondary btn-sm" style={{borderRadius:0,borderLeft:'none',borderRight:'1px solid rgba(0,0,0,.1)'}}
-                    onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'fiche')}>
-                    <Icon name="book-open" size={13}/>Fiches A4
-                  </button>
-                  <button className="btn btn-secondary btn-sm" style={{borderRadius:'0 var(--rs) var(--rs) 0',borderLeft:'none'}}
-                    onClick={()=>exportSelectedBooksWord([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean))}>
-                    <Icon name="file-text" size={13}/>Word
-                  </button>
-                </div>
-              )}
-              {selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>{setSelectMode(false);setSelectedBooks(new Set());}}><Icon name="x" size={13}/>Annuler</button>}
-              {!selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>setSelectMode(true)}><Icon name="check" size={13}/>Sélectionner</button>}
-              <button className="btn btn-secondary btn-sm" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
-              {canEdit&&<button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>}
+              {!isReadonly&&(<>
+                {selectMode&&selectedBooks.size>0&&<button className="btn btn-danger btn-sm" onClick={deleteBulkBooks}><Icon name="trash" size={13}/>Supprimer ({selectedBooks.size})</button>}
+                {selectMode&&selectedBooks.size>0&&(
+                  <div style={{position:'relative',display:'inline-flex',gap:0}}>
+                    <button className="btn btn-secondary btn-sm" style={{borderRadius:'var(--rs) 0 0 var(--rs)',borderRight:'1px solid rgba(0,0,0,.1)'}}
+                      onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'label')}>
+                      <Icon name="printer" size={13}/>Étiquettes
+                    </button>
+                    <button className="btn btn-secondary btn-sm" style={{borderRadius:0,borderLeft:'none',borderRight:'1px solid rgba(0,0,0,.1)'}}
+                      onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'label-sheet')}>
+                      <Icon name="package" size={13}/>64×34mm
+                    </button>
+                    <button className="btn btn-secondary btn-sm" style={{borderRadius:0,borderLeft:'none',borderRight:'1px solid rgba(0,0,0,.1)'}}
+                      onClick={()=>printSelectedBooks([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean),'fiche')}>
+                      <Icon name="book-open" size={13}/>Fiches A4
+                    </button>
+                    <button className="btn btn-secondary btn-sm" style={{borderRadius:'0 var(--rs) var(--rs) 0',borderLeft:'none'}}
+                      onClick={()=>exportSelectedBooksWord([...selectedBooks].map(id=>books.find(b=>b.id===id)).filter(Boolean))}>
+                      <Icon name="file-text" size={13}/>Word
+                    </button>
+                  </div>
+                )}
+                {selectMode&&<button className="btn btn-secondary btn-sm" onClick={()=>{setSelectMode(false);setSelectedBooks(new Set());}}><Icon name="x" size={13}/>Annuler</button>}
+                {!selectMode&&(
+                  <div style={{display:'inline-flex',gap:0}}>
+                    <button className="btn btn-secondary btn-sm" style={{borderRadius:'var(--rs) 0 0 var(--rs)',borderRight:'1px solid rgba(0,0,0,.12)'}}
+                      onClick={()=>setSelectMode(true)}>
+                      <Icon name="check" size={13}/>Sélectionner
+                    </button>
+                    <button className="btn btn-secondary btn-sm" style={{borderRadius:'0 var(--rs) var(--rs) 0',borderLeft:'none'}}
+                      title="Tout sélectionner"
+                      onClick={()=>{setSelectMode(true);setSelectedBooks(new Set(fBooks.map(b=>b.id)));}}>
+                      <Icon name="list" size={13}/>Tout
+                    </button>
+                  </div>
+                )}
+                <button className="btn btn-secondary btn-sm" onClick={()=>{setZp([]);setZst('');setModal('zotero');}}><Icon name="download" size={13}/>Zotero</button>
+                {canEdit&&<button className="btn btn-primary" onClick={()=>{setBf({title:'',author:'',isbn:'',year:'',category:'Fiction',publisher:'',shelf:'',copies:1,description:''});setEditB(null);setModal('book');}}><Icon name="plus" size={14}/>Nouveau livre</button>}
+              </>)}
             </div>
           </div>
           <div className="fbar au2">
@@ -2589,15 +2752,16 @@ body{font-family:Arial,Helvetica,sans-serif}
               <input type="text" className="sbar" style={{marginBottom:0}} placeholder="Titre, auteur, ISBN, code-barres…" value={search} onChange={e=>setSearch(e.target.value)}/>
             </div>
             <select className="fsel" value={catF} onChange={e=>setCatF(e.target.value)}>
-              <option value="all">Toutes catégories</option>
+              <option value="all">{isReadonly?'Tous les titres':'Toutes catégories'}</option>
+              {isReadonly&&<option value="__available">✅ Disponibles ({books.filter(b=>b.available>0).length})</option>}
               {CATS.map(c=><option key={c} value={c}>{c} ({cStats[c]||0})</option>)}
             </select>
           </div>
           {fBooks.length===0?<div className="empty au3"><div className="empty-i"><Icon name="book" size={48}/></div><div>Aucun livre</div></div>:
           <div className="grid au3">
-            {fBooks.map(bk=>(
-              <div key={bk.id} className={`card${selectedBooks.has(bk.id)?' selected-card':''}`} style={{position:'relative',cursor:selectMode?'pointer':'default'}} onClick={selectMode?()=>setSelectedBooks(prev=>{const n=new Set(prev);n.has(bk.id)?n.delete(bk.id):n.add(bk.id);return n;}):undefined}>
-                {selectMode&&<div style={{position:'absolute',top:8,left:8,zIndex:2}}><input type="checkbox" readOnly checked={selectedBooks.has(bk.id)} style={{width:16,height:16,accentColor:'var(--accent)'}}/></div>}
+            {(isReadonly?fBooksSorted:fBooks).map(bk=>(
+              <div key={bk.id} className={`card${selectedBooks.has(bk.id)?' selected-card':''}`} style={{position:'relative',cursor:(!isReadonly&&selectMode)?'pointer':'default'}} onClick={(!isReadonly&&selectMode)?()=>setSelectedBooks(prev=>{const n=new Set(prev);n.has(bk.id)?n.delete(bk.id):n.add(bk.id);return n;}):undefined}>
+                {!isReadonly&&selectMode&&<div style={{position:'absolute',top:8,left:8,zIndex:2}}><input type="checkbox" readOnly checked={selectedBooks.has(bk.id)} style={{width:16,height:16,accentColor:'var(--accent)'}}/></div>}
                 <div style={{display:'flex',justifyContent:'space-between',gap:14}}>
                   <div style={{flex:1}}>
                     <div className="ct">{bk.title}</div>
@@ -2620,18 +2784,22 @@ body{font-family:Arial,Helvetica,sans-serif}
                       {members.map(m=><option key={m.id} value={m.id}>{m.name}{memberAtLimit(m.id)?' ⚠️ limite':''}</option>)}
                     </select>
                   )}
-              {canReserve&&bk.available===0&&members.length>0&&(
-                <select className="fsel" style={{flex:1,opacity:.85}} onChange={e=>{if(e.target.value){reserveBook(bk.id,e.target.value);e.target.value=''}}}>
-                  <option value="">Réserver pour…</option>
-                  {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-              )}
-                  <button className="btn btn-ghost btn-sm" onClick={()=>printBookBarcode(bk)} title="Imprimer étiquette"><Icon name="printer" size={12}/></button>
+                  {canEdit&&bk.available===0&&members.length>0&&(
+                    <select className="fsel" style={{flex:1,opacity:.85}} onChange={e=>{if(e.target.value){reserveBook(bk.id,e.target.value);e.target.value=''}}}>
+                      <option value="">Réserver pour…</option>
+                      {members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                  )}
+                  {isReadonly&&bk.available===0&&myMemberProfile&&(
+                    <button className="btn btn-secondary btn-sm" style={{flex:1}} onClick={()=>reserveBook(bk.id,myMemberProfile.id)}>
+                      <Icon name="book-marked" size={12}/>Réserver
+                    </button>
+                  )}
                   <button className="btn btn-ghost btn-sm" onClick={()=>setSelectedBook(bk)}><Icon name="book-open" size={12}/>Fiche</button>
+                  {canEdit&&<button className="btn btn-ghost btn-sm" onClick={()=>printBookBarcode(bk)} title="Imprimer étiquette"><Icon name="printer" size={12}/></button>}
                   {canEdit&&<button className="btn btn-secondary btn-sm" onClick={()=>openEditB(bk)}><Icon name="pencil" size={12}/></button>}
                   {canEdit&&<button className="btn btn-ghost btn-sm" title="Dupliquer" onClick={()=>duplicateBook(bk)}><Icon name="copy" size={12}/></button>}
                   {canEdit&&<button className="btn btn-ghost btn-sm" style={{color:'var(--red)'}} onClick={()=>delBook(bk.id)}><Icon name="trash" size={12}/></button>}
-                </div>
               </div>
             ))}
           </div>}
@@ -2748,7 +2916,7 @@ body{font-family:Arial,Helvetica,sans-serif}
     {/* ════ MODALS ════ */}
 
     {/* Settings */}
-    {modal==='settings'&&(
+    {modal==='settings'&&!isReadonly&&(
       <div className="ov" onClick={close}>
         <div className="mc" onClick={e=>e.stopPropagation()}>
           <div className="mh"><h2 className="mt">Paramètres</h2><button className="xb" onClick={close}><Icon name="x" size={14}/></button></div>
