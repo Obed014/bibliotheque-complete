@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Bibliyotèk — Console Propriétaire</title>
+<link rel="preconnect" href="https://fonts.bunny.net"/>
+<link href="https://fonts.bunny.net/css?family=fraunces:900&family=inter:400,500,600" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d1117; --bg2:#161b22; --bg3:#21262d;
+  --border:#30363d; --border2:#484f58;
+  --text:#e6edf3; --text2:#8b949e; --text3:#6e7681;
+  --gold:#c9843a; --gold2:#e8a84a; --gold-bg:rgba(201,132,58,.12);
+  --green:#22c55e; --green-bg:rgba(34,197,94,.1);
+  --blue:#3b82f6; --blue-bg:rgba(59,130,246,.1);
+  --red:#ef4444; --red-bg:rgba(239,68,68,.1);
+  --purple:#a855f7; --purple-bg:rgba(168,85,247,.1);
+  --radius:10px; --radius-lg:14px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* ── LOGIN ── */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.login-card{width:100%;max-width:400px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.login-header{background:#0a0e14;padding:32px 32px 24px;text-align:center;border-bottom:1px solid var(--border);}
+.logo-wrap{display:flex;align-items:center;justify-content:center;gap:4px;margin-bottom:6px;}
+.logo-b{font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:28px;color:#fff;letter-spacing:-0.5px;}
+.logo-t{font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:28px;color:var(--gold);letter-spacing:-0.5px;}
+.login-badge{display:inline-flex;align-items:center;gap:5px;background:var(--gold-bg);border:1px solid rgba(201,132,58,.3);color:var(--gold);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-top:8px;letter-spacing:.04em;}
+.login-body{padding:28px 32px 32px;}
+.login-body h2{font-size:16px;font-weight:600;margin-bottom:16px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.field label{font-size:12px;font-weight:600;color:var(--text2);}
+.field input{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;font-family:inherit;transition:border .15s;}
+.field input:focus{outline:none;border-color:var(--gold);}
+.err{background:var(--red-bg);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;}
+.btn-primary{width:100%;padding:12px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-primary:disabled{background:var(--bg3);color:var(--text3);cursor:default;}
+
+/* ── LAYOUT APP ── */
+#app{display:none;min-height:100vh;}
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:100;}
+.topbar-logo{display:flex;align-items:center;gap:4px;}
+.topbar-badge{font-size:10px;font-weight:600;color:var(--gold);background:var(--gold-bg);border:1px solid rgba(201,132,58,.25);padding:2px 8px;border-radius:10px;letter-spacing:.04em;margin-left:6px;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.topbar-user{font-size:12px;color:var(--text2);}
+.btn-logout{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;}
+.btn-logout:hover{border-color:var(--border2);color:var(--text);}
+
+.main{padding:28px 32px;max-width:1200px;margin:0 auto;}
+.page-title{font-size:20px;font-weight:600;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
+
+/* ── STATS CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.stat-card .label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+.stat-card .value{font-size:28px;font-weight:600;line-height:1;}
+.stat-card .sub{font-size:12px;color:var(--text2);margin-top:6px;}
+.stat-gold .value{color:var(--gold);}
+.stat-green .value{color:var(--green);}
+.stat-blue .value{color:var(--blue);}
+.stat-purple .value{color:var(--purple);}
+
+/* ── TABLE ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-size:15px;font-weight:600;}
+.search-input{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;width:220px;}
+.search-input:focus{outline:none;border-color:var(--gold);}
+
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:28px;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--bg3);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bg3);}
+tbody td{padding:12px 16px;font-size:13px;color:var(--text);}
+.td-muted{color:var(--text2);}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+.badge-green{background:var(--green-bg);color:#86efac;}
+.badge-blue{background:var(--blue-bg);color:#93c5fd;}
+.badge-gray{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.badge-gold{background:var(--gold-bg);color:#fbbf24;border:1px solid rgba(201,132,58,.25);}
+.badge-red{background:var(--red-bg);color:#fca5a5;border:1px solid rgba(239,68,68,.25);}
+.badge-purple{background:var(--purple-bg);color:#d8b4fe;border:1px solid rgba(168,85,247,.25);}
+
+/* ── MODAL DÉTAIL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;padding:24px;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:580px;max-height:90vh;overflow-y:auto;}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-header h3{font-size:16px;font-weight:600;}
+.btn-close{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px;}
+.btn-close:hover{background:var(--bg3);color:var(--text);}
+.modal-body{padding:20px 24px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.info-item .info-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.info-item .info-val{font-size:13px;color:var(--text);}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.mini-stat{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;}
+.mini-stat .ms-val{font-size:22px;font-weight:600;margin-bottom:4px;}
+.mini-stat .ms-label{font-size:11px;color:var(--text2);}
+.notes-area{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:80px;}
+.notes-area:focus{outline:none;border-color:var(--gold);}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
+.actions-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.btn-action{padding:9px 14px;border-radius:8px;border:1px solid;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s;text-align:center;}
+.btn-action:hover{opacity:.8;}
+.btn-activate{background:var(--green-bg);color:#86efac;border-color:rgba(34,197,94,.3);}
+.btn-suspend{background:var(--red-bg);color:#fca5a5;border-color:rgba(239,68,68,.3);}
+.btn-free{background:var(--purple-bg);color:#d8b4fe;border-color:rgba(168,85,247,.3);}
+.btn-trial{background:var(--gold-bg);color:#fbbf24;border-color:rgba(201,132,58,.3);}
+.plan-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.plan-row label{font-size:12px;font-weight:600;color:var(--text2);min-width:120px;}
+.plan-row input{padding:7px 12px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;flex:1;}
+.plan-row input:focus{outline:none;border-color:var(--gold);}
+.status-banner{padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.sb-active{background:var(--green-bg);color:#86efac;border:1px solid rgba(34,197,94,.2);}
+.sb-trial{background:var(--gold-bg);color:#fbbf24;border:1px solid rgba(201,132,58,.2);}
+.sb-suspended{background:var(--red-bg);color:#fca5a5;border:1px solid rgba(239,68,68,.2);}
+.sb-free{background:var(--purple-bg);color:#d8b4fe;border:1px solid rgba(168,85,247,.2);}
+.sb-expired{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.btn-ghost{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+.btn-contact{padding:8px 16px;border-radius:8px;border:none;background:var(--blue-bg);color:#93c5fd;border:1px solid rgba(59,130,246,.25);font-size:13px;cursor:pointer;font-family:inherit;}
+.btn-save{padding:8px 16px;border-radius:8px;border:none;background:var(--gold);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text2);font-size:13px;}
+.empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo-wrap">
+        <span class="logo-b">Bibliyo</span><span class="logo-t">tèk</span>
+      </div>
+      <div class="login-badge">⬡ Console Propriétaire</div>
+    </div>
+    <div class="login-body">
+      <h2>Connexion propriétaire</h2>
+      <div id="login-err" class="err" style="display:none"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="obedsanon@gmail.com" value="obedsanon@gmail.com"/>
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="login-pwd" placeholder="Mot de passe"/>
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Se connecter</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <span class="logo-b" style="font-size:18px">Bibliyo</span><span class="logo-t" style="font-size:18px">tèk</span>
+      <span class="topbar-badge">CONSOLE</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="topbar-user"></span>
+      <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="page-title">Vue d'ensemble</div>
+    <div class="page-sub" id="last-refresh">Chargement…</div>
+
+    <!-- Stats globales -->
+    <div class="stats-grid">
+      <div class="stat-card stat-gold">
+        <div class="label">Bibliothèques</div>
+        <div class="value" id="stat-total">—</div>
+        <div class="sub">instances enregistrées</div>
+      </div>
+      <div class="stat-card stat-green">
+        <div class="label">Ce mois</div>
+        <div class="value" id="stat-month">—</div>
+        <div class="sub">nouvelles inscriptions</div>
+      </div>
+      <div class="stat-card stat-blue">
+        <div class="label">Total livres</div>
+        <div class="value" id="stat-books">—</div>
+        <div class="sub">toutes bibliothèques</div>
+      </div>
+      <div class="stat-card stat-purple">
+        <div class="label">Total membres</div>
+        <div class="value" id="stat-members">—</div>
+        <div class="sub">toutes bibliothèques</div>
+      </div>
+    </div>
+
+    <!-- Liste -->
+    <div class="section-header">
+      <div class="section-title">Bibliothèques enregistrées</div>
+      <input class="search-input" type="text" placeholder="Rechercher…" oninput="filterLibs(this.value)" id="search-inp"/>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Bibliothèque</th>
+            <th>Administrateur</th>
+            <th>Inscription</th>
+            <th>Livres</th>
+            <th>Membres</th>
+            <th>Abonnement</th>
+            <th>Connexion</th>
+          </tr>
+        </thead>
+        <tbody id="libs-tbody">
+          <tr><td colspan="6" class="loading">Chargement…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL DÉTAIL ── -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Détail</h3>
+      <button class="btn-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Bannière statut -->
+      <div class="status-banner sb-active" id="d-status-banner">● Actif</div>
+
+      <div class="info-grid">
+        <div class="info-item"><div class="info-label">Nom</div><div class="info-val" id="d-name">—</div></div>
+        <div class="info-item"><div class="info-label">Admin</div><div class="info-val" id="d-email">—</div></div>
+        <div class="info-item"><div class="info-label">Inscrite le</div><div class="info-val" id="d-date">—</div></div>
+        <div class="info-item"><div class="info-label">URL Supabase</div><div class="info-val" id="d-url" style="font-size:11px;font-family:monospace;word-break:break-all">—</div></div>
+      </div>
+
+      <!-- Stats -->
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Statistiques en direct</div>
+      <div class="stats-row">
+        <div class="mini-stat"><div class="ms-val" id="d-books" style="color:var(--blue)">—</div><div class="ms-label">Livres</div></div>
+        <div class="mini-stat"><div class="ms-val" id="d-members" style="color:var(--green)">—</div><div class="ms-label">Membres</div></div>
+        <div class="mini-stat"><div class="ms-val" id="d-loans" style="color:var(--gold)">—</div><div class="ms-label">Emprunts actifs</div></div>
+      </div>
+
+      <!-- Gestion accès -->
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Gestion de l'accès</div>
+      
+      <!-- Activation abonnement -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">💳 Activer un abonnement</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;">Durée</label>
+            <select id="d-duration" onchange="calcExpiry()" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;font-family:inherit;">
+              <option value="1" selected>1 mois</option>
+              <option value="3">3 mois</option>
+              <option value="6">6 mois</option>
+              <option value="1" selected>1 mois</option>
+              <option value="0">Personnalisé</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;">Montant reçu (USD)</label>
+            <input type="number" id="d-price" min="0" placeholder="ex: 50" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;font-family:inherit;"/>
+          </div>
+        </div>
+        <div id="d-custom-date-row" style="display:none;margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px;">Date d'expiration personnalisée</label>
+          <input type="date" id="d-expiry" onchange="updateExpiryDisplay()" style="width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;font-family:inherit;"/>
+        </div>
+        <div id="d-expiry-preview" style="font-size:12px;color:var(--color-text-success,#86efac);margin-bottom:12px;min-height:18px;"></div>
+        <button class="btn-action btn-activate" onclick="activateSubscription()" style="width:100%;justify-content:center;">✓ Activer l'abonnement</button>
+      </div>
+
+      <!-- Autres actions -->
+      <div class="actions-row">
+        <button class="btn-action btn-free" onclick="setStatus('free')">★ Accès gratuit</button>
+        <button class="btn-action btn-trial" onclick="setStatus('trial')">⏳ Remettre en essai</button>
+        <button class="btn-action btn-suspend" onclick="setStatus('suspended')">✕ Suspendre l'accès</button>
+        <button class="btn-action" onclick="setStatus('active')" style="background:var(--blue-bg);color:#93c5fd;border-color:rgba(59,130,246,.3);">↻ Renouveler</button>
+      </div>
+      <div class="plan-row" style="margin-top:10px;">
+        <label>Raison suspension</label>
+        <input type="text" id="d-suspend-reason" placeholder="Optionnel — visible par l'admin"/>
+      </div>
+      
+      <!-- Historique paiements -->
+      <div style="margin-top:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Historique des paiements</div>
+        <div id="d-payment-log" style="font-size:12px;color:var(--text2);max-height:100px;overflow-y:auto;"></div>
+      </div>
+
+      <!-- Notes -->
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Notes internes</div>
+      <textarea class="notes-area" id="d-notes" placeholder="Notes visibles seulement par vous…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">Fermer</button>
+      <button class="btn-contact" onclick="copyAccessLink()" id="btn-copy-link">🔗 Lien d'accès</button>
+      <button class="btn-contact" onclick="contactAdmin()">✉ Contacter</button>
+      <button class="btn-save" onclick="saveAll()">💾 Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+const OUR_URL = 'https://kokwzdfbypjvvqduuovk.supabase.co';
+const OUR_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtva3d6ZGZieXBqdnZxZHV1b3ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MDI1NTYsImV4cCI6MjA4NzQ3ODU1Nn0.fhPdFPa3Ap6SM6RK5bAs46bIBko3t-tBFm2w_fnKMn4';
+const OWNER_EMAIL = 'obedsanon@gmail.com';
+
+let ownerToken = null;
+let allLibs = [];
+let currentLib = null;
+
+// ── HELPERS ──
+async function sbFetch(url, key, path){
+  try{
+    const r = await fetch(`${url}/rest/v1/${path}`, {
+      headers:{'apikey':key,'Authorization':`Bearer ${key}`}
+    });
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+function showErr(msg){ 
+  const el = document.getElementById('login-err');
+  el.textContent = msg; el.style.display='block';
+}
+
+// ── LOGIN ──
+document.getElementById('login-pwd').addEventListener('keydown', e => {
+  if(e.key === 'Enter') doLogin();
+});
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pwd = document.getElementById('login-pwd').value;
+  if(!email || !pwd){ showErr('Email et mot de passe requis.'); return; }
+  if(email !== OWNER_EMAIL){ showErr('Accès réservé au propriétaire.'); return; }
+  
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Connexion…';
+
+  try{
+    const r = await fetch(`${OUR_URL}/auth/v1/token?grant_type=password`,{
+      method:'POST',
+      headers:{'apikey':OUR_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email, password:pwd})
+    });
+    const data = await r.json();
+    if(!r.ok || !data.access_token){
+      showErr(data.error_description || data.message || 'Identifiants incorrects.');
+      btn.disabled=false; btn.textContent='Se connecter'; return;
+    }
+    ownerToken = data.access_token;
+    document.getElementById('topbar-user').textContent = email;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadDashboard();
+  }catch(e){
+    showErr('Erreur réseau. Réessayez.');
+    btn.disabled=false; btn.textContent='Se connecter';
+  }
+}
+
+function doLogout(){
+  ownerToken = null; allLibs = [];
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-pwd').value='';
+}
+
+// ── DASHBOARD ──
+async function loadDashboard(){
+  document.getElementById('last-refresh').textContent = 'Chargement des données…';
+
+  // Lire toutes les bibliothèques enregistrées
+  const r = await fetch(`${OUR_URL}/rest/v1/registered_libraries?order=registered_at.desc&select=*`,{
+    headers:{'apikey':OUR_KEY,'Authorization':`Bearer ${ownerToken}`}
+  });
+  
+  if(!r.ok){
+    document.getElementById('libs-tbody').innerHTML = '<tr><td colspan="6" class="empty">Erreur de chargement. Vérifiez que la table registered_libraries existe.</td></tr>';
+    return;
+  }
+  
+  allLibs = await r.json();
+  
+  // Stats globales de base
+  const total = allLibs.length;
+  const now = new Date();
+  const thisMonth = allLibs.filter(l => {
+    const d = new Date(l.registered_at);
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  }).length;
+  
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-month').textContent = thisMonth;
+
+  renderTable(allLibs);
+  
+  // Charger les stats distantes en parallèle (best-effort)
+  document.getElementById('last-refresh').textContent = 'Récupération des statistiques en direct…';
+  const statsPromises = allLibs.map(lib => fetchLibStats(lib));
+  const statsResults = await Promise.allSettled(statsPromises);
+  
+  let totalBooks=0, totalMembers=0;
+  statsResults.forEach((res, i) => {
+    if(res.status==='fulfilled' && res.value){
+      allLibs[i]._stats = res.value;
+      totalBooks += res.value.books || 0;
+      totalMembers += res.value.members || 0;
+    }
+  });
+  
+  document.getElementById('stat-books').textContent = totalBooks || '—';
+  document.getElementById('stat-members').textContent = totalMembers || '—';
+  
+  const now2 = new Date();
+  document.getElementById('last-refresh').textContent = 
+    `Dernière mise à jour : ${now2.toLocaleTimeString('fr-FR')} — ${total} bibliothèque${total>1?'s':''} enregistrée${total>1?'s':''}`;
+  
+  renderTable(allLibs);
+}
+
+async function fetchLibStats(lib){
+  if(!lib.supabase_url || !lib.supabase_key) return null;
+  try{
+    const [booksR, membersR, loansR] = await Promise.all([
+      fetch(`${lib.supabase_url}/rest/v1/books?select=id&limit=1`,{headers:{'apikey':lib.supabase_key,'Authorization':`Bearer ${lib.supabase_key}`,prefer:'count=exact'}}),
+      fetch(`${lib.supabase_url}/rest/v1/members?select=id&limit=1`,{headers:{'apikey':lib.supabase_key,'Authorization':`Bearer ${lib.supabase_key}`,prefer:'count=exact'}}),
+      fetch(`${lib.supabase_url}/rest/v1/loans?returnDate=is.null&select=id&limit=1`,{headers:{'apikey':lib.supabase_key,'Authorization':`Bearer ${lib.supabase_key}`,prefer:'count=exact'}}),
+    ]);
+    const books = parseInt(booksR.headers.get('content-range')?.split('/')[1]) || 0;
+    const members = parseInt(membersR.headers.get('content-range')?.split('/')[1]) || 0;
+    const loans = parseInt(loansR.headers.get('content-range')?.split('/')[1]) || 0;
+    return {books, members, loans};
+  }catch(e){ return null; }
+}
+
+// ── TABLE ──
+function statusBadge(lib){
+  const s = lib.status || 'trial';
+  const now = new Date();
+  if(s==='suspended') return '<span class="badge badge-red">✕ Suspendu</span>';
+  if(s==='free') return '<span class="badge badge-purple">★ Gratuit</span>';
+  if(s==='active'){
+    if(lib.subscription_ends_at && new Date(lib.subscription_ends_at)<now)
+      return '<span class="badge badge-gray">Expiré</span>';
+    return '<span class="badge badge-green">● Actif</span>';
+  }
+  if(s==='trial'){
+    if(lib.trial_ends_at){
+      const d = Math.ceil((new Date(lib.trial_ends_at)-now)/86400000);
+      if(d<=0) return '<span class="badge badge-gray">Essai expiré</span>';
+      return `<span class="badge badge-gold">⏳ Essai ${d}j</span>`;
+    }
+    return '<span class="badge badge-gold">⏳ Essai</span>';
+  }
+  return '<span class="badge badge-gray">—</span>';
+}
+
+function renderTable(libs){
+  const tbody = document.getElementById('libs-tbody');
+  if(!libs.length){
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Aucune bibliothèque enregistrée pour l\'instant.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = libs.map((lib,i) => {
+    const stats = lib._stats;
+    return `<tr onclick="openDetail(${allLibs.indexOf(lib)})">
+      <td><div style="font-weight:500">${escHtml(lib.library_name||'Sans nom')}</div></td>
+      <td class="td-muted">${escHtml(lib.admin_email||'—')}</td>
+      <td class="td-muted">${fmtDate(lib.registered_at)}</td>
+      <td>${stats ? `<span style="color:var(--blue);font-weight:500">${stats.books}</span>` : '<span class="td-muted">—</span>'}</td>
+      <td>${stats ? `<span style="color:var(--green);font-weight:500">${stats.members}</span>` : '<span class="td-muted">—</span>'}</td>
+      <td>${statusBadge(lib)}</td>
+      <td><span class="badge ${stats ? 'badge-green' : 'badge-gray'}">${stats ? '● En ligne' : '○ Hors'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterLibs(q){
+  const filtered = q.trim()
+    ? allLibs.filter(l => 
+        (l.library_name||'').toLowerCase().includes(q.toLowerCase()) ||
+        (l.admin_email||'').toLowerCase().includes(q.toLowerCase())
+      )
+    : allLibs;
+  renderTable(filtered);
+}
+
+// ── MODAL ──
+function openDetail(idx){
+  currentLib = allLibs[idx];
+  const lib = currentLib;
+  const now = new Date();
+  
+  document.getElementById('modal-title').textContent = lib.library_name || 'Sans nom';
+  document.getElementById('d-name').textContent = lib.library_name || '—';
+  document.getElementById('d-email').textContent = lib.admin_email || '—';
+  document.getElementById('d-date').textContent = fmtDate(lib.registered_at);
+  document.getElementById('d-url').textContent = lib.supabase_url || '—';
+  document.getElementById('d-notes').value = lib.notes || '';
+  document.getElementById('d-price').value = lib.price_usd || '';
+  document.getElementById('d-suspend-reason').value = lib.suspended_reason || '';
+
+  // Expiration
+  const expiry = lib.subscription_ends_at || lib.trial_ends_at || '';
+  document.getElementById('d-expiry').value = expiry ? expiry.substring(0,10) : '';
+
+  // Bannière statut
+  const banner = document.getElementById('d-status-banner');
+  const s = lib.status || 'trial';
+  const bannerMap = {
+    active:   {cls:'sb-active',   txt:'● Abonnement actif'},
+    free:     {cls:'sb-free',     txt:'★ Accès gratuit'},
+    trial:    {cls:'sb-trial',    txt:"⏳ Période d'essai"},
+    suspended:{cls:'sb-suspended',txt:'✕ Accès suspendu'},
+  };
+  const b = bannerMap[s] || {cls:'sb-expired',txt:'Statut inconnu'};
+  banner.className = 'status-banner '+b.cls;
+  if(s==='trial' && lib.trial_ends_at){
+    const d = Math.ceil((new Date(lib.trial_ends_at)-now)/86400000);
+    banner.textContent = d>0 ? `⏳ Essai — ${d} jour${d>1?'s':''} restant${d>1?'s':''}` : 'Essai expiré';
+  } else if(s==='active' && lib.subscription_ends_at){
+    const d = Math.ceil((new Date(lib.subscription_ends_at)-now)/86400000);
+    banner.textContent = d>0 ? `● Actif — expire dans ${d} jour${d>1?'s':''}` : 'Abonnement expiré';
+  } else {
+    banner.textContent = b.txt;
+  }
+  
+  const stats = lib._stats;
+  document.getElementById('d-books').textContent = stats ? stats.books : '—';
+  document.getElementById('d-members').textContent = stats ? stats.members : '—';
+  document.getElementById('d-loans').textContent = stats ? stats.loans : '—';
+  
+  // Initialiser le calculateur d'expiration
+  calcExpiry();
+  
+  // Afficher l'historique des paiements
+  renderPaymentLog(lib.payment_log || []);
+
+  document.getElementById('modal').style.display = 'flex';
+  
+  if(!stats && lib.supabase_url && lib.supabase_key){
+    ['d-books','d-members','d-loans'].forEach(id=>document.getElementById(id).textContent='⏳');
+    fetchLibStats(lib).then(s => {
+      if(s){ lib._stats=s; document.getElementById('d-books').textContent=s.books; document.getElementById('d-members').textContent=s.members; document.getElementById('d-loans').textContent=s.loans; }
+      else { ['d-books','d-members','d-loans'].forEach(id=>document.getElementById(id).textContent='—'); }
+    });
+  }
+}
+
+function closeModal(){
+  document.getElementById('modal').style.display='none';
+  currentLib = null;
+}
+
+function contactAdmin(){
+  if(!currentLib) return;
+  const subject = encodeURIComponent(`[Bibliyotèk] Support — ${currentLib.library_name}`);
+  const body = encodeURIComponent(`Bonjour,\n\nJe vous contacte au sujet de votre instance Bibliyotèk.\n\nCordialement,\nObed SANON\nPropriétaire — Bibliyotèk`);
+  window.open(`mailto:${currentLib.admin_email}?subject=${subject}&body=${body}`);
+}
+
+function calcExpiry(){
+  const dur = parseInt(document.getElementById('d-duration').value);
+  const customRow = document.getElementById('d-custom-date-row');
+  if(dur === 0){
+    customRow.style.display = 'block';
+    updateExpiryDisplay();
+    return;
+  }
+  customRow.style.display = 'none';
+  const base = currentLib?.subscription_ends_at && new Date(currentLib.subscription_ends_at) > new Date()
+    ? new Date(currentLib.subscription_ends_at)
+    : new Date();
+  base.setMonth(base.getMonth() + dur);
+  const iso = base.toISOString().split('T')[0];
+  document.getElementById('d-expiry').value = iso;
+  document.getElementById('d-expiry-preview').textContent =
+    `Expire le ${base.toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'})}`;
+}
+
+function updateExpiryDisplay(){
+  const val = document.getElementById('d-expiry').value;
+  if(!val){ document.getElementById('d-expiry-preview').textContent = ''; return; }
+  const d = new Date(val);
+  document.getElementById('d-expiry-preview').textContent =
+    `Expire le ${d.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}`;
+}
+
+async function activateSubscription(){
+  if(!currentLib){ return; }
+  const dur = parseInt(document.getElementById('d-duration').value);
+  const price = parseFloat(document.getElementById('d-price').value) || 0;
+  const expiryVal = document.getElementById('d-expiry').value;
+  if(!expiryVal){ alert("Calculez d'abord la date d'expiration."); return; }
+
+  const btn = document.querySelector('.btn-activate');
+  btn.disabled = true; btn.textContent = '⏳ Activation…';
+
+  // Construire le log de paiement
+  const existingLog = currentLib.payment_log || [];
+  const durLabel = dur === 0 ? 'Personnalisé' : dur === 1 ? '1 mois' : dur === 12 ? '1 an' : `${dur} mois`;
+  const newEntry = {
+    date: new Date().toISOString(),
+    amount: price,
+    duration: durLabel,
+    expires: expiryVal,
+    activated_by: 'owner'
+  };
+  const newLog = [newEntry, ...existingLog].slice(0, 10); // garder 10 derniers
+
+  try{
+    const r = await fetch(`${OUR_URL}/rest/v1/registered_libraries?id=eq.${currentLib.id}`,{
+      method:'PATCH',
+      headers:{
+        'apikey':OUR_KEY,
+        'Authorization':`Bearer ${ownerToken}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal'
+      },
+      body:JSON.stringify({
+        status:'active',
+        plan:'monthly',
+        subscription_ends_at: new Date(expiryVal).toISOString(),
+        price_usd: price || currentLib.price_usd,
+        payment_log: newLog,
+        notes: currentLib.notes
+      })
+    });
+    if(r.ok){
+      Object.assign(currentLib, {
+        status:'active', plan:'monthly',
+        subscription_ends_at: new Date(expiryVal).toISOString(),
+        payment_log: newLog,
+        price_usd: price || currentLib.price_usd
+      });
+      // Mettre à jour la bannière
+      const banner = document.getElementById('d-status-banner');
+      const d = new Date(expiryVal);
+      const days = Math.ceil((d - new Date()) / 86400000);
+      banner.className = 'status-banner sb-active';
+      banner.textContent = `● Actif — expire dans ${days} jour${days>1?'s':''}`;
+      // Afficher le log
+      renderPaymentLog(newLog);
+      btn.textContent = '✓ Abonnement activé !';
+      btn.style.background = 'var(--green-bg)';
+      btn.style.color = '#86efac';
+      setTimeout(()=>{
+        btn.disabled=false; btn.textContent="✓ Activer l'abonnement";
+        btn.style.background=''; btn.style.color='';
+        renderTable(allLibs);
+      }, 2500);
+    } else { throw new Error(r.status); }
+  }catch(e){
+    alert('Erreur activation: ' + e.message);
+    btn.disabled=false; btn.textContent="✓ Activer l'abonnement";
+  }
+}
+
+function renderPaymentLog(log){
+  const el = document.getElementById('d-payment-log');
+  if(!log || !log.length){
+    el.innerHTML = '<span style="color:var(--text3);">Aucun paiement enregistré</span>';
+    return;
+  }
+  el.innerHTML = log.map(p => {
+    const d = new Date(p.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+      <span>${d} · ${p.duration}</span>
+      <span style="color:var(--color-text-success,#86efac);font-weight:600;">${p.amount ? p.amount+' USD' : '—'}</span>
+    </div>`;
+  }).join('');
+}
+
+function setStatus(newStatus){
+  if(!currentLib) return;
+  currentLib._pendingStatus = newStatus;
+  const banner = document.getElementById('d-status-banner');
+  const bannerMap = {
+    active:   {cls:'sb-active',   txt:'● Abonnement actif — en attente de sauvegarde'},
+    free:     {cls:'sb-free',     txt:'★ Accès gratuit — en attente de sauvegarde'},
+    trial:    {cls:'sb-trial',    txt:"⏳ Essai — en attente de sauvegarde"},
+    suspended:{cls:'sb-suspended',txt:'✕ Suspendu — en attente de sauvegarde'},
+  };
+  const b = bannerMap[newStatus];
+  banner.className = 'status-banner '+b.cls;
+  banner.textContent = b.txt;
+}
+
+async function saveAll(){
+  if(!currentLib) return;
+  const btn = document.querySelector('.btn-save');
+  btn.disabled=true; btn.textContent='⏳ Sauvegarde…';
+
+  const notes = document.getElementById('d-notes').value;
+  const price = parseInt(document.getElementById('d-price').value)||null;
+  const expiryVal = document.getElementById('d-expiry').value;
+  const suspendReason = document.getElementById('d-suspend-reason').value;
+  const newStatus = currentLib._pendingStatus || currentLib.status || 'trial';
+
+  const payload = { notes, price_usd:price, suspended_reason:suspendReason, status:newStatus, plan:newStatus==='active'?'monthly':newStatus };
+  if(expiryVal){
+    if(newStatus==='trial') payload.trial_ends_at = new Date(expiryVal).toISOString();
+    else payload.subscription_ends_at = new Date(expiryVal).toISOString();
+  }
+
+  try{
+    const r = await fetch(`${OUR_URL}/rest/v1/registered_libraries?id=eq.${currentLib.id}`,{
+      method:'PATCH',
+      headers:{'apikey':OUR_KEY,'Authorization':`Bearer ${ownerToken}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify(payload)
+    });
+    if(r.ok){
+      Object.assign(currentLib, payload);
+      delete currentLib._pendingStatus;
+      btn.textContent='✓ Sauvegardé'; btn.style.background='var(--green)';
+      setTimeout(()=>{ btn.disabled=false; btn.textContent='💾 Sauvegarder'; btn.style.background=''; renderTable(allLibs); },2000);
+    } else { throw new Error(r.status); }
+  }catch(e){ alert('Erreur sauvegarde: '+e.message); btn.disabled=false; btn.textContent='💾 Sauvegarder'; }
+}
+
+function copyAccessLink(){
+  if(!currentLib || !currentLib.supabase_url || !currentLib.supabase_key) {
+    alert('Clé anon manquante — impossible de générer le lien.'); return;
+  }
+  const cfg = {
+    url: currentLib.supabase_url,
+    key: currentLib.supabase_key,
+    adminEmail: currentLib.admin_email
+  };
+  const encoded = btoa(JSON.stringify(cfg));
+  const link = `https://bibliyotek.netlify.app/#cfg=${encoded}`;
+  navigator.clipboard.writeText(link).then(()=>{
+    const btn = document.getElementById('btn-copy-link');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copié !';
+    btn.style.background = 'var(--green-bg)';
+    btn.style.color = '#86efac';
+    setTimeout(()=>{ btn.textContent=orig; btn.style.background=''; btn.style.color=''; }, 2500);
+  });
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+}); // DOMContentLoaded
+</script>
+</body>
+</html>
